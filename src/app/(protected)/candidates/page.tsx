@@ -1,19 +1,36 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Badge } from '@/components/ui/Badge'
 import { CandidatesClient } from '@/components/candidates/CandidatesClient'
+
+export type CandidateRole = { role_id: string; role_title: string; status: string }
+export type CandidateRolesMap = Record<string, CandidateRole[]>
 
 export default async function CandidatesPage() {
   const supabase = await createClient()
 
-  const [{ data: candidates }, { data: profiles }] = await Promise.all([
+  const [{ data: candidates }, { data: profiles }, { data: submissions }] = await Promise.all([
     supabase
       .from('candidates')
       .select('*, profile:profiles(id, name), candidate_skills(skill:skills(id, name, category))')
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabase.from('profiles').select('id, name').order('name'),
+    supabase
+      .from('submissions')
+      .select('candidate_id, status, role:roles(id, title, status)')
+      .is('deleted_at', null),
   ])
+
+  // Build map: candidateId → active-role submissions
+  const candidateRoles: CandidateRolesMap = {}
+  for (const s of submissions ?? []) {
+    const role = (s.role as unknown) as { id: string; title: string; status: string } | null
+    if (!role) continue
+    // Only "open" roles (active or on_hold)
+    if (role.status !== 'active' && role.status !== 'on_hold') continue
+    if (!candidateRoles[s.candidate_id]) candidateRoles[s.candidate_id] = []
+    candidateRoles[s.candidate_id].push({ role_id: role.id, role_title: role.title, status: s.status })
+  }
 
   const list = (candidates ?? []).map(c => ({
     ...c,
@@ -35,7 +52,7 @@ export default async function CandidatesPage() {
         </Link>
       </div>
 
-      <CandidatesClient candidates={list} profiles={profiles ?? []} />
+      <CandidatesClient candidates={list} profiles={profiles ?? []} candidateRoles={candidateRoles} />
     </div>
   )
 }

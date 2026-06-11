@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { SkillSelector } from '@/components/ui/SkillSelector'
-import { Upload, Loader2, CheckCircle, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { Upload, Loader2, CheckCircle, ChevronDown, ChevronUp, Plus, Trash2, Sparkles, FileText, X, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CandidateCVModal } from '@/components/candidates/CandidateCVModal'
 
 interface Skill { id: string; name: string; category: string }
 interface Profile { id: string; name: string }
@@ -90,17 +91,46 @@ function SectionHeader({
   )
 }
 
-/* ── Item card wrapper ── */
-function ItemCard({ idx, onRemove, children }: { idx: number; onRemove: () => void; children: React.ReactNode }) {
+/* ── Collapsible item card ── */
+function ItemCard({
+  onRemove,
+  summary,
+  defaultExpanded = false,
+  children,
+}: {
+  onRemove: () => void
+  summary: React.ReactNode
+  defaultExpanded?: boolean
+  children: React.ReactNode
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
   return (
-    <div className="glass rounded-lg p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-400">#{idx + 1}</span>
-        <button type="button" onClick={onRemove} className="text-gray-300 hover:text-red-400 transition-colors">
+    <div className="glass rounded-xl overflow-hidden border border-white/40">
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        >
+          {expanded
+            ? <ChevronUp size={14} className="text-gray-400 flex-shrink-0" />
+            : <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
+          }
+          <span className="flex-1 min-w-0">{summary}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 p-0.5"
+        >
           <Trash2 size={14} />
         </button>
       </div>
-      {children}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 border-t border-white/30 space-y-2">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
@@ -132,6 +162,11 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
   const [achExpanded, setAchExpanded] = useState(true)
 
   const [saving, setSaving] = useState(false)
+  const [showCvPreview, setShowCvPreview] = useState(false)
+  const [cvFile, setCvFile] = useState<File | null>(null)
+  const [cvFilePath, setCvFilePath] = useState<string>((initial?.cv_file_path as string) ?? '')
+  const [cvFileName, setCvFileName] = useState<string>('')
+  const [cvUploading, setCvUploading] = useState(false)
   const [cvParsing, setCvParsing] = useState(false)
   const [cvParsed, setCvParsed] = useState(false)
   const [error, setError] = useState('')
@@ -151,11 +186,16 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
     rate_min: (initial?.rate_min as string) ?? '',
     rate_wish: (initial?.rate_wish as string) ?? '',
     currency: (initial?.currency as string) ?? 'EUR',
+    candidate_status: (initial?.candidate_status as string) ?? 'pasiv',
     source_type: (initial?.source_type as string) ?? '',
     successful: (initial?.successful as boolean) ?? false,
     successful_client: (initial?.successful_client as string) ?? '',
     notes: (initial?.notes as string) ?? '',
     gdpr_consent: (initial?.gdpr_consent as boolean) ?? false,
+    company_name: (initial?.company_name as string) ?? '',
+    company_cui: (initial?.company_cui as string) ?? '',
+    company_tva: (initial?.company_tva as boolean) ?? false,
+    company_bank_account: (initial?.company_bank_account as string) ?? '',
   })
 
   useEffect(() => {
@@ -181,16 +221,56 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
   const projOps = makeUpdater<Project>(setProjects)
   const achOps = makeUpdater<Achievement>(setAchievements)
 
-  async function handleCvUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setCvFile(file)
+    setCvFileName(file.name)
+    setCvParsed(false)
+    setError('')
+    // Upload imediat la storage
+    setCvUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('cv', file)
+      const res = await fetch('/api/cv-upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setCvFilePath(data.path)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Eroare la încărcarea fișierului')
+      setCvFile(null)
+      setCvFileName('')
+    } finally {
+      setCvUploading(false)
+    }
+  }
+
+  function handleClearCv() {
+    setCvFile(null)
+    setCvFileName('')
+    setCvFilePath('')
+    setCvParsed(false)
+  }
+
+  async function handleCvParse() {
+    if (!cvFile && !cvFilePath) return
     setCvParsing(true)
     setCvParsed(false)
     setError('')
     try {
-      const fd = new FormData()
-      fd.append('cv', file)
-      const res = await fetch('/api/cv-parse', { method: 'POST', body: fd })
+      let res: Response
+      if (cvFile) {
+        const fd = new FormData()
+        fd.append('cv', cvFile)
+        res = await fetch('/api/cv-parse', { method: 'POST', body: fd })
+      } else {
+        res = await fetch('/api/cv-parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: cvFilePath }),
+        })
+      }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
@@ -258,6 +338,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
         projects,
         achievements,
         skill_ids: selectedSkills.map(s => s.id),
+        ...(cvFilePath ? { cv_file_path: cvFilePath } : {}),
       }
 
       const url = isEdit ? `/api/candidates/${candidateId}` : '/api/candidates'
@@ -286,24 +367,69 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
 
       {/* Upload CV */}
       <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-blue-900">Încarcă CV pentru precompletare automată (AI)</p>
-            <p className="text-xs text-blue-700 mt-0.5">PDF sau DOCX — extrage date, skilluri, experiență, proiecte, certificări și realizări</p>
-          </div>
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-blue-900">CV candidat</p>
+            {(cvFileName || cvFilePath) ? (
+              <div className="flex items-center gap-2 mt-1">
+                <FileText size={14} className="text-blue-600 flex-shrink-0" />
+                <span className="text-xs text-blue-700 truncate">
+                  {cvFileName || cvFilePath.split('/').pop()}
+                </span>
+                {cvUploading && <Loader2 size={12} className="animate-spin text-blue-500 flex-shrink-0" />}
+                {!cvUploading && cvFilePath && <CheckCircle size={12} className="text-green-600 flex-shrink-0" />}
+                {!cvUploading && (
+                  <button type="button" onClick={handleClearCv}
+                    className="ml-1 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-blue-700 mt-0.5">PDF sau DOCX — acceptat pentru upload și parsare AI</p>
+            )}
             {cvParsed && (
-              <span className="flex items-center gap-1.5 text-green-700 text-sm font-medium">
-                <CheckCircle size={16} /> CV parsat
+              <span className="inline-flex items-center gap-1 text-green-700 text-xs font-medium mt-1">
+                <CheckCircle size={12} /> Câmpurile au fost completate din CV
               </span>
             )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Buton Populează automat — apare dacă există fișier (nou sau existent) */}
+            {(cvFilePath || cvFile) && !cvUploading && (
+              <button
+                type="button"
+                onClick={handleCvParse}
+                disabled={cvParsing}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  cvParsing
+                    ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                )}
+              >
+                {cvParsing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {cvParsing ? 'Se parsează...' : 'Populează automat'}
+              </button>
+            )}
+            {/* Buton Vizualizează CV — doar în edit mode cu CV existent */}
+            {isEdit && cvFilePath && !cvUploading && (
+              <button
+                type="button"
+                onClick={() => setShowCvPreview(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors flex-shrink-0"
+              >
+                <Eye size={14} /> Vizualizează
+              </button>
+            )}
+            {/* Buton Upload */}
             <label className={cn(
-              'inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
-              cvParsing ? 'bg-blue-200 text-blue-500 cursor-not-allowed' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'
+              'inline-flex items-center gap-1.5 cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
+              cvUploading ? 'bg-blue-200 text-blue-500 cursor-not-allowed' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'
             )}>
-              {cvParsing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              {cvParsing ? 'Se procesează...' : 'Alege fișier CV'}
-              <input type="file" accept=".pdf,.docx,.doc" onChange={handleCvUpload} disabled={cvParsing} className="hidden" />
+              {cvUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {cvUploading ? 'Se încarcă...' : (cvFilePath ? 'Înlocuiește' : 'Alege fișier')}
+              <input type="file" accept=".pdf,.docx,.doc" onChange={handleFileSelect} disabled={cvUploading || cvParsing} className="hidden" />
             </label>
           </div>
         </div>
@@ -347,6 +473,38 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
 
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Profil profesional</h3>
+
+            {/* Status candidat */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status candidat</label>
+              <div className="flex gap-2">
+                {([
+                  { value: 'activ',   label: 'Activ',   cls: 'border-green-300 bg-green-50 text-green-700 ring-green-300' },
+                  { value: 'pasiv',   label: 'Pasiv',   cls: 'border-gray-300 bg-gray-50 text-gray-600 ring-gray-300' },
+                  { value: 'angajat', label: 'Angajat', cls: 'border-blue-300 bg-blue-50 text-blue-700 ring-blue-300' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set('candidate_status', opt.value)}
+                    className={cn(
+                      'px-4 py-1.5 rounded-lg text-sm font-medium border transition-all',
+                      form.candidate_status === opt.value
+                        ? `${opt.cls} ring-2`
+                        : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                {form.candidate_status === 'activ' && 'Contactat activ, implicat într-un proces de recrutare.'}
+                {form.candidate_status === 'pasiv' && 'În baza de date, fără proces activ de recrutare.'}
+                {form.candidate_status === 'angajat' && 'Plasat cu succes, ofertă acceptată.'}
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -420,6 +578,29 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <input type="checkbox" id="gdpr" checked={form.gdpr_consent} onChange={e => set('gdpr_consent', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
               <label htmlFor="gdpr" className="text-sm text-gray-700">Candidatul și-a dat consimțământul GDPR</label>
             </div>
+
+            {/* Company data */}
+            <div className="border-t border-gray-200 pt-4 mt-2 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Date companie (PFA/SRL)</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nume companie</label>
+                <input value={form.company_name} onChange={e => set('company_name', e.target.value)} placeholder="Ex: Ion Popescu SRL" className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CUI</label>
+                  <input value={form.company_cui} onChange={e => set('company_cui', e.target.value)} placeholder="RO12345678" className={inputCls} />
+                </div>
+                <div className="flex items-center gap-3 pt-6">
+                  <input type="checkbox" id="company_tva" checked={form.company_tva} onChange={e => set('company_tva', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
+                  <label htmlFor="company_tva" className="text-sm text-gray-700">Plătitor TVA</label>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cont bancar (IBAN)</label>
+                <input value={form.company_bank_account} onChange={e => set('company_bank_account', e.target.value)} placeholder="RO49AAAA1B31007593840000" className={cn(inputCls, 'font-mono text-xs')} />
+              </div>
+            </div>
           </section>
 
           <div className="pt-4 border-t border-gray-200/60">
@@ -446,33 +627,55 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             <SectionHeader title="Experiență profesională" count={experiences.length} expanded={expExpanded} onToggle={() => setExpExpanded(v => !v)} />
             {expExpanded && (
               <div className="px-4 pb-4 space-y-3">
-                {experiences.map((item, idx) => (
-                  <ItemCard key={item.id} idx={idx} onRemove={() => expOps.remove(item.id)}>
-                    <input type="text" value={item.company ?? ''} onChange={e => expOps.update(item.id, 'company', e.target.value)}
-                      placeholder="Companie *" className={inputCls} />
-                    <input type="text" value={item.role ?? ''} onChange={e => expOps.update(item.id, 'role', e.target.value)}
-                      placeholder="Titlu poziție" className={inputCls} />
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Start</label>
-                        <input type="month" value={item.start_date ?? ''} onChange={e => expOps.update(item.id, 'start_date', e.target.value)} className={inputCls} />
+                {experiences.map((item) => {
+                  const period = (() => {
+                    const fmt = (d: string) => { const [y, m] = d.split('-'); return m ? `${m}/${y}` : y }
+                    const s = item.start_date ? fmt(item.start_date) : null
+                    const e = item.is_present ? 'prezent' : (item.end_date ? fmt(item.end_date) : null)
+                    if (!s && !e) return null
+                    return `${s ?? '?'} – ${e ?? '?'}`
+                  })()
+                  return (
+                    <ItemCard
+                      key={item.id}
+                      onRemove={() => expOps.remove(item.id)}
+                      defaultExpanded={!item.company && !item.role}
+                      summary={
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-800 truncate">
+                            {item.role || <span className="text-gray-400 italic">Poziție necompletată</span>}
+                            {item.company ? <span className="text-gray-400 font-normal"> @ {item.company}</span> : null}
+                          </div>
+                          {period && <div className="text-xs text-gray-400">{period}</div>}
+                        </div>
+                      }
+                    >
+                      <input type="text" value={item.company ?? ''} onChange={e => expOps.update(item.id, 'company', e.target.value)}
+                        placeholder="Companie *" className={inputCls} />
+                      <input type="text" value={item.role ?? ''} onChange={e => expOps.update(item.id, 'role', e.target.value)}
+                        placeholder="Titlu poziție" className={inputCls} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Start</label>
+                          <input type="month" value={item.start_date ?? ''} onChange={e => expOps.update(item.id, 'start_date', e.target.value)} className={inputCls} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">End</label>
+                          <input type="month" value={item.end_date ?? ''} onChange={e => expOps.update(item.id, 'end_date', e.target.value)}
+                            disabled={item.is_present} className={cn(inputCls, item.is_present && 'opacity-40 cursor-not-allowed')} />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">End</label>
-                        <input type="month" value={item.end_date ?? ''} onChange={e => expOps.update(item.id, 'end_date', e.target.value)}
-                          disabled={item.is_present} className={cn(inputCls, item.is_present && 'opacity-40 cursor-not-allowed')} />
-                      </div>
-                    </div>
-                    <label className="flex items-center gap-2 text-xs text-gray-600">
-                      <input type="checkbox" checked={item.is_present} onChange={e => expOps.update(item.id, 'is_present', e.target.checked)} className="w-3.5 h-3.5" />
-                      Prezent
-                    </label>
-                    <input type="text" value={item.location ?? ''} onChange={e => expOps.update(item.id, 'location', e.target.value)}
-                      placeholder="Locație (opțional)" className={inputCls} />
-                    <textarea rows={4} value={item.description ?? ''} onChange={e => expOps.update(item.id, 'description', e.target.value)}
-                      placeholder="Descriere completă rol, responsabilități, realizări..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
-                  </ItemCard>
-                ))}
+                      <label className="flex items-center gap-2 text-xs text-gray-600">
+                        <input type="checkbox" checked={item.is_present} onChange={e => expOps.update(item.id, 'is_present', e.target.checked)} className="w-3.5 h-3.5" />
+                        Prezent
+                      </label>
+                      <input type="text" value={item.location ?? ''} onChange={e => expOps.update(item.id, 'location', e.target.value)}
+                        placeholder="Locație (opțional)" className={inputCls} />
+                      <textarea rows={4} value={item.description ?? ''} onChange={e => expOps.update(item.id, 'description', e.target.value)}
+                        placeholder="Descriere completă rol, responsabilități, realizări..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
+                    </ItemCard>
+                  )
+                })}
                 <AddButton label="Adaugă experiență" onClick={() => setExperiences(prev => [...prev, newExp()])} />
               </div>
             )}
@@ -483,8 +686,22 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             <SectionHeader title="Proiecte" count={projects.length} expanded={projExpanded} onToggle={() => setProjExpanded(v => !v)} />
             {projExpanded && (
               <div className="px-4 pb-4 space-y-3">
-                {projects.map((item, idx) => (
-                  <ItemCard key={item.id} idx={idx} onRemove={() => projOps.remove(item.id)}>
+                {projects.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    onRemove={() => projOps.remove(item.id)}
+                    defaultExpanded={!item.name}
+                    summary={
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {item.name || <span className="text-gray-400 italic">Proiect necompletat</span>}
+                        </div>
+                        {item.technologies && (
+                          <div className="text-xs text-gray-400 truncate">{item.technologies}</div>
+                        )}
+                      </div>
+                    }
+                  >
                     <input type="text" value={item.name ?? ''} onChange={e => projOps.update(item.id, 'name', e.target.value)}
                       placeholder="Nume proiect *" className={inputCls} />
                     <textarea rows={3} value={item.description ?? ''} onChange={e => projOps.update(item.id, 'description', e.target.value)}
@@ -505,8 +722,24 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             <SectionHeader title="Certificări / Traininguri" count={certifications.length} expanded={certExpanded} onToggle={() => setCertExpanded(v => !v)} />
             {certExpanded && (
               <div className="px-4 pb-4 space-y-3">
-                {certifications.map((item, idx) => (
-                  <ItemCard key={item.id} idx={idx} onRemove={() => certOps.remove(item.id)}>
+                {certifications.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    onRemove={() => certOps.remove(item.id)}
+                    defaultExpanded={!item.name}
+                    summary={
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {item.name || <span className="text-gray-400 italic">Certificare necompletată</span>}
+                        </div>
+                        {(item.issuer || item.date_obtained) && (
+                          <div className="text-xs text-gray-400">
+                            {item.issuer}{item.issuer && item.date_obtained ? ' · ' : ''}{item.date_obtained}
+                          </div>
+                        )}
+                      </div>
+                    }
+                  >
                     <input type="text" value={item.name ?? ''} onChange={e => certOps.update(item.id, 'name', e.target.value)}
                       placeholder="Nume certificare *" className={inputCls} />
                     <div className="grid grid-cols-2 gap-2">
@@ -529,8 +762,17 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             <SectionHeader title="Realizări / Achievements" count={achievements.length} expanded={achExpanded} onToggle={() => setAchExpanded(v => !v)} />
             {achExpanded && (
               <div className="px-4 pb-4 space-y-3">
-                {achievements.map((item, idx) => (
-                  <ItemCard key={item.id} idx={idx} onRemove={() => achOps.remove(item.id)}>
+                {achievements.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    onRemove={() => achOps.remove(item.id)}
+                    defaultExpanded={!item.title}
+                    summary={
+                      <div className="text-sm font-medium text-gray-800 truncate">
+                        {item.title || <span className="text-gray-400 italic">Realizare necompletată</span>}
+                      </div>
+                    }
+                  >
                     <input type="text" value={item.title ?? ''} onChange={e => achOps.update(item.id, 'title', e.target.value)}
                       placeholder="Titlu realizare / premiu *" className={inputCls} />
                     <textarea rows={2} value={item.description ?? ''} onChange={e => achOps.update(item.id, 'description', e.target.value)}
@@ -544,6 +786,13 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
 
         </div>
       </div>
+      {showCvPreview && isEdit && candidateId && (
+        <CandidateCVModal
+          candidateId={candidateId}
+          candidateName={`${form.first_name} ${form.last_name}`.trim()}
+          onClose={() => setShowCvPreview(false)}
+        />
+      )}
     </form>
   )
 }

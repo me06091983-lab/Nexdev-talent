@@ -12,6 +12,7 @@ import {
   FileText,
   Settings,
   LogOut,
+  Handshake,
 } from 'lucide-react'
 
 const navItems = [
@@ -19,8 +20,9 @@ const navItems = [
   { href: '/candidates', label: 'Candidați', icon: Users },
   { href: '/clients', label: 'Clienți', icon: Building2 },
   { href: '/roles', label: 'Roluri', icon: Briefcase },
-  { href: '/pipeline', label: 'Pipeline', icon: GitPullRequest },
+  { href: '/pipeline', label: 'Radar', icon: GitPullRequest },
   { href: '/contracts', label: 'Contracte', icon: FileText },
+  { href: '/partners', label: 'Parteneri', icon: Handshake },
 ]
 
 const bottomItems = [

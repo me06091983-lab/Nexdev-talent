@@ -31,10 +31,11 @@ function friendlyError(msg: string): string {
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
-  const search = searchParams.get('search') || ''
+  const search = searchParams.get('search') || searchParams.get('q') || ''
   const profileId = searchParams.get('profile_id')
   const seniority = searchParams.get('seniority')
   const sourceType = searchParams.get('source_type')
+  const notInRole = searchParams.get('not_in_role')
 
   let query = supabase
     .from('candidates')
@@ -53,6 +54,18 @@ export async function GET(request: NextRequest) {
   if (profileId) query = query.eq('profile_id', profileId)
   if (seniority) query = query.eq('seniority', seniority)
   if (sourceType) query = query.eq('source_type', sourceType)
+
+  if (notInRole) {
+    const { data: inPipeline } = await supabase
+      .from('submissions')
+      .select('candidate_id')
+      .eq('role_id', notInRole)
+      .is('deleted_at', null)
+    const excludeIds = (inPipeline ?? []).map((s: { candidate_id: string }) => s.candidate_id).filter(Boolean)
+    if (excludeIds.length) {
+      query = query.not('id', 'in', `(${excludeIds.join(',')})`)
+    }
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
