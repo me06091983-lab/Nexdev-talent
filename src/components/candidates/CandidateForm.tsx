@@ -448,9 +448,9 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <div className="px-4 pb-4 space-y-3">
                 {experiences.map((item, idx) => (
                   <ItemCard key={item.id} idx={idx} onRemove={() => expOps.remove(item.id)}>
-                    <input type="text" value={item.company} onChange={e => expOps.update(item.id, 'company', e.target.value)}
+                    <input type="text" value={item.company ?? ''} onChange={e => expOps.update(item.id, 'company', e.target.value)}
                       placeholder="Companie *" className={inputCls} />
-                    <input type="text" value={item.role} onChange={e => expOps.update(item.id, 'role', e.target.value)}
+                    <input type="text" value={item.role ?? ''} onChange={e => expOps.update(item.id, 'role', e.target.value)}
                       placeholder="Titlu poziție" className={inputCls} />
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -485,7 +485,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <div className="px-4 pb-4 space-y-3">
                 {projects.map((item, idx) => (
                   <ItemCard key={item.id} idx={idx} onRemove={() => projOps.remove(item.id)}>
-                    <input type="text" value={item.name} onChange={e => projOps.update(item.id, 'name', e.target.value)}
+                    <input type="text" value={item.name ?? ''} onChange={e => projOps.update(item.id, 'name', e.target.value)}
                       placeholder="Nume proiect *" className={inputCls} />
                     <textarea rows={3} value={item.description ?? ''} onChange={e => projOps.update(item.id, 'description', e.target.value)}
                       placeholder="Descriere completă proiect..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
@@ -507,7 +507,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <div className="px-4 pb-4 space-y-3">
                 {certifications.map((item, idx) => (
                   <ItemCard key={item.id} idx={idx} onRemove={() => certOps.remove(item.id)}>
-                    <input type="text" value={item.name} onChange={e => certOps.update(item.id, 'name', e.target.value)}
+                    <input type="text" value={item.name ?? ''} onChange={e => certOps.update(item.id, 'name', e.target.value)}
                       placeholder="Nume certificare *" className={inputCls} />
                     <div className="grid grid-cols-2 gap-2">
                       <input type="text" value={item.issuer ?? ''} onChange={e => certOps.update(item.id, 'issuer', e.target.value)}
@@ -531,7 +531,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <div className="px-4 pb-4 space-y-3">
                 {achievements.map((item, idx) => (
                   <ItemCard key={item.id} idx={idx} onRemove={() => achOps.remove(item.id)}>
-                    <input type="text" value={item.title} onChange={e => achOps.update(item.id, 'title', e.target.value)}
+                    <input type="text" value={item.title ?? ''} onChange={e => achOps.update(item.id, 'title', e.target.value)}
                       placeholder="Titlu realizare / premiu *" className={inputCls} />
                     <textarea rows={2} value={item.description ?? ''} onChange={e => achOps.update(item.id, 'description', e.target.value)}
                       placeholder="Descriere..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
