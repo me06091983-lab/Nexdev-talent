@@ -21,7 +21,11 @@ function friendlyError(msg: string): string {
     return 'Valoare invalidă introdusă într-un câmp. Verifică câmpurile numerice și datele.'
   if (msg.includes('foreign key'))
     return 'Referință invalidă — una dintre selecții nu mai există. Reîncarcă pagina și încearcă din nou.'
-  return 'Eroare la salvare. Verifică toate câmpurile și încearcă din nou.'
+  if (msg.includes('violates check constraint'))
+    return 'Valoare nepermisă într-un câmp. Verifică selecțiile (senioritate, monedă) și încearcă din nou.'
+  if (msg.includes('does not exist'))
+    return 'Eroare de configurare — un câmp trimis nu există în baza de date. Contactează administratorul.'
+  return `Eroare la salvare: ${msg}`
 }
 
 export async function GET(request: NextRequest) {

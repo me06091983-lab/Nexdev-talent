@@ -249,6 +249,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
       const payload = {
         ...form,
         profile_id,
+        seniority: form.seniority || null,
         rate_min: form.rate_min ? parseFloat(form.rate_min) : null,
         rate_wish: form.rate_wish ? parseFloat(form.rate_wish) : null,
         source_type: form.source_type || '',
@@ -318,11 +319,11 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date personale</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prenume *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prenume <span className="text-red-500">*</span></label>
                 <input type="text" value={form.first_name} onChange={e => set('first_name', e.target.value)} className={inputCls} required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nume *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nume <span className="text-red-500">*</span></label>
                 <input type="text" value={form.last_name} onChange={e => set('last_name', e.target.value)} className={inputCls} required />
               </div>
               <div>
@@ -421,7 +422,9 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
             </div>
           </section>
 
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200/60">
+          <div className="pt-4 border-t border-gray-200/60">
+            <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Câmpuri obligatorii</p>
+          <div className="flex items-center gap-3">
             <button type="submit" disabled={saving}
               className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/20">
               {saving && <Loader2 size={16} className="animate-spin" />}
@@ -431,6 +434,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-white/40 rounded-xl transition-colors">
               Anulează
             </button>
+          </div>
           </div>
         </div>
 
