@@ -19,6 +19,9 @@ interface Role {
   status: string
   fieldglass_id: string | null
   deadline: string | null
+  rate: number | null
+  rate_currency: string
+  rate_type: string
   required_skills: Skill[]
   preferred_skills: Skill[]
   created_at: string
@@ -127,6 +130,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
                 <th className="px-4 py-3"></th>
@@ -160,6 +164,11 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                           <Badge key={s.id} variant="gray">{s.name}</Badge>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                      {r.rate ? (
+                        <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'zi' : 'oră'}</span></span>
+                      ) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>

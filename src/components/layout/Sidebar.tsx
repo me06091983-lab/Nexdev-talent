@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Users,
+  Building2,
   Briefcase,
   GitPullRequest,
   FileText,
@@ -16,6 +17,7 @@ import {
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/candidates', label: 'Candidați', icon: Users },
+  { href: '/clients', label: 'Clienți', icon: Building2 },
   { href: '/roles', label: 'Roluri', icon: Briefcase },
   { href: '/pipeline', label: 'Pipeline', icon: GitPullRequest },
   { href: '/contracts', label: 'Contracte', icon: FileText },

@@ -31,6 +31,13 @@ const COLLAB_OPTIONS = [
   { value: 'freelance', label: 'Freelance' },
 ]
 
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
+
+const RATE_TYPE_OPTIONS = [
+  { value: 'daily', label: 'Per zi' },
+  { value: 'hourly', label: 'Per oră' },
+]
+
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
   { value: 'active', label: 'Activ' },
@@ -59,6 +66,9 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
     status: (initial?.status as string) ?? 'active',
     fieldglass_id: (initial?.fieldglass_id as string) ?? '',
     deadline: (initial?.deadline as string) ?? '',
+    rate: (initial?.rate as string) ?? '',
+    rate_currency: (initial?.rate_currency as string) ?? 'EUR',
+    rate_type: (initial?.rate_type as string) ?? 'daily',
   })
 
   useEffect(() => {
@@ -83,6 +93,9 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
         collaboration_type: form.collaboration_type || null,
         deadline: form.deadline || null,
         fieldglass_id: form.fieldglass_id || null,
+        rate: form.rate ? parseFloat(form.rate) : null,
+        rate_currency: form.rate_currency,
+        rate_type: form.rate_type,
         required_skill_ids: requiredSkills.map(s => s.id),
         preferred_skill_ids: preferredSkills.map(s => s.id),
       }
@@ -167,6 +180,25 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Deadline submisii</label>
                   <input type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              {/* Rate */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rate rol</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <input type="number" min="0" step="0.01" value={form.rate}
+                    onChange={e => set('rate', e.target.value)}
+                    placeholder="0.00"
+                    className="glass-input col-span-1 px-3 py-2.5 rounded-lg text-sm w-full" />
+                  <select value={form.rate_currency} onChange={e => set('rate_currency', e.target.value)}
+                    className={inputCls}>
+                    {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select value={form.rate_type} onChange={e => set('rate_type', e.target.value)}
+                    className={inputCls}>
+                    {RATE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                 </div>
               </div>
             </div>
