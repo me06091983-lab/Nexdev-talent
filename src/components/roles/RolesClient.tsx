@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, Pencil, Trash2, X, Kanban, ChevronRight, ChevronDown, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 
 interface Skill { id: string; name: string; category: string }
@@ -58,12 +59,21 @@ const STATUS_LABELS: Record<string, { label: string; variant: 'gray' | 'blue' | 
 }
 
 const PIPELINE_LABELS: Record<string, { label: string; cls: string }> = {
-  pipeline:    { label: 'Pipeline',    cls: 'bg-slate-100 text-slate-600' },
-  submitted:   { label: 'Submitted',   cls: 'bg-blue-50 text-blue-600' },
-  shortlisted: { label: 'Shortlisted', cls: 'bg-purple-50 text-purple-600' },
-  interview:   { label: 'Interview',   cls: 'bg-amber-50 text-amber-600' },
-  rejected:    { label: 'Rejected',    cls: 'bg-red-50 text-red-500' },
-  offer:       { label: 'Offer',       cls: 'bg-green-50 text-green-600' },
+  pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-600' },
+  submitted:   { label: 'Propus client', cls: 'bg-blue-50 text-blue-600' },
+  shortlisted: { label: 'Selectat',      cls: 'bg-purple-50 text-purple-600' },
+  interview:   { label: 'Interviu',      cls: 'bg-amber-50 text-amber-600' },
+  rejected:    { label: 'Respins',       cls: 'bg-red-50 text-red-500' },
+  offer:       { label: 'Ofertă',        cls: 'bg-green-50 text-green-600' },
+}
+
+const STATUS_GROUP_ORDER = ['active', 'filled', 'on_hold', 'draft', 'closed']
+const STATUS_GROUP_LABELS: Record<string, string> = {
+  active:  'Roluri active',
+  filled:  'Roluri ocupate',
+  on_hold: 'On Hold',
+  draft:   'Draft',
+  closed:  'Închise',
 }
 
 const INTERVIEW_STATUS_LABELS: Record<string, { label: string; cls: string }> = {
@@ -263,111 +273,126 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
           )}
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/40 bg-white/30 text-left">
-                <th className="px-2 py-3 w-8"></th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(r => {
-                const statusInfo = STATUS_LABELS[r.status] ?? { label: r.status, variant: 'gray' as const }
-                const isExpanded = expanded.has(r.id)
-                return (
-                  <Fragment key={r.id}>
-                    <tr className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
-                      {/* Expand toggle */}
-                      <td className="px-2 py-3 text-center">
-                        <button
-                          onClick={() => toggleExpand(r.id)}
-                          className="p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
-                          title={isExpanded ? 'Restrânge' : 'Extinde candidați'}
-                        >
-                          {isExpanded
-                            ? <ChevronDown size={14} />
-                            : <ChevronRight size={14} />
-                          }
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 text-sm">{r.title}</div>
-                        <div className="text-xs text-gray-400 mt-0.5 space-x-2">
-                          {r.seniority && <span>{SENIORITY_LABELS[r.seniority]}</span>}
-                          {r.location && <span>📍 {r.location}</span>}
-                          {r.fieldglass_id && (
-                            <span className="font-mono text-gray-500">{r.fieldglass_id}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{r.client?.name ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {r.required_skills.slice(0, 4).map(s => (
-                            <Badge key={s.id} variant="blue">{s.name}</Badge>
-                          ))}
-                          {r.required_skills.length > 4 && (
-                            <Badge variant="gray">+{r.required_skills.length - 4}</Badge>
-                          )}
-                          {r.required_skills.length === 0 && r.preferred_skills.slice(0, 3).map(s => (
-                            <Badge key={s.id} variant="gray">{s.name}</Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                        {r.rate ? (
-                          <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'zi' : 'oră'}</span></span>
-                        ) : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {r.deadline
-                          ? new Date(r.deadline).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end">
-                          <Link href={`/roles/${r.id}/pipeline`}
-                            className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors"
-                            title="Pipeline">
-                            <Kanban size={15} />
-                          </Link>
-                          <Link href={`/roles/${r.id}`}
-                            className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                            title="Editează">
-                            <Pencil size={15} />
-                          </Link>
-                          <button onClick={() => handleDelete(r.id, r.title)}
-                            disabled={deleting === r.id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                            title="Șterge">
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className="bg-gray-50/40 border-b border-gray-100">
-                        <td></td>
-                        <td colSpan={7} className="py-1">
-                          <CandidatesSubTable roleId={r.id} />
-                        </td>
+        <div className="space-y-6">
+          {STATUS_GROUP_ORDER.map(groupStatus => {
+            const groupRoles = filtered.filter(r => r.status === groupStatus)
+            if (groupRoles.length === 0) return null
+            const groupLabel = STATUS_GROUP_LABELS[groupStatus]
+            const isInactive = groupStatus === 'closed' || groupStatus === 'draft'
+            return (
+              <div key={groupStatus}>
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <h2 className={cn('text-sm font-semibold', isInactive ? 'text-gray-400' : 'text-gray-700')}>
+                    {groupLabel}
+                  </h2>
+                  <span className={cn(
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    groupStatus === 'active' ? 'bg-green-100 text-green-700' :
+                    groupStatus === 'filled' ? 'bg-blue-100 text-blue-700' :
+                    'bg-gray-100 text-gray-500'
+                  )}>
+                    {groupRoles.length}
+                  </span>
+                  <div className={cn('flex-1 h-px', isInactive ? 'bg-gray-100' : 'bg-gray-200')} />
+                </div>
+                <div className={cn('glass rounded-2xl overflow-hidden', isInactive && 'opacity-70')}>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/40 bg-white/30 text-left">
+                        <th className="px-2 py-3 w-8"></th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
+                        <th className="px-4 py-3"></th>
                       </tr>
-                    )}
-                  </Fragment>
-                )
-              })}
-            </tbody>
-          </table>
+                    </thead>
+                    <tbody>
+                      {groupRoles.map(r => {
+                        const isExpanded = expanded.has(r.id)
+                        return (
+                          <Fragment key={r.id}>
+                            <tr className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
+                              <td className="px-2 py-3 text-center">
+                                <button
+                                  onClick={() => toggleExpand(r.id)}
+                                  className="p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                                  title={isExpanded ? 'Restrânge' : 'Extinde candidați'}
+                                >
+                                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="font-medium text-gray-900 text-sm">{r.title}</div>
+                                <div className="text-xs text-gray-400 mt-0.5 space-x-2">
+                                  {r.seniority && <span>{SENIORITY_LABELS[r.seniority]}</span>}
+                                  {r.location && <span>📍 {r.location}</span>}
+                                  {r.fieldglass_id && <span className="font-mono text-gray-500">{r.fieldglass_id}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">{r.client?.name ?? '—'}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {r.required_skills.slice(0, 4).map(s => (
+                                    <Badge key={s.id} variant="blue">{s.name}</Badge>
+                                  ))}
+                                  {r.required_skills.length > 4 && (
+                                    <Badge variant="gray">+{r.required_skills.length - 4}</Badge>
+                                  )}
+                                  {r.required_skills.length === 0 && r.preferred_skills.slice(0, 3).map(s => (
+                                    <Badge key={s.id} variant="gray">{s.name}</Badge>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                {r.rate ? (
+                                  <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'zi' : 'oră'}</span></span>
+                                ) : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">
+                                {r.deadline
+                                  ? new Date(r.deadline).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  : '—'}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1 justify-end">
+                                  <Link href={`/roles/${r.id}/pipeline`}
+                                    className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors"
+                                    title="Pipeline">
+                                    <Kanban size={15} />
+                                  </Link>
+                                  <Link href={`/roles/${r.id}`}
+                                    className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
+                                    title="Editează">
+                                    <Pencil size={15} />
+                                  </Link>
+                                  <button onClick={() => handleDelete(r.id, r.title)}
+                                    disabled={deleting === r.id}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                    title="Șterge">
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-gray-50/40 border-b border-gray-100">
+                                <td></td>
+                                <td colSpan={6} className="py-1">
+                                  <CandidatesSubTable roleId={r.id} />
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

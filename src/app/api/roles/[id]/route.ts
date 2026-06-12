@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,6 +40,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       ...(preferred_skill_ids ?? []).map((sid: string) => ({ role_id: id, skill_id: sid, skill_type: 'preferred' })),
     ]
     if (skillRows.length) await supabase.from('role_skills').insert(skillRows)
+  }
+
+  // Când rolul devine "Ocupat", candidații cu ofertă activă pe acest rol devin "Angajat"
+  if (roleData.status === 'filled') {
+    const admin = createAdminClient()
+    const { data: offers } = await admin
+      .from('submissions')
+      .select('candidate_id')
+      .eq('role_id', id)
+      .eq('status', 'offer')
+      .is('deleted_at', null)
+    const candidateIds = (offers ?? []).map((s: { candidate_id: string }) => s.candidate_id).filter(Boolean)
+    if (candidateIds.length) {
+      await admin
+        .from('candidates')
+        .update({ candidate_status: 'angajat', successful: true })
+        .in('id', candidateIds)
+    }
   }
 
   return NextResponse.json(role)
