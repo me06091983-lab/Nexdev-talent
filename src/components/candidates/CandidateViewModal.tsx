@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   X, Mail, Phone, MapPin, Link2, Star, ChevronDown, ChevronRight,
   Loader2, ExternalLink, Building2, History, User, ScrollText, Clock,
-  RefreshCw, MessageSquare, AlertCircle,
+  RefreshCw, MessageSquare, AlertCircle, FileText,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
@@ -127,6 +127,61 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div>
       <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{title}</h3>
       {children}
+    </div>
+  )
+}
+
+// ─── CV panel ────────────────────────────────────────────────────────────────
+
+function CvPanel({ candidateId }: { candidateId: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch(`/api/candidates/${candidateId}/cv`)
+      .then(r => r.json())
+      .then(data => { if (data.error) throw new Error(data.error); setUrl(data.url) })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [candidateId])
+
+  const isPdf = url ? !url.toLowerCase().includes('.doc') : false
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+      <Loader2 size={24} className="animate-spin" />
+      <p className="text-sm">Se încarcă CV-ul...</p>
+    </div>
+  )
+
+  if (error || !url) return (
+    <div className="flex flex-col items-center justify-center h-full text-center px-6">
+      <FileText size={48} className="text-gray-200 mb-3" />
+      <p className="text-sm text-gray-500">{error || 'CV indisponibil'}</p>
+    </div>
+  )
+
+  if (isPdf) return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 flex-shrink-0 bg-white">
+        <span className="text-xs text-gray-500 font-medium">CV Original</span>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#2AA3FF] hover:underline">
+          Deschide <ExternalLink size={10} />
+        </a>
+      </div>
+      <iframe src={url} className="flex-1 w-full" title="CV Preview" />
+    </div>
+  )
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-3">
+      <FileText size={48} className="text-gray-300" />
+      <p className="text-sm text-gray-600">Fișier DOCX — nu poate fi previzualizat în browser.</p>
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-2 px-4 py-2 bg-[#0B1A33] text-white text-sm rounded-xl hover:bg-[#0B1A33]/90 transition-colors">
+        <ExternalLink size={14} /> Descarcă CV
+      </a>
     </div>
   )
 }
@@ -501,12 +556,13 @@ function CompanyTab({ candidate }: { candidate: CandidateFull }) {
 
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
-type TabId = 'profil' | 'companie'
+type TabId = 'profil' | 'companie' | 'cv'
 
 function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'profil', label: 'Profil', icon: <User size={13} /> },
-    { id: 'companie', label: 'Companie', icon: <Building2 size={13} /> },
+    { id: 'profil',   label: 'Profil',       icon: <User size={13} /> },
+    { id: 'companie', label: 'Companie',      icon: <Building2 size={13} /> },
+    { id: 'cv',       label: 'CV Original',   icon: <FileText size={13} /> },
   ]
   return (
     <div className="flex border-b border-gray-100 px-1">
@@ -552,7 +608,8 @@ export function CandidateViewModal({
   function renderTabContent() {
     if (!candidate) return null
     if (activeTab === 'profil') return <ProfileTab candidate={candidate} />
-    return <CompanyTab candidate={candidate} />
+    if (activeTab === 'companie') return <CompanyTab candidate={candidate} />
+    return null
   }
 
   function renderHeader(candidate: CandidateFull, large: boolean) {
@@ -624,14 +681,17 @@ export function CandidateViewModal({
         {/* Body */}
         {candidate && (
           <div className="flex flex-1 min-h-0">
-            {/* Left: Profil + Companie */}
+            {/* Left: tabs */}
             <div className="w-[400px] flex-shrink-0 flex flex-col border-r border-gray-100">
               <TabBar active={activeTab} onChange={setActiveTab} />
               <div className="overflow-y-auto flex-1 p-6">{renderTabContent()}</div>
             </div>
-            {/* Right: Istoric & Contracte */}
+            {/* Right: Istoric & Contracte sau CV Original */}
             <div className="flex-1 min-w-0 bg-gray-50/50 rounded-br-2xl overflow-hidden">
-              <HistoryPanel candidateId={candidateId} />
+              {activeTab === 'cv'
+                ? <CvPanel candidateId={candidateId} />
+                : <HistoryPanel candidateId={candidateId} />
+              }
             </div>
           </div>
         )}
