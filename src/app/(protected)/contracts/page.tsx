@@ -14,6 +14,7 @@ export default async function ContractsPage() {
         partner_commission, partner_commission_type,
         partner_commission_2, partner_commission_2_type,
         notes, created_at, candidate_id, role_id,
+        contract_status, termination_reason,
         submission:submissions(
           id, role_id,
           candidate:candidates(id, first_name, last_name, profile:profiles(name)),
@@ -95,19 +96,33 @@ export default async function ContractsPage() {
   }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const active = contracts.filter((c: any) => !c.end_date || new Date(c.end_date) >= new Date())
-  const currency = active[0]?.currency ?? 'EUR'
+  const active = contracts.filter((c: any) => c.contract_status === 'activ')
+
+  // Group by currency — daily = 20 zile/lună, hourly = 160 ore/lună
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalMonthlyRevenue = active.reduce((sum: number, c: any) => sum + c.bill_rate * (c.rate_type === 'daily' ? 20 : 160), 0)
+  const currencyMap: Record<string, { revenue: number; cost: number; comms: number; count: number }> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalMonthlyCost = active.reduce((sum: number, c: any) => sum + c.pay_rate * (c.rate_type === 'daily' ? 20 : 160), 0)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalMonthlyComms = active.reduce((sum: number, c: any) => {
-    return sum +
-      (c.partner_commission && c.partner_commission_type === 'monthly' ? c.partner_commission : 0) +
-      (c.partner_commission_2 && c.partner_commission_2_type === 'monthly' ? c.partner_commission_2 : 0)
-  }, 0)
-  const totalMonthlyMargin = totalMonthlyRevenue - totalMonthlyCost - totalMonthlyComms
+  for (const c of active as any[]) {
+    const units = c.rate_type === 'daily' ? 20 : 160
+    const cur: string = c.currency ?? 'EUR'
+    if (!currencyMap[cur]) currencyMap[cur] = { revenue: 0, cost: 0, comms: 0, count: 0 }
+    currencyMap[cur].revenue += c.bill_rate * units
+    currencyMap[cur].cost    += c.pay_rate  * units
+    currencyMap[cur].count   += 1
+    currencyMap[cur].comms   +=
+      (c.partner_commission  && c.partner_commission_type  === 'monthly' ? Number(c.partner_commission)  : 0) +
+      (c.partner_commission_2 && c.partner_commission_2_type === 'monthly' ? Number(c.partner_commission_2) : 0)
+  }
+  const currencySummaries = Object.entries(currencyMap)
+    .map(([cur, g]) => ({
+      currency: cur,
+      count: g.count,
+      revenue: g.revenue,
+      cost: g.cost,
+      margin: g.revenue - g.cost - g.comms,
+      marginPct: g.revenue > 0 ? Math.round(((g.revenue - g.cost - g.comms) / g.revenue) * 100) : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
 
   return (
     <div>
@@ -118,45 +133,105 @@ export default async function ContractsPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Users size={15} className="text-[#2AA3FF]" />
-            <span className="text-xs font-medium text-gray-500">Contracte active</span>
+      {/* Summary cards — per monedă */}
+      <div className="space-y-2 mb-5">
+        {/* Rândul 1: count + prima monedă */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+            <Users size={13} className="text-[#2AA3FF] flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium text-gray-400 leading-none mb-1">Contracte active</p>
+              {currencySummaries.length === 0 ? (
+                <p className="text-lg font-bold text-[#0B1A33] leading-none">0</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {currencySummaries.map(s => (
+                    <div key={s.currency} className="flex items-baseline gap-1.5">
+                      <span className="text-lg font-bold text-[#0B1A33] leading-none">{s.count}</span>
+                      <span className="text-[10px] text-gray-400">{s.currency}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <p className="text-2xl font-bold text-[#0B1A33]">{active.length}</p>
+
+          {currencySummaries[0] && (
+            <>
+              <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+                <DollarSign size={13} className="text-indigo-400 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Revenue lunar est.</p>
+                  <p className="text-lg font-bold text-[#0B1A33] leading-none">
+                    {currencySummaries[0].revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+                <DollarSign size={13} className="text-gray-300 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Cost lunar est.</p>
+                  <p className="text-lg font-bold text-[#0B1A33] leading-none">
+                    {currencySummaries[0].cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-green-100 bg-green-50/30">
+                <TrendingUp size={13} className="text-green-500 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
+                    Marjă lunară est. <span className="text-green-500">{currencySummaries[0].marginPct}%</span>
+                  </p>
+                  <p className="text-lg font-bold text-green-700 leading-none">
+                    {currencySummaries[0].margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    <span className="text-xs font-normal text-green-500 ml-1">{currencySummaries[0].currency}</span>
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-        <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={15} className="text-indigo-500" />
-            <span className="text-xs font-medium text-gray-500">Revenue lunar est.</span>
+
+        {/* Rânduri suplimentare pentru alte monede */}
+        {currencySummaries.slice(1).map(s => (
+          <div key={s.currency} className="grid grid-cols-4 gap-2">
+            <div />
+            <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+              <DollarSign size={13} className="text-indigo-400 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Revenue lunar est.</p>
+                <p className="text-lg font-bold text-[#0B1A33] leading-none">
+                  {s.revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
+                </p>
+              </div>
+            </div>
+            <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+              <DollarSign size={13} className="text-gray-300 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Cost lunar est.</p>
+                <p className="text-lg font-bold text-[#0B1A33] leading-none">
+                  {s.cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
+                </p>
+              </div>
+            </div>
+            <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-green-100 bg-green-50/30">
+              <TrendingUp size={13} className="text-green-500 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
+                  Marjă lunară est. <span className="text-green-500">{s.marginPct}%</span>
+                </p>
+                <p className="text-lg font-bold text-green-700 leading-none">
+                  {s.margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  <span className="text-xs font-normal text-green-500 ml-1">{s.currency}</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-[#0B1A33]">
-            {totalMonthlyRevenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
-            <span className="text-sm font-normal text-gray-400 ml-1">{currency}</span>
-          </p>
-        </div>
-        <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={15} className="text-gray-400" />
-            <span className="text-xs font-medium text-gray-500">Cost lunar est.</span>
-          </div>
-          <p className="text-2xl font-bold text-[#0B1A33]">
-            {totalMonthlyCost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
-            <span className="text-sm font-normal text-gray-400 ml-1">{currency}</span>
-          </p>
-        </div>
-        <div className="glass rounded-2xl p-4 border border-green-100 bg-green-50/30">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={15} className="text-green-500" />
-            <span className="text-xs font-medium text-gray-500">Marjă lunară est.</span>
-          </div>
-          <p className="text-2xl font-bold text-green-700">
-            {totalMonthlyMargin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
-            <span className="text-sm font-normal text-green-500 ml-1">{currency}</span>
-          </p>
-        </div>
+        ))}
       </div>
 
       <ContractsClient contracts={contracts} candidates={candidates} roles={roles} partners={partners} />

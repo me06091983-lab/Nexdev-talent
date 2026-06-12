@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   } else if (!candidate_id) {
     return NextResponse.json({ error: 'Candidat obligatoriu.' }, { status: 400 })
   } else if (candidate_id && role_id) {
-    // Manual creation: look for an existing pipeline submission for this candidate+role
+    // Find latest submission for this candidate+role that doesn't already have a contract
     const { data: matchingSub } = await supabase
       .from('submissions')
       .select('id, status')
@@ -98,17 +98,28 @@ export async function POST(request: NextRequest) {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (matchingSub) {
-      resolvedSubmissionId = matchingSub.id
-      // Move to offer status so Kanban reflects this placement
-      if (matchingSub.status !== 'offer') {
-        await supabase
-          .from('submissions')
-          .update({ status: 'offer' })
-          .eq('id', matchingSub.id)
+      // Check if this submission already has a contract (would violate unique constraint)
+      const { data: existingContract } = await supabase
+        .from('contracts')
+        .select('id')
+        .eq('submission_id', matchingSub.id)
+        .maybeSingle()
+
+      if (!existingContract) {
+        // Submission free — link to it and advance to offer
+        resolvedSubmissionId = matchingSub.id
+        if (matchingSub.status !== 'offer') {
+          await supabase
+            .from('submissions')
+            .update({ status: 'offer' })
+            .eq('id', matchingSub.id)
+        }
       }
+      // If submission already has a contract, leave resolvedSubmissionId = null
+      // → contract will be created with direct candidate_id + role_id (no unique constraint there)
     }
   }
 

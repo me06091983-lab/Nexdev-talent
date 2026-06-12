@@ -16,11 +16,11 @@ export default async function PipelinePage() {
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
 
-  // Filter to active/on_hold roles only
+  // Filter to active/on_hold roles only, excluding submissions at offer stage
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const submissions: RadarSubmission[] = (rawSubs ?? []).filter((s: any) => {
     const roleStatus = Array.isArray(s.role) ? s.role[0]?.status : s.role?.status
-    return roleStatus === 'active' || roleStatus === 'on_hold'
+    return (roleStatus === 'active' || roleStatus === 'on_hold') && s.status !== 'offer'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }).map((s: any) => {
     const role = Array.isArray(s.role) ? s.role[0] : s.role

@@ -16,40 +16,38 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient()
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: angajati } = await admin
-    .from('candidates')
-    .select('id')
-    .eq('candidate_status', 'angajat')
+  // 1. Marchează contractele expirate ca terminate
+  const { data: expired } = await admin
+    .from('contracts')
+    .update({ contract_status: 'terminat', termination_reason: 'Expirare contract' })
+    .eq('contract_status', 'activ')
+    .not('end_date', 'is', null)
+    .lt('end_date', today)
+    .select('id, candidate_id')
 
-  if (!angajati?.length) return NextResponse.json({ updated: 0 })
+  // 2. Actualizează candidații fără contracte active → pasiv
+  const affectedCandidateIds = [...new Set((expired ?? []).map(c => c.candidate_id).filter(Boolean))]
 
-  const toPassivize: string[] = []
-
-  for (const candidate of angajati) {
-    const { data: allContracts } = await admin
-      .from('contracts')
-      .select('id')
-      .eq('candidate_id', candidate.id)
-
-    if (!allContracts?.length) continue
-
+  const passivized: string[] = []
+  for (const candidateId of affectedCandidateIds) {
     const { data: activeContracts } = await admin
       .from('contracts')
       .select('id')
-      .eq('candidate_id', candidate.id)
-      .or(`end_date.is.null,end_date.gte.${today}`)
+      .eq('candidate_id', candidateId)
+      .eq('contract_status', 'activ')
 
     if (!activeContracts?.length) {
-      toPassivize.push(candidate.id)
+      await admin
+        .from('candidates')
+        .update({ candidate_status: 'pasiv' })
+        .eq('id', candidateId)
+        .eq('candidate_status', 'angajat')
+      passivized.push(candidateId)
     }
   }
 
-  if (toPassivize.length > 0) {
-    await admin
-      .from('candidates')
-      .update({ candidate_status: 'pasiv' })
-      .in('id', toPassivize)
-  }
-
-  return NextResponse.json({ updated: toPassivize.length, passivized: toPassivize })
+  return NextResponse.json({
+    contracts_terminated: expired?.length ?? 0,
+    candidates_passivized: passivized.length,
+  })
 }
