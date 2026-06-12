@@ -1,21 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, ChevronDown, Plus, Trash2, Calendar } from 'lucide-react'
 import { PIPELINE_STATUSES, type PipelineStatus } from '@/lib/pipeline'
 import type { Submission } from './KanbanBoard'
 import type { InterviewSlot } from './InterviewPanel'
 
-export interface RoleStage { id: string; name: string; order_index: number }
-
 interface Props {
   submission: Submission
-  stages?: RoleStage[]
   onClose: () => void
   onSaved: (submissionId: string, newStatus: PipelineStatus) => void
 }
-
-const FALLBACK_LABELS = ['Interview 1', 'Interview 2', 'Interview 3', 'Interview 4']
 
 const INTERVIEW_STATUS_OPTIONS = [
   { value: 'waiting_customer', label: 'Waiting customer' },
@@ -31,22 +26,98 @@ const SLOT_STATUS_COLORS: Record<string, string> = {
   rejected:         'text-red-600 bg-red-50 border-red-200',
 }
 
-function buildSlots(stages: RoleStage[] | undefined, saved: InterviewSlot[]): InterviewSlot[] {
-  const labels = stages && stages.length > 0
-    ? stages.slice(0, 4).map(s => s.name)
-    : FALLBACK_LABELS
-  return labels.map((label, i) => {
-    const base: InterviewSlot = { label, enabled: false, datetime: '', status: 'waiting_customer', feedback: '' }
-    const merged = { ...base, ...(saved[i] ?? {}) }
-    merged.label = label
-    return merged
-  })
+function loadSlots(saved: InterviewSlot[]): InterviewSlot[] {
+  return saved.filter(s => s.label || s.datetime || s.enabled)
 }
 
-export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
+// ─── DateTimePicker ───────────────────────────────────────────────────────────
+
+function DateTimePicker({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  const dateRef = useRef<HTMLInputElement>(null)
+  const timeRef = useRef<HTMLInputElement>(null)
+
+  const datePart = value ? value.slice(0, 10) : ''
+  const timePart = value && value.includes('T') ? value.slice(11, 16) : ''
+
+  function handleDate(d: string) {
+    const t = timePart || '09:00'
+    onChange(d ? `${d}T${t}` : '')
+  }
+
+  function handleTime(t: string) {
+    const d = datePart || new Date().toISOString().slice(0, 10)
+    onChange(t ? `${d}T${t}` : '')
+  }
+
+  function openDatePicker() {
+    if (dateRef.current) {
+      if (typeof dateRef.current.showPicker === 'function') {
+        dateRef.current.showPicker()
+      } else {
+        dateRef.current.focus()
+      }
+    }
+  }
+
+  function openTimePicker() {
+    if (timeRef.current) {
+      if (typeof timeRef.current.showPicker === 'function') {
+        timeRef.current.showPicker()
+      } else {
+        timeRef.current.focus()
+      }
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus-within:ring-2 focus-within:ring-[#2AA3FF]/30 focus-within:border-[#2AA3FF]">
+      <button
+        type="button"
+        onClick={openDatePicker}
+        className="text-gray-400 hover:text-[#2AA3FF] transition-colors flex-shrink-0"
+        title="Selectează data"
+      >
+        <Calendar size={13} />
+      </button>
+      <input
+        ref={dateRef}
+        type="date"
+        value={datePart}
+        onChange={e => handleDate(e.target.value)}
+        className="text-xs text-gray-700 bg-transparent focus:outline-none w-[105px]"
+      />
+      <span className="text-gray-300 text-xs">|</span>
+      <button
+        type="button"
+        onClick={openTimePicker}
+        className="text-gray-400 hover:text-[#2AA3FF] transition-colors flex-shrink-0 text-xs font-mono"
+        title="Selectează ora"
+      >
+        {timePart || '--:--'}
+      </button>
+      <input
+        ref={timeRef}
+        type="time"
+        value={timePart}
+        onChange={e => handleTime(e.target.value)}
+        className="sr-only"
+      />
+    </div>
+  )
+}
+
+// ─── StatusModal ─────────────────────────────────────────────────────────────
+
+export function StatusModal({ submission, onClose, onSaved }: Props) {
   const [status, setStatus] = useState<PipelineStatus>(submission.status)
   const [slots, setSlots] = useState<InterviewSlot[]>(() =>
-    buildSlots(stages, (submission.interviews ?? []) as InterviewSlot[])
+    loadSlots((submission.interviews ?? []) as InterviewSlot[])
   )
   const [feedback, setFeedback] = useState('')
   const [saving, setSaving] = useState(false)
@@ -54,16 +125,24 @@ export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
 
   useEffect(() => {
     setStatus(submission.status)
-    setSlots(buildSlots(stages, (submission.interviews ?? []) as InterviewSlot[]))
+    setSlots(loadSlots((submission.interviews ?? []) as InterviewSlot[]))
     setFeedback('')
     setError('')
-  }, [submission.id, stages])
+  }, [submission.id])
+
+  const c = submission.candidate
+
+  function addSlot() {
+    setSlots(prev => [...prev, { label: '', enabled: true, datetime: '', status: 'waiting_customer', feedback: '' }])
+  }
+
+  function removeSlot(idx: number) {
+    setSlots(prev => prev.filter((_, i) => i !== idx))
+  }
 
   function updateSlot(idx: number, field: keyof InterviewSlot, value: unknown) {
     setSlots(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s))
   }
-
-  const c = submission.candidate
 
   async function handleSave() {
     setSaving(true)
@@ -93,11 +172,11 @@ export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
               {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
@@ -114,7 +193,7 @@ export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-5 space-y-5 overflow-y-auto flex-1">
           {/* AI Summary */}
           {submission.ai_summary && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
@@ -139,62 +218,67 @@ export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          {/* Interview slots */}
+          {/* Interview slots — dynamic */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Interviuri</label>
-            <div className="space-y-2">
-              {/* Column headers */}
-              <div className="grid grid-cols-[18px_100px_1fr_140px] gap-2.5 px-1 mb-1">
-                <div />
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide"></div>
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Data și ora</div>
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Status</div>
-              </div>
-
-              {slots.map((slot, idx) => (
-                <div
-                  key={idx}
-                  className={`grid grid-cols-[18px_100px_1fr_140px] gap-2.5 items-center px-1 py-2 rounded-xl transition-colors ${
-                    slot.enabled ? 'bg-blue-50/50' : 'bg-gray-50/60'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={slot.enabled}
-                    onChange={e => updateSlot(idx, 'enabled', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 accent-[#2AA3FF] cursor-pointer"
-                  />
-                  <span className={`text-sm font-medium ${slot.enabled ? 'text-[#0B1A33]' : 'text-gray-400'}`}>
-                    {slot.label}
-                  </span>
-                  <input
-                    type="datetime-local"
-                    value={slot.datetime}
-                    onChange={e => updateSlot(idx, 'datetime', e.target.value)}
-                    disabled={!slot.enabled}
-                    className={`w-full px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/40 transition-opacity ${
-                      slot.enabled
-                        ? 'border-gray-200 bg-white text-gray-700'
-                        : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-                    }`}
-                  />
-                  <select
-                    value={slot.status}
-                    onChange={e => updateSlot(idx, 'status', e.target.value as InterviewSlot['status'])}
-                    disabled={!slot.enabled}
-                    className={`w-full px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/40 appearance-none font-medium transition-opacity ${
-                      slot.enabled
-                        ? SLOT_STATUS_COLORS[slot.status]
-                        : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
-                    }`}
-                  >
-                    {INTERVIEW_STATUS_OPTIONS.map(o => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Interviuri</label>
+              <button
+                type="button"
+                onClick={addSlot}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[#2AA3FF] border border-[#2AA3FF]/30 rounded-lg hover:bg-[#2AA3FF]/5 transition-colors"
+              >
+                <Plus size={12} />
+                Adaugă interviu
+              </button>
             </div>
+
+            {slots.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-3 border border-dashed border-gray-200 rounded-xl">
+                Niciun interviu adăugat. Apasă &quot;Adaugă interviu&quot; pentru a programa unul.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {slots.map((slot, idx) => (
+                  <div key={idx} className="border border-gray-100 rounded-xl p-3 space-y-2.5 bg-gray-50/50">
+                    {/* Row 1: label + delete */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={slot.label}
+                        onChange={e => updateSlot(idx, 'label', e.target.value)}
+                        placeholder="Tip interviu (ex: Interviu tehnic)"
+                        className="flex-1 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 focus:border-[#2AA3FF] bg-white placeholder:text-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSlot(idx)}
+                        className="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
+                        title="Șterge interviu"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+
+                    {/* Row 2: date+time + status */}
+                    <div className="flex items-center gap-2">
+                      <DateTimePicker
+                        value={slot.datetime}
+                        onChange={v => updateSlot(idx, 'datetime', v)}
+                      />
+                      <select
+                        value={slot.status}
+                        onChange={e => updateSlot(idx, 'status', e.target.value as InterviewSlot['status'])}
+                        className={`flex-1 px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/40 appearance-none font-medium ${SLOT_STATUS_COLORS[slot.status]}`}
+                      >
+                        {INTERVIEW_STATUS_OPTIONS.map(o => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Final note */}
@@ -212,7 +296,7 @@ export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
 
-        <div className="flex gap-2 px-5 pb-5">
+        <div className="flex gap-2 px-5 pb-5 pt-2 flex-shrink-0">
           <button
             onClick={onClose}
             className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
