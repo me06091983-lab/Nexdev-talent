@@ -134,6 +134,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .from('candidates')
     .select('id, first_name, last_name, seniority, experiences, rate_min, rate_wish, currency, cv_file_path, profile:profiles(name), candidate_skills(skill:skills(id, name))')
     .is('deleted_at', null)
+    .neq('candidate_status', 'blacklist')
     .not('id', 'in', pipelineCandidateIds.length ? `(${pipelineCandidateIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
 
   // Pre-filter by skill overlap

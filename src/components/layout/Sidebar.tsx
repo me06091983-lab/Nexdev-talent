@@ -13,6 +13,7 @@ import {
   ScrollText,
   Clock,
   Receipt,
+  FileText,
   Settings,
   LogOut,
   Handshake,
@@ -40,6 +41,7 @@ const navGroups = [
       { href: '/contracts', label: 'Contracte', icon: ScrollText },
       { href: '/timesheets', label: 'Timesheeturi', icon: Clock },
       { href: '/invoices', label: 'Facturi', icon: Receipt },
+      { href: '/facturare', label: 'Facturare', icon: FileText },
     ],
   },
 ]

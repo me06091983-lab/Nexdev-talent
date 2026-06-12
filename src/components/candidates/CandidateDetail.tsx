@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { CandidateForm } from './CandidateForm'
 import { cn } from '@/lib/utils'
-import { Clock, User, AlertCircle, RefreshCw, MessageSquare, ScrollText, StickyNote, Trash2 } from 'lucide-react'
+import { Clock, User, AlertCircle, RefreshCw, MessageSquare, ScrollText, StickyNote, Trash2, FileDown, Loader2 } from 'lucide-react'
 
 const SUBMISSION_STATUS: Record<string, { label: string; cls: string }> = {
   pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
@@ -176,10 +177,32 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function CandidateDetail({ initial, candidateId, candidateName }: CandidateDetailProps) {
+  const router = useRouter()
   const [tab, setTab] = useState<'profil' | 'note' | 'istoric'>('profil')
   const [data, setData] = useState<HistoryData>({ submissions: [], contracts: [] })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [generatingCV, setGeneratingCV] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  async function handleGenerateCV() {
+    setGeneratingCV(true)
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/generate-cv`, { method: 'POST' })
+      if (!res.ok) throw new Error('Eroare la generare')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `CV_${candidateName.replace(/\s+/g, '_')}_NexDev.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Eroare la generarea CV-ului. Încearcă din nou.')
+    } finally {
+      setGeneratingCV(false)
+    }
+  }
 
   const fetchHistory = useCallback(async () => {
     setLoading(true)
@@ -211,51 +234,83 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">
           {tab === 'profil' ? 'Editează:' : tab === 'note' ? 'Note interne:' : 'Istoric:'} {candidateName}
         </h1>
+        <button
+          onClick={handleGenerateCV}
+          disabled={generatingCV}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#0B1A33] hover:bg-[#162540] disabled:opacity-60 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          {generatingCV ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
+          {generatingCV ? 'Se generează...' : 'Generează CV NexDev'}
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setTab('profil')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            tab === 'profil' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-          )}
-        >
-          <User size={15} /> Profil
-        </button>
-        <button
-          onClick={() => setTab('note')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            tab === 'note' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-          )}
-        >
-          <StickyNote size={15} /> Note interne
-        </button>
-        <button
-          onClick={() => setTab('istoric')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            tab === 'istoric' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-          )}
-        >
-          <Clock size={15} /> Istoric & Contracte
-          {totalCount > 0 && (
-            <span className="ml-1 text-xs bg-[#2AA3FF]/10 text-[#2AA3FF] px-1.5 py-0.5 rounded-full">
-              {totalCount}
-            </span>
-          )}
-        </button>
+      {/* Tabs + Save/Cancel — sticky */}
+      <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-100 -mx-6 px-6 py-2 mb-6 flex items-center justify-between gap-4">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+          <button
+            onClick={() => setTab('profil')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              tab === 'profil' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <User size={15} /> Profil
+          </button>
+          <button
+            onClick={() => setTab('note')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              tab === 'note' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <StickyNote size={15} /> Note interne
+          </button>
+          <button
+            onClick={() => setTab('istoric')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              tab === 'istoric' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <Clock size={15} /> Istoric & Contracte
+            {totalCount > 0 && (
+              <span className="ml-1 text-xs bg-[#2AA3FF]/10 text-[#2AA3FF] px-1.5 py-0.5 rounded-full">
+                {totalCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Save / Cancel — visible only on Profil tab */}
+        {tab === 'profil' && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Anulează
+            </button>
+            <button
+              type="submit"
+              form="candidate-form"
+              disabled={saving}
+              className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors shadow-sm"
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {saving ? 'Se salvează...' : (candidateId ? 'Salvează modificările' : 'Adaugă candidat')}
+            </button>
+          </div>
+        )}
       </div>
 
       {tab === 'profil' && (
         <div className="glass rounded-2xl p-8">
-          <CandidateForm initial={initial} candidateId={candidateId} />
+          <CandidateForm initial={initial} candidateId={candidateId} onSavingChange={setSaving} />
         </div>
       )}
 

@@ -34,6 +34,18 @@ const SENIORITY_LABELS: Record<string, string> = {
   junior: 'Junior', mid: 'Mid', senior: 'Senior', lead: 'Lead', principal: 'Principal',
 }
 
+function getNotesPreview(raw: string | null): string {
+  if (!raw) return ''
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const text = parsed[0].text ?? ''
+      return text.length > 60 ? text.slice(0, 60) + '…' : text
+    }
+  } catch { /* not JSON, use as-is */ }
+  return raw.length > 60 ? raw.slice(0, 60) + '…' : raw
+}
+
 const PIPELINE_STATUS_LABELS: Record<string, string> = {
   pipeline: 'Pipeline', submitted: 'Trimis', shortlisted: 'Shortlist',
   interview: 'Interviu', rejected: 'Respins', offer: 'Ofertă',
@@ -215,9 +227,10 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
       ) : (
         <div className="space-y-3">
           {([
-            { key: 'activ',   label: 'Activi',   headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
-            { key: 'angajat', label: 'Angajați', headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
-            { key: 'pasiv',   label: 'Pasivi',   headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
+            { key: 'activ',     label: 'Activi',      headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
+            { key: 'angajat',   label: 'Angajați',    headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
+            { key: 'pasiv',     label: 'Pasivi',      headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
+            { key: 'blacklist', label: 'Black List',  headerCls: 'bg-red-50 border-red-200',      countCls: 'bg-red-100 text-red-700',      chevronCls: 'text-red-400' },
           ] as const).map(group => {
             const groupCandidates = filtered.filter(c => (c.candidate_status ?? 'pasiv') === group.key)
             const isOpen = expandedGroups.has(group.key)
@@ -311,8 +324,8 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
                             </td>
                           )}
                           <td className="px-4 py-3 max-w-[260px]">
-                            {c.notes
-                              ? <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{c.notes}</p>
+                            {getNotesPreview(c.notes)
+                              ? <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{getNotesPreview(c.notes)}</p>
                               : <span className="text-xs text-gray-300">—</span>
                             }
                           </td>

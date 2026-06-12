@@ -18,6 +18,7 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Receipt,
   Download,
 } from 'lucide-react'
@@ -371,7 +372,7 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
         {/* Weekly interviews */}
         <div className="col-span-5 glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri săptămâna aceasta</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri — 14 zile</h3>
             {data.weeklyInterviews.length > 0 && (
               <span className="text-[10px] bg-[#2AA3FF]/10 text-[#2AA3FF] font-medium px-2 py-0.5 rounded-full">
                 {data.weeklyInterviews.length}
@@ -1247,13 +1248,262 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
   )
 }
 
+// ─── Tab 4: Facturi ───────────────────────────────────────────────────────────
+
+interface MonthSummary { month: number; emise_total: number; emise_incasate: number; primite_total: number; primite_platite: number }
+interface FacturiSummary { months: MonthSummary[]; ytd: { emise_total: number; emise_incasate: number; primite_total: number; primite_platite: number } }
+
+const MONTH_LABELS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function KpiCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: 'indigo' | 'green' | 'amber' | 'red' }) {
+  const colors = {
+    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+    green:  'bg-green-50  border-green-200  text-green-700',
+    amber:  'bg-amber-50  border-amber-200  text-amber-700',
+    red:    'bg-red-50    border-red-200    text-red-700',
+  }
+  const valColors = {
+    indigo: 'text-indigo-800',
+    green:  'text-green-800',
+    amber:  'text-amber-800',
+    red:    'text-red-800',
+  }
+  return (
+    <div className={`rounded-2xl border p-5 flex flex-col gap-1 ${colors[color]}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider opacity-70">{label}</p>
+      <p className={`text-2xl font-bold leading-none ${valColors[color]}`}>{value}</p>
+      {sub && <p className="text-xs opacity-60 mt-0.5">{sub}</p>}
+    </div>
+  )
+}
+
+function TabFacturi() {
+  const [year, setYear]       = useState(new Date().getFullYear())
+  const [summary, setSummary] = useState<FacturiSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/facturi-summary?year=${year}`)
+      .then(r => r.json())
+      .then(d => { setSummary(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [year])
+
+  const chartData = (summary?.months ?? []).map((m, i) => ({
+    label:       MONTH_LABELS[i],
+    e_inc:  Math.round(m.emise_incasate  * 100) / 100,
+    e_nei:  Math.round((m.emise_total  - m.emise_incasate)  * 100) / 100,
+    p_pla:  Math.round(m.primite_platite * 100) / 100,
+    p_nep:  Math.round((m.primite_total - m.primite_platite) * 100) / 100,
+    emise_total:   m.emise_total,
+    primite_total: m.primite_total,
+  }))
+
+  const ytd = summary?.ytd ?? { emise_total: 0, emise_incasate: 0, primite_total: 0, primite_platite: 0 }
+  const neincasat = ytd.emise_total  - ytd.emise_incasate
+  const neplatit  = ytd.primite_total - ytd.primite_platite
+
+  const emisePie   = [
+    { name: 'Încasate',   value: ytd.emise_incasate },
+    { name: 'Neîncasate', value: neincasat },
+  ]
+  const primitePie = [
+    { name: 'Plătite',   value: ytd.primite_platite },
+    { name: 'Neplătite', value: neplatit },
+  ]
+  const PIE_E = ['#4F46E5', '#C7D2FE']
+  const PIE_P = ['#16A34A', '#BBF7D0']
+
+  const hasEmise   = ytd.emise_total   > 0
+  const hasPrimite = ytd.primite_total > 0
+
+  return (
+    <div className="space-y-6">
+      {/* Year nav */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-[#0B1A33]">Sumar facturi anual</h2>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-sm font-semibold text-[#0B1A33] w-12 text-center">{year}</span>
+          <button onClick={() => setYear(y => y + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />)}
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard label="Total emis" value={fmt(ytd.emise_total)} sub={`din care încasat: ${fmt(ytd.emise_incasate)}`} color="indigo" />
+            <KpiCard label="Neîncasat" value={fmt(neincasat)} sub={neincasat === 0 ? 'Totul încasat' : `${ytd.emise_total > 0 ? ((neincasat / ytd.emise_total) * 100).toFixed(0) : 0}% din total emis`} color={neincasat > 0 ? 'amber' : 'green'} />
+            <KpiCard label="Total primit" value={fmt(ytd.primite_total)} sub={`din care plătit: ${fmt(ytd.primite_platite)}`} color="green" />
+            <KpiCard label="Neplătit" value={fmt(neplatit)} sub={neplatit === 0 ? 'Totul plătit' : `${ytd.primite_total > 0 ? ((neplatit / ytd.primite_total) * 100).toFixed(0) : 0}% din total primit`} color={neplatit > 0 ? 'red' : 'green'} />
+          </div>
+
+          {/* Main chart */}
+          <div className="glass rounded-2xl p-6">
+            <p className="text-sm font-semibold text-gray-700 mb-4">Emise vs. primite pe luni</p>
+            {!hasEmise && !hasPrimite ? (
+              <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
+                Nu există facturi pentru {year}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData} barCategoryGap="25%" barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={v => fmtK(v)} />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any) => {
+                      const labels: Record<string, string> = {
+                        e_inc: 'Emise încasate', e_nei: 'Emise neîncasate',
+                        p_pla: 'Primite plătite', p_nep: 'Primite neplătite',
+                      }
+                      return [fmt(Number(value ?? 0)), labels[name] ?? name]
+                    }}
+                    contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb' }}
+                  />
+                  <Legend
+                    formatter={(value) => {
+                      const labels: Record<string, string> = {
+                        e_inc: 'Emise (încasate)', e_nei: 'Emise (neîncasate)',
+                        p_pla: 'Primite (plătite)', p_nep: 'Primite (neplătite)',
+                      }
+                      return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
+                    }}
+                  />
+                  <Bar dataKey="e_inc" stackId="e" name="e_inc" fill="#4F46E5" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="e_nei" stackId="e" name="e_nei" fill="#C7D2FE" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="p_pla" stackId="p" name="p_pla" fill="#16A34A" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="p_nep" stackId="p" name="p_nep" fill="#BBF7D0" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Status pie charts + monthly table */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Emise donut */}
+            <div className="glass rounded-2xl p-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Status facturi emise</p>
+              {!hasEmise ? (
+                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={emisePie} cx="50%" cy="50%" innerRadius={42} outerRadius={62} dataKey="value" paddingAngle={3}>
+                        {emisePie.map((_, i) => <Cell key={i} fill={PIE_E[i]} />)}
+                      </Pie>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <Tooltip formatter={(v: any) => fmt(Number(v ?? 0))} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex gap-4 text-xs">
+                    {emisePie.map((e, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: PIE_E[i] }} />
+                        <span className="text-gray-600">{e.name}</span>
+                        <span className="font-semibold text-gray-800">{fmt(e.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Primite donut */}
+            <div className="glass rounded-2xl p-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Status facturi primite</p>
+              {!hasPrimite ? (
+                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={primitePie} cx="50%" cy="50%" innerRadius={42} outerRadius={62} dataKey="value" paddingAngle={3}>
+                        {primitePie.map((_, i) => <Cell key={i} fill={PIE_P[i]} />)}
+                      </Pie>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <Tooltip formatter={(v: any) => fmt(Number(v ?? 0))} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex gap-4 text-xs">
+                    {primitePie.map((e, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: PIE_P[i] }} />
+                        <span className="text-gray-600">{e.name}</span>
+                        <span className="font-semibold text-gray-800">{fmt(e.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Monthly table */}
+            <div className="glass rounded-2xl p-5 overflow-auto">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Detaliu lunar</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400 border-b border-gray-100">
+                    <th className="pb-2 text-left font-medium">Lună</th>
+                    <th className="pb-2 text-right font-medium text-indigo-500">Emise</th>
+                    <th className="pb-2 text-right font-medium text-green-600">Primite</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(summary?.months ?? []).map((m, i) => {
+                    const hasAny = m.emise_total > 0 || m.primite_total > 0
+                    return (
+                      <tr key={i} className={cn('border-b border-gray-50', hasAny ? '' : 'opacity-30')}>
+                        <td className="py-1.5 text-gray-700 font-medium">{MONTH_LABELS[i]}</td>
+                        <td className="py-1.5 text-right text-indigo-700">
+                          {m.emise_total > 0 ? (
+                            <span title={`Încasat: ${fmt(m.emise_incasate)}`}>{fmt(m.emise_total)}</span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-1.5 text-right text-green-700">
+                          {m.primite_total > 0 ? (
+                            <span title={`Plătit: ${fmt(m.primite_platite)}`}>{fmt(m.primite_total)}</span>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-gray-200 bg-gray-50/50">
+                    <td className="pt-2 font-semibold text-gray-700">Total</td>
+                    <td className="pt-2 text-right font-semibold text-indigo-700">{fmt(ytd.emise_total)}</td>
+                    <td className="pt-2 text-right font-semibold text-green-700">{fmt(ytd.primite_total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'recruitare' | 'contracte' | 'financiar'>('recruitare')
+  const [activeTab, setActiveTab] = useState<'recruitare' | 'contracte' | 'financiar' | 'facturi'>('recruitare')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -1277,6 +1527,7 @@ export function DashboardClient() {
     { key: 'recruitare' as const, label: 'Recrutare', icon: Users },
     { key: 'contracte' as const, label: 'Contracte', icon: FileText },
     { key: 'financiar' as const, label: 'Financiar', icon: TrendingUp },
+    { key: 'facturi' as const, label: 'Facturi', icon: Receipt },
   ]
 
   return (
@@ -1312,7 +1563,9 @@ export function DashboardClient() {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {activeTab === 'facturi' ? (
+        <TabFacturi />
+      ) : loading ? (
         <LoadingSkeleton />
       ) : error ? (
         <div className="glass rounded-2xl p-8 text-center">

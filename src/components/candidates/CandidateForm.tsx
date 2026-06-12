@@ -45,6 +45,7 @@ interface Achievement {
 interface CandidateFormProps {
   initial?: Record<string, unknown>
   candidateId?: string
+  onSavingChange?: (saving: boolean) => void
 }
 
 const SENIORITY_OPTIONS = [
@@ -145,7 +146,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   )
 }
 
-export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
+export function CandidateForm({ initial, candidateId, onSavingChange }: CandidateFormProps) {
   const router = useRouter()
   const isEdit = !!candidateId
 
@@ -334,6 +335,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
       return
     }
     setSaving(true)
+    onSavingChange?.(true)
     setError('')
     try {
       const profile_id = await resolveProfileId()
@@ -363,13 +365,14 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
       setError(err instanceof Error ? err.message : 'Eroare la salvare')
     } finally {
       setSaving(false)
+      onSavingChange?.(false)
     }
   }
 
   const inputCls = 'glass-input w-full px-3 py-2.5 rounded-lg text-sm'
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form id="candidate-form" onSubmit={handleSubmit}>
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-6">
           {error}
@@ -498,9 +501,10 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               <label className="block text-sm font-medium text-gray-700 mb-2">Status candidat</label>
               <div className="flex gap-2">
                 {([
-                  { value: 'activ',   label: 'Activ',   cls: 'border-green-300 bg-green-50 text-green-700 ring-green-300' },
-                  { value: 'pasiv',   label: 'Pasiv',   cls: 'border-gray-300 bg-gray-50 text-gray-600 ring-gray-300' },
-                  { value: 'angajat', label: 'Angajat', cls: 'border-blue-300 bg-blue-50 text-blue-700 ring-blue-300' },
+                  { value: 'activ',     label: 'Activ',      cls: 'border-green-300 bg-green-50 text-green-700 ring-green-300' },
+                  { value: 'pasiv',     label: 'Pasiv',      cls: 'border-gray-300 bg-gray-50 text-gray-600 ring-gray-300' },
+                  { value: 'angajat',   label: 'Angajat',    cls: 'border-blue-300 bg-blue-50 text-blue-700 ring-blue-300' },
+                  { value: 'blacklist', label: 'Black List', cls: 'border-red-400 bg-red-50 text-red-700 ring-red-300' },
                 ] as const).map(opt => (
                   <button
                     key={opt.value}
@@ -521,9 +525,10 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
                 ))}
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
-                {form.candidate_status === 'activ' && 'Contactat activ, implicat într-un proces de recrutare.'}
-                {form.candidate_status === 'pasiv' && 'În baza de date, fără proces activ de recrutare.'}
-                {form.candidate_status === 'angajat' && 'Plasat cu succes, ofertă acceptată.'}
+                {form.candidate_status === 'activ'     && 'Contactat activ, implicat într-un proces de recrutare.'}
+                {form.candidate_status === 'pasiv'     && 'În baza de date, fără proces activ de recrutare.'}
+                {form.candidate_status === 'angajat'   && 'Plasat cu succes, ofertă acceptată.'}
+                {form.candidate_status === 'blacklist' && 'Candidat blocat — nu apare în pipeline sau AI matching.'}
               </p>
             </div>
 
@@ -581,25 +586,10 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Status & Note</h3>
-            <div className="flex items-center gap-3 mb-3">
-              <input type="checkbox" id="successful" checked={form.successful} onChange={e => set('successful', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
-              <label htmlFor="successful" className="text-sm text-gray-700">Candidat de succes (a fost plasat)</label>
-            </div>
-            {form.successful && (
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client la care a lucrat</label>
-                <input type="text" value={form.successful_client} onChange={e => set('successful_client', e.target.value)} className={cn(inputCls, 'max-w-sm')} />
-              </div>
-            )}
-            <div className="flex items-center gap-3">
-              <input type="checkbox" id="gdpr" checked={form.gdpr_consent} onChange={e => set('gdpr_consent', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
-              <label htmlFor="gdpr" className="text-sm text-gray-700">Candidatul și-a dat consimțământul GDPR</label>
-            </div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date companie</h3>
 
             {/* Company data */}
-            <div className="border-t border-gray-200 pt-4 mt-2 space-y-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Date companie (PFA/SRL)</p>
+            <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nume companie</label>
                 <input value={form.company_name} onChange={e => set('company_name', e.target.value)} placeholder="Ex: Ion Popescu SRL" className={inputCls} />
@@ -622,18 +612,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
           </section>
 
           <div className="pt-4 border-t border-gray-200/60">
-            <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Câmpuri obligatorii</p>
-          <div className="flex items-center gap-3">
-            <button type="submit" disabled={saving}
-              className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/20">
-              {saving && <Loader2 size={16} className="animate-spin" />}
-              {isEdit ? 'Salvează modificările' : 'Adaugă candidat'}
-            </button>
-            <button type="button" onClick={() => router.back()}
-              className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-white/40 rounded-xl transition-colors">
-              Anulează
-            </button>
-          </div>
+            <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Câmpuri obligatorii</p>
           </div>
         </div>
 

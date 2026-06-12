@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
   if (sourceType) query = query.eq('source_type', sourceType)
 
   if (notInRole) {
+    // Exclude blacklisted candidates from pipeline searches
+    query = query.neq('candidate_status', 'blacklist')
+
     const { data: inPipeline } = await supabase
       .from('submissions')
       .select('candidate_id')

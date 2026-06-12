@@ -122,6 +122,25 @@ function CollapsibleRow({ summary, children }: { summary: React.ReactNode; child
   )
 }
 
+interface NoteEntry { id: string; text: string; created_at: string }
+
+function parseNotes(raw: unknown): NoteEntry[] {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed as NoteEntry[]
+    return [{ id: 'legacy-0', text: raw, created_at: '' }]
+  } catch {
+    return [{ id: 'legacy-0', text: raw, created_at: '' }]
+  }
+}
+
+function fmtNoteDate(iso: string) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -491,11 +510,24 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
         </Section>
       )}
 
-      {candidate.notes && (
-        <Section title="Notițe interne">
-          <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 rounded-xl p-3">{candidate.notes}</p>
-        </Section>
-      )}
+      {(() => {
+        const notes = parseNotes(candidate.notes)
+        if (!notes.length) return null
+        return (
+          <Section title={`Notițe interne (${notes.length})`}>
+            <div className="space-y-2">
+              {notes.map(note => (
+                <div key={note.id} className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{note.text}</p>
+                  {note.created_at && (
+                    <p className="text-[11px] text-gray-400 mt-1.5">{fmtNoteDate(note.created_at)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )
+      })()}
     </div>
   )
 }
@@ -607,9 +639,8 @@ export function CandidateViewModal({
 
   function renderTabContent() {
     if (!candidate) return null
-    if (activeTab === 'profil') return <ProfileTab candidate={candidate} />
     if (activeTab === 'companie') return <CompanyTab candidate={candidate} />
-    return null
+    return <ProfileTab candidate={candidate} />
   }
 
   function renderHeader(candidate: CandidateFull, large: boolean) {
@@ -629,6 +660,9 @@ export function CandidateViewModal({
           )}
           {candidate.candidate_status === 'angajat' && (
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Angajat</span>
+          )}
+          {candidate.candidate_status === 'blacklist' && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">Black List</span>
           )}
           {candidate.successful_client && (
             <span className="text-xs text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
@@ -682,7 +716,7 @@ export function CandidateViewModal({
         {candidate && (
           <div className="flex flex-1 min-h-0">
             {/* Left: tabs */}
-            <div className="w-[400px] flex-shrink-0 flex flex-col border-r border-gray-100">
+            <div className="flex-1 min-w-0 flex flex-col border-r border-gray-100">
               <TabBar active={activeTab} onChange={setActiveTab} />
               <div className="overflow-y-auto flex-1 p-6">{renderTabContent()}</div>
             </div>

@@ -14,13 +14,11 @@ export async function GET() {
   // Last 2 years for timesheets
   const twoYearsAgo = today.getFullYear() - 1
 
-  // Current week bounds (Mon–Sun)
+  // Next 14 days (from start of today)
   const weekStart = new Date(today)
-  const dayOfWeek = today.getDay()
-  weekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
   weekStart.setHours(0, 0, 0, 0)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 6)
+  const weekEnd = new Date(today)
+  weekEnd.setDate(today.getDate() + 14)
   weekEnd.setHours(23, 59, 59, 999)
 
   const [
