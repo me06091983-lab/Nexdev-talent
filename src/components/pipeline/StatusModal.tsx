@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, ChevronDown, Plus, Trash2, Calendar } from 'lucide-react'
+import { X, ChevronDown, Plus, Trash2, CalendarDays } from 'lucide-react'
 import { PIPELINE_STATUSES, type PipelineStatus } from '@/lib/pipeline'
 import type { Submission } from './KanbanBoard'
 import type { InterviewSlot } from './InterviewPanel'
@@ -40,7 +40,6 @@ function DateTimePicker({
   onChange: (v: string) => void
 }) {
   const dateRef = useRef<HTMLInputElement>(null)
-  const timeRef = useRef<HTMLInputElement>(null)
 
   const datePart = value ? value.slice(0, 10) : ''
   const timePart = value && value.includes('T') ? value.slice(11, 16) : ''
@@ -65,16 +64,6 @@ function DateTimePicker({
     }
   }
 
-  function openTimePicker() {
-    if (timeRef.current) {
-      if (typeof timeRef.current.showPicker === 'function') {
-        timeRef.current.showPicker()
-      } else {
-        timeRef.current.focus()
-      }
-    }
-  }
-
   return (
     <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus-within:ring-2 focus-within:ring-[#2AA3FF]/30 focus-within:border-[#2AA3FF]">
       <button
@@ -83,30 +72,21 @@ function DateTimePicker({
         className="text-gray-400 hover:text-[#2AA3FF] transition-colors flex-shrink-0"
         title="Selectează data"
       >
-        <Calendar size={13} />
+        <CalendarDays size={13} />
       </button>
       <input
         ref={dateRef}
         type="date"
         value={datePart}
         onChange={e => handleDate(e.target.value)}
-        className="text-xs text-gray-700 bg-transparent focus:outline-none w-[105px]"
+        className="text-xs text-gray-700 bg-transparent focus:outline-none w-[100px]"
       />
-      <span className="text-gray-300 text-xs">|</span>
-      <button
-        type="button"
-        onClick={openTimePicker}
-        className="text-gray-400 hover:text-[#2AA3FF] transition-colors flex-shrink-0 text-xs font-mono"
-        title="Selectează ora"
-      >
-        {timePart || '--:--'}
-      </button>
+      <span className="text-gray-200 text-xs select-none">|</span>
       <input
-        ref={timeRef}
         type="time"
         value={timePart}
         onChange={e => handleTime(e.target.value)}
-        className="sr-only"
+        className="text-xs text-gray-700 bg-transparent focus:outline-none w-[60px]"
       />
     </div>
   )
