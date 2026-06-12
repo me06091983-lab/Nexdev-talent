@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { GlobalSearch } from './GlobalSearch'
 import {
   LayoutDashboard,
   Users,
@@ -59,8 +60,13 @@ export function Sidebar() {
         </span>
       </div>
 
+      {/* Search */}
+      <div className="pt-3 pb-1">
+        <GlobalSearch />
+      </div>
+
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-1">
+      <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-1">
         {navGroups.map((group, gi) => (
           <div key={gi} className={gi > 0 ? 'pt-3' : ''}>
             {group.label && (

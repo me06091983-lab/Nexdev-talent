@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ChevronRight,
   Receipt,
+  Download,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -874,6 +875,22 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
   const prev3Revenue = prev3.reduce((s, m) => s + m.revenue, 0)
   const overallTrendUp = last3Revenue >= prev3Revenue
 
+  function exportCsv() {
+    const rows = [
+      ['Luna', 'Revenue', 'Cost', 'Comisioane', 'Profit'],
+      ...monthly.map(m => [m.label, m.revenue.toFixed(2), m.cost.toFixed(2), m.comms.toFixed(2), m.profit.toFixed(2)]),
+      ['TOTAL YTD', ytd.revenue.toFixed(2), ytd.cost.toFixed(2), ytd.comms.toFixed(2), ytd.profit.toFixed(2)],
+    ]
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `nexdev-financiar-${new Date().getFullYear()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-5">
       {/* Row 1: YTD Cards */}
@@ -1049,7 +1066,12 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
       {/* Row 4: Data table */}
       <div className="glass rounded-2xl p-4">
-        <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Detaliu lunar — ultimele 12 luni</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[#0B1A33]">Detaliu lunar — ultimele 12 luni</h3>
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors">
+            <Download size={13} /> Export CSV
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>

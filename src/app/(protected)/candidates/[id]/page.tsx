@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { CandidateForm } from '@/components/candidates/CandidateForm'
+import { CandidateDetail } from '@/components/candidates/CandidateDetail'
 
 export default async function EditCandidatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -21,15 +21,10 @@ export default async function EditCandidatePage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Editează: {candidate.first_name} {candidate.last_name}
-        </h1>
-      </div>
-      <div className="glass rounded-2xl p-8">
-        <CandidateForm initial={initial} candidateId={id} />
-      </div>
-    </div>
+    <CandidateDetail
+      initial={initial}
+      candidateId={id}
+      candidateName={`${candidate.first_name} ${candidate.last_name}`}
+    />
   )
 }

@@ -105,6 +105,11 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+
+      if (!isEdit && form.status === 'active') {
+        fetch(`/api/roles/${data.id}/match`, { method: 'POST' }).catch(() => {})
+      }
+
       router.push('/roles')
       router.refresh()
     } catch (err) {

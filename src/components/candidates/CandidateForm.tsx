@@ -162,6 +162,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
   const [achExpanded, setAchExpanded] = useState(true)
 
   const [saving, setSaving] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; id: string } | null>(null)
   const [showCvPreview, setShowCvPreview] = useState(false)
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [cvFilePath, setCvFilePath] = useState<string>((initial?.cv_file_path as string) ?? '')
@@ -204,6 +205,17 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
 
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function handleEmailBlur() {
+    if (isEdit || !form.email) return
+    try {
+      const res = await fetch(`/api/candidates?q=${encodeURIComponent(form.email)}`)
+      const data = await res.json()
+      const match = (data as { id: string; first_name: string; last_name: string; email: string }[])
+        .find(c => c.email?.toLowerCase() === form.email.toLowerCase())
+      setDuplicateWarning(match ? { name: `${match.first_name} ${match.last_name}`, id: match.id } : null)
+    } catch { /* ignore */ }
   }
 
   // Generic update/remove helpers
@@ -454,7 +466,15 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} />
+                <input type="email" value={form.email} onChange={e => { set('email', e.target.value); setDuplicateWarning(null) }} onBlur={handleEmailBlur} className={inputCls} />
+                {duplicateWarning && (
+                  <div className="mt-1.5 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-xs">
+                    <span>⚠️ Există deja un candidat cu acest email:</span>
+                    <a href={`/candidates/${duplicateWarning.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-amber-900">
+                      {duplicateWarning.name}
+                    </a>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
@@ -486,7 +506,10 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => set('candidate_status', opt.value)}
+                    onClick={() => {
+                      set('candidate_status', opt.value)
+                      if (opt.value === 'angajat') set('successful', true)
+                    }}
                     className={cn(
                       'px-4 py-1.5 rounded-lg text-sm font-medium border transition-all',
                       form.candidate_status === opt.value
