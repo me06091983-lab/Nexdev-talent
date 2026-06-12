@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CandidateForm } from './CandidateForm'
 import { cn } from '@/lib/utils'
-import { Clock, User, AlertCircle } from 'lucide-react'
+import { Clock, User, AlertCircle, RefreshCw } from 'lucide-react'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
@@ -35,15 +35,33 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState('')
 
-  useEffect(() => {
-    if (tab !== 'istoric') return
+  const fetchHistory = useCallback(async () => {
     setHistoryLoading(true)
     setHistoryError('')
-    fetch(`/api/candidates/${candidateId}/history`)
-      .then(r => r.json())
-      .then(data => { setHistory(data); setHistoryLoading(false) })
-      .catch(() => { setHistoryError('Eroare la încărcarea istoricului'); setHistoryLoading(false) })
-  }, [tab, candidateId])
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/history`, { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Eroare server')
+      setHistory(Array.isArray(data) ? data : [])
+    } catch {
+      setHistoryError('Eroare la încărcarea istoricului')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [candidateId])
+
+  // Fetch when switching to Istoric tab
+  useEffect(() => {
+    if (tab === 'istoric') fetchHistory()
+  }, [tab, fetchHistory])
+
+  // Auto-refresh when window regains focus while on Istoric tab
+  useEffect(() => {
+    if (tab !== 'istoric') return
+    const onFocus = () => fetchHistory()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [tab, fetchHistory])
 
   return (
     <div>
@@ -88,7 +106,22 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
 
       {tab === 'istoric' && (
         <div className="space-y-3">
-          {historyLoading && (
+          {/* Header with refresh button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              {!historyLoading && `${history.length} ${history.length === 1 ? 'rol' : 'roluri'} în istoric`}
+            </p>
+            <button
+              onClick={fetchHistory}
+              disabled={historyLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={historyLoading ? 'animate-spin' : ''} />
+              Reîncarcă
+            </button>
+          </div>
+
+          {historyLoading && history.length === 0 && (
             <div className="glass rounded-2xl p-8 text-center text-sm text-gray-400">Se încarcă...</div>
           )}
           {historyError && (
@@ -101,13 +134,16 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
               Candidatul nu a fost propus pentru niciun rol încă.
             </div>
           )}
+
           {history.map(entry => {
             const statusInfo = STATUS_LABEL[entry.status] ?? { label: entry.status, cls: 'bg-gray-100 text-gray-600' }
-            const date = new Date(entry.updated_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+            const dateAdded = new Date(entry.created_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+            const dateUpdated = new Date(entry.updated_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+            const wasUpdated = entry.created_at !== entry.updated_at
             return (
               <div key={entry.id} className="glass rounded-2xl p-5 flex items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <a href={`/roles/${entry.role?.id}/pipeline`} className="font-semibold text-gray-900 hover:text-[#2AA3FF] transition-colors">
                       {entry.role?.title ?? 'Rol necunoscut'}
                     </a>
@@ -118,12 +154,15 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   {entry.feedback && (
                     <p className="text-sm text-gray-500 mt-1 italic">&ldquo;{entry.feedback}&rdquo;</p>
                   )}
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Adăugat {dateAdded}
+                    {wasUpdated && <span className="ml-2 text-gray-300">· Actualizat {dateUpdated}</span>}
+                  </p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                   <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full', statusInfo.cls)}>
                     {statusInfo.label}
                   </span>
-                  <span className="text-[10px] text-gray-400">{date}</span>
                 </div>
               </div>
             )
