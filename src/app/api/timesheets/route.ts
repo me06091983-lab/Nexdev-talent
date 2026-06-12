@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const { data: contracts, error } = await supabase
     .from('contracts')
     .select(`
-      id, candidate_id, role_id, bill_rate, rate_type, currency, start_date, end_date,
+      id, candidate_id, role_id, bill_rate, pay_rate, rate_type, currency, start_date, end_date,
       candidate:candidates!candidate_id(id, first_name, last_name, profile:profiles(name)),
       role:roles!role_id(id, title, client:clients(name))
     `)
@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       role_title: role?.title ?? null,
       client_name: client?.name ?? null,
       bill_rate: c.bill_rate,
+      pay_rate: c.pay_rate,
       rate_type: c.rate_type ?? 'daily',
       currency: c.currency ?? 'EUR',
       start_date: c.start_date,

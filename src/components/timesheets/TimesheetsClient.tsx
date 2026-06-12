@@ -194,17 +194,17 @@ export function TimesheetsClient() {
                               placeholder="—"
                               className={cn(
                                 'w-14 text-center text-sm rounded-lg border py-1.5 transition-all',
-                                'focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/20 focus:border-[#2AA3FF]',
+                                'focus:outline-none focus:ring-2 focus:ring-green-300/40 focus:border-green-400',
                                 isSaving
                                   ? 'border-amber-200 bg-amber-50 text-amber-600'
                                   : hasValue
-                                  ? 'border-gray-200 bg-white font-medium text-gray-900'
-                                  : 'border-transparent bg-transparent text-gray-300 placeholder:text-gray-200 hover:border-gray-200 hover:bg-gray-50 focus:bg-white'
+                                  ? 'border-green-200 bg-green-50 font-medium text-gray-800'
+                                  : 'border-green-100 bg-green-50/60 text-green-200 placeholder:text-green-200 hover:bg-green-50 hover:border-green-200'
                               )}
                             />
                           ) : (
-                            <div className="w-14 mx-auto h-[34px] rounded-lg bg-gray-50 flex items-center justify-center">
-                              <span className="text-gray-200 text-xs select-none">—</span>
+                            <div className="w-14 mx-auto h-[34px] rounded-lg bg-gray-200/70 flex items-center justify-center">
+                              <span className="text-gray-400 text-xs select-none">—</span>
                             </div>
                           )}
                         </td>
