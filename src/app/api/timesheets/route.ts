@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     .from('contracts')
     .select(`
       id, candidate_id, role_id, bill_rate, pay_rate, rate_type, currency, start_date, end_date,
-      candidate:candidates!candidate_id(id, first_name, last_name, profile:profiles(name)),
+      candidate:candidates!candidate_id(id, first_name, last_name, company_tva, profile:profiles(name)),
       role:roles!role_id(id, title, client:clients(name))
     `)
     .lte('start_date', yearEnd)
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
       contract_id: c.id,
       candidate_id: c.candidate_id,
       candidate_name: cand ? `${cand.first_name} ${cand.last_name}` : '—',
+      candidate_tva: cand?.company_tva ?? false,
       profile_name: profile?.name ?? '',
       role_title: role?.title ?? null,
       client_name: client?.name ?? null,
