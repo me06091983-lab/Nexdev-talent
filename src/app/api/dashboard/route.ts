@@ -14,6 +14,15 @@ export async function GET() {
   // Last 2 years for timesheets
   const twoYearsAgo = today.getFullYear() - 1
 
+  // Current week bounds (Mon–Sun)
+  const weekStart = new Date(today)
+  const dayOfWeek = today.getDay()
+  weekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 6)
+  weekEnd.setHours(23, 59, 59, 999)
+
   const [
     candidatesRes,
     rolesRes,
@@ -22,6 +31,7 @@ export async function GET() {
     contractsRes,
     timesheetsRes,
     allActiveSubsRes,
+    interviewSubsRes,
   ] = await Promise.all([
     supabase
       .from('candidates')
@@ -75,6 +85,16 @@ export async function GET() {
       .is('deleted_at', null)
       .neq('status', 'rejected')
       .order('updated_at', { ascending: false }),
+
+    supabase
+      .from('submissions')
+      .select(`
+        id, interviews,
+        candidate:candidates!candidate_id(first_name, last_name),
+        role:roles!role_id(id, title, client:clients!client_id(name))
+      `)
+      .not('interviews', 'is', null)
+      .is('deleted_at', null),
   ])
 
   // ── Candidates ─────────────────────────────────────────────────────────────
@@ -284,6 +304,33 @@ export async function GET() {
   const interviewCandidates = allActiveSubs
     .filter(s => s.status === 'screening_scheduled' || s.status === 'screening_done')
 
+  // ── Weekly interviews ──────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const weeklyInterviews: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const sub of (interviewSubsRes.data ?? []) as any[]) {
+    const candidate = Array.isArray(sub.candidate) ? sub.candidate[0] : sub.candidate
+    const role = Array.isArray(sub.role) ? sub.role[0] : sub.role
+    const client = role ? (Array.isArray(role.client) ? role.client[0] : role.client) : null
+    const slots: { label: string; enabled: boolean; datetime: string; status: string }[] = sub.interviews ?? []
+    for (const slot of slots) {
+      if (!slot.enabled || slot.status !== 'set' || !slot.datetime) continue
+      const slotDate = new Date(slot.datetime)
+      if (slotDate < weekStart || slotDate > weekEnd) continue
+      weeklyInterviews.push({
+        submissionId: sub.id,
+        candidateName: candidate ? `${candidate.first_name} ${candidate.last_name}` : '—',
+        roleTitle: role?.title ?? null,
+        clientName: client?.name ?? null,
+        roleId: role?.id ?? null,
+        interviewLabel: slot.label,
+        datetime: slot.datetime,
+        isToday: slotDate.toDateString() === today.toDateString(),
+      })
+    }
+  }
+  weeklyInterviews.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+
   // ── Financials ─────────────────────────────────────────────────────────────
   // Build contract lookup for timesheets
   const contractLookup: Record<string, { bill_rate: number; pay_rate: number; partner_commission: number | null; partner_commission_type: string | null; partner_commission_2: number | null; partner_commission_2_type: string | null }> = {}
@@ -367,6 +414,7 @@ export async function GET() {
     openRoles,
     candidatesByRole,
     interviewCandidates,
+    weeklyInterviews,
     contracts: {
       active: activeContracts.length,
       terminated: terminatedContracts.length,

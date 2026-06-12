@@ -78,6 +78,16 @@ interface DashboardData {
     status: string
     updated_at: string
   }>
+  weeklyInterviews: Array<{
+    submissionId: string
+    candidateName: string
+    roleTitle: string | null
+    clientName: string | null
+    roleId: string | null
+    interviewLabel: string
+    datetime: string
+    isToday: boolean
+  }>
   contracts: {
     active: number
     terminated: number
@@ -161,6 +171,24 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function groupWeeklyInterviewsByDay(interviews: DashboardData['weeklyInterviews']) {
+  const groups = new Map<string, { dateKey: string; dateLabel: string; isToday: boolean; items: typeof interviews }>()
+  for (const iv of interviews) {
+    const d = new Date(iv.datetime)
+    const dateKey = d.toISOString().slice(0, 10)
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, {
+        dateKey,
+        dateLabel: d.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'short' }),
+        isToday: iv.isToday,
+        items: [],
+      })
+    }
+    groups.get(dateKey)!.items.push(iv)
+  }
+  return Array.from(groups.values()).sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+}
 
 function fmt(n: number) {
   return n.toLocaleString('ro-RO', { maximumFractionDigits: 0 })
@@ -286,8 +314,8 @@ function ClientRevenueTooltip({ active, payload }: any) {
 
 // ─── Tab 1: Recrutare ─────────────────────────────────────────────────────────
 
-function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean }) {
-  const [actions, setActions] = useState<{ id: string; text: string }[]>([])
+function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
+  const [actions, setActions] = useState<{ id: string; text: string; completed?: boolean; completedAt?: string }[]>([])
   const [newAction, setNewAction] = useState('')
   const [collapsedRoles, setCollapsedRoles] = useState<Set<string>>(new Set())
 
@@ -310,14 +338,16 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
   function addAction() {
     const trimmed = newAction.trim()
     if (!trimmed) return
-    const updated = [...actions, { id: crypto.randomUUID(), text: trimmed }]
+    const updated = [...actions, { id: crypto.randomUUID(), text: trimmed, completed: false }]
     setActions(updated)
     setNewAction('')
     localStorage.setItem('nexdev_dashboard_actions', JSON.stringify(updated))
   }
 
-  function removeAction(id: string) {
-    const updated = actions.filter(a => a.id !== id)
+  function completeAction(id: string) {
+    const updated = actions.map(a =>
+      a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
+    )
     setActions(updated)
     localStorage.setItem('nexdev_dashboard_actions', JSON.stringify(updated))
   }
@@ -325,12 +355,6 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
   const totalSubmissions = Object.values(data.submissionsByStatus).reduce((s, v) => s + v, 0)
   const rejectedCount = data.submissionsByStatus['rejected'] ?? 0
   const activeSubmissions = totalSubmissions - rejectedCount
-
-  const pieData = [
-    { name: 'Pasiv', value: data.candidates.byStatus.pasiv, color: '#94a3b8' },
-    { name: 'Activ', value: data.candidates.byStatus.activ, color: '#2AA3FF' },
-    { name: 'Angajat', value: data.candidates.byStatus.angajat, color: '#22c55e' },
-  ]
 
   return (
     <div className="space-y-5">
@@ -342,46 +366,65 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
         <StatCard label="Submisii active" value={activeSubmissions} icon={Send} iconColor="text-amber-500" iconBg="bg-amber-50" />
       </div>
 
-      {/* Row 2: Pie chart + Candidați per rol */}
+      {/* Row 2: Interviuri săptămână + Candidați per rol */}
       <div className="grid grid-cols-12 gap-4">
-        {/* Pie chart */}
+        {/* Weekly interviews */}
         <div className="col-span-5 glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Candidați pe status</h3>
-          {mounted ? (
-            <div>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ cx, cy }) => (
-                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-                        <tspan x={cx} dy="-6" fontSize={22} fontWeight={700} fill="#0B1A33">{data.candidates.total}</tspan>
-                        <tspan x={cx} dy={20} fontSize={10} fill="#94a3b8">total</tspan>
-                      </text>
-                    )}
-                    labelLine={false}
-                  >
-                    {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center gap-4 mt-1">
-                {pieData.map(d => (
-                  <div key={d.name} className="flex items-center gap-1.5 text-xs text-gray-500">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                    {d.name} ({d.value})
-                  </div>
-                ))}
-              </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri săptămâna aceasta</h3>
+            {data.weeklyInterviews.length > 0 && (
+              <span className="text-[10px] bg-[#2AA3FF]/10 text-[#2AA3FF] font-medium px-2 py-0.5 rounded-full">
+                {data.weeklyInterviews.length}
+              </span>
+            )}
+          </div>
+          {data.weeklyInterviews.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
+              <Calendar size={24} className="text-gray-300" />
+              <span>Niciun interviu planificat</span>
+              <span className="text-xs text-gray-300">această săptămână</span>
             </div>
-          ) : <ChartPlaceholder height={220} />}
+          ) : (
+            <div className="space-y-3 overflow-y-auto max-h-[270px] pr-1">
+              {groupWeeklyInterviewsByDay(data.weeklyInterviews).map(group => (
+                <div key={group.dateKey}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', group.isToday ? 'bg-[#2AA3FF]' : 'bg-gray-300')} />
+                    <span className={cn(
+                      'text-[10px] font-semibold uppercase tracking-wide',
+                      group.isToday ? 'text-[#2AA3FF]' : 'text-gray-400'
+                    )}>
+                      {group.isToday ? 'Azi' : group.dateLabel}
+                    </span>
+                  </div>
+                  <div className="space-y-1 ml-3.5">
+                    {group.items.map((iv, idx) => (
+                      <div key={idx} className={cn(
+                        'flex items-start gap-2 px-3 py-2 rounded-xl border',
+                        iv.isToday ? 'bg-blue-50/60 border-blue-100' : 'bg-white border-gray-100'
+                      )}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-gray-800 truncate">{iv.candidateName}</p>
+                          <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                            {iv.roleTitle ?? '—'} · {iv.clientName ?? '—'}
+                          </p>
+                          <p className={cn('text-[10px] mt-0.5', iv.isToday ? 'text-[#2AA3FF] font-medium' : 'text-gray-400')}>
+                            {iv.interviewLabel}
+                          </p>
+                        </div>
+                        <span className={cn(
+                          'text-[10px] font-semibold flex-shrink-0 mt-0.5',
+                          iv.isToday ? 'text-[#2AA3FF]' : 'text-gray-500'
+                        )}>
+                          {new Date(iv.datetime).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Candidați per rol */}
@@ -541,41 +584,79 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
       )}
 
       {/* Row 5: Acțiuni */}
-      <div className="glass rounded-2xl p-4">
-        <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni</h3>
-        <div className="flex gap-2 mb-4">
-          <input
-            value={newAction}
-            onChange={e => setNewAction(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addAction()}
-            placeholder="Adaugă o acțiune nouă..."
-            className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
-          />
-          <button
-            onClick={addAction}
-            className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
-          >
-            Adaugă
-          </button>
-        </div>
-        {actions.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-3">
-            Nicio acțiune adăugată. Folosește câmpul de mai sus pentru a adăuga.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {actions.map(action => (
-              <label key={action.id} className="flex items-center gap-3 cursor-pointer group py-1.5 border-b border-gray-50 last:border-0">
-                <input
-                  type="checkbox"
-                  onChange={() => removeAction(action.id)}
-                  className="w-4 h-4 rounded cursor-pointer accent-[#2AA3FF] flex-shrink-0"
-                />
-                <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{action.text}</span>
-              </label>
-            ))}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Active actions */}
+        <div className="glass rounded-2xl p-4">
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni în curs</h3>
+          <div className="flex gap-2 mb-4">
+            <input
+              value={newAction}
+              onChange={e => setNewAction(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addAction()}
+              placeholder="Adaugă o acțiune nouă..."
+              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
+            />
+            <button
+              onClick={addAction}
+              className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
+            >
+              Adaugă
+            </button>
           </div>
-        )}
+          {actions.filter(a => !a.completed).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Nicio acțiune activă. Bifează o acțiune pentru a o finaliza.
+            </p>
+          ) : (
+            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+              {actions.filter(a => !a.completed).map(action => (
+                <label key={action.id} className="flex items-center gap-3 cursor-pointer group py-2 border-b border-gray-50 last:border-0">
+                  <input
+                    type="checkbox"
+                    onChange={() => completeAction(action.id)}
+                    className="w-4 h-4 rounded cursor-pointer accent-[#2AA3FF] flex-shrink-0"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{action.text}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Completed history */}
+        <div className="glass rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric finalizate</h3>
+            {actions.filter(a => a.completed).length > 0 && (
+              <span className="text-[10px] bg-green-50 text-green-600 font-medium px-2 py-0.5 rounded-full">
+                {actions.filter(a => a.completed).length}
+              </span>
+            )}
+          </div>
+          {actions.filter(a => a.completed).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Nicio acțiune finalizată încă.
+            </p>
+          ) : (
+            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+              {[...actions.filter(a => a.completed)].reverse().map(action => (
+                <div key={action.id} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <CheckCircle size={15} className="text-green-500 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-400 line-through">{action.text}</p>
+                    {action.completedAt && (
+                      <p className="text-[10px] text-gray-300 mt-0.5">
+                        {new Date(action.completedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {' · '}
+                        {new Date(action.completedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -584,7 +665,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
 // ─── Tab 2: Contracte ─────────────────────────────────────────────────────────
 
 function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean }) {
-  const [actions, setActions] = useState<{ id: string; text: string }[]>([])
+  const [actions, setActions] = useState<{ id: string; text: string; completed?: boolean; completedAt?: string }[]>([])
   const [newAction, setNewAction] = useState('')
 
   useEffect(() => {
@@ -597,14 +678,16 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
   function addAction() {
     const trimmed = newAction.trim()
     if (!trimmed) return
-    const updated = [...actions, { id: crypto.randomUUID(), text: trimmed }]
+    const updated = [...actions, { id: crypto.randomUUID(), text: trimmed, completed: false }]
     setActions(updated)
     setNewAction('')
     localStorage.setItem('nexdev_dashboard_actions_contracte', JSON.stringify(updated))
   }
 
-  function removeAction(id: string) {
-    const updated = actions.filter(a => a.id !== id)
+  function completeAction(id: string) {
+    const updated = actions.map(a =>
+      a.id === id ? { ...a, completed: true, completedAt: new Date().toISOString() } : a
+    )
     setActions(updated)
     localStorage.setItem('nexdev_dashboard_actions_contracte', JSON.stringify(updated))
   }
@@ -803,41 +886,79 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
       </div>
 
       {/* Row 4: Acțiuni */}
-      <div className="glass rounded-2xl p-4">
-        <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni</h3>
-        <div className="flex gap-2 mb-4">
-          <input
-            value={newAction}
-            onChange={e => setNewAction(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addAction()}
-            placeholder="Adaugă o acțiune nouă..."
-            className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
-          />
-          <button
-            onClick={addAction}
-            className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
-          >
-            Adaugă
-          </button>
-        </div>
-        {actions.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-3">
-            Nicio acțiune adăugată. Folosește câmpul de mai sus pentru a adăuga.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {actions.map(action => (
-              <label key={action.id} className="flex items-center gap-3 cursor-pointer group py-1.5 border-b border-gray-50 last:border-0">
-                <input
-                  type="checkbox"
-                  onChange={() => removeAction(action.id)}
-                  className="w-4 h-4 rounded cursor-pointer accent-[#2AA3FF] flex-shrink-0"
-                />
-                <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{action.text}</span>
-              </label>
-            ))}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Active actions */}
+        <div className="glass rounded-2xl p-4">
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni în curs</h3>
+          <div className="flex gap-2 mb-4">
+            <input
+              value={newAction}
+              onChange={e => setNewAction(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addAction()}
+              placeholder="Adaugă o acțiune nouă..."
+              className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
+            />
+            <button
+              onClick={addAction}
+              className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
+            >
+              Adaugă
+            </button>
           </div>
-        )}
+          {actions.filter(a => !a.completed).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Nicio acțiune activă. Bifează o acțiune pentru a o finaliza.
+            </p>
+          ) : (
+            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+              {actions.filter(a => !a.completed).map(action => (
+                <label key={action.id} className="flex items-center gap-3 cursor-pointer group py-2 border-b border-gray-50 last:border-0">
+                  <input
+                    type="checkbox"
+                    onChange={() => completeAction(action.id)}
+                    className="w-4 h-4 rounded cursor-pointer accent-[#2AA3FF] flex-shrink-0"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{action.text}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Completed history */}
+        <div className="glass rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric finalizate</h3>
+            {actions.filter(a => a.completed).length > 0 && (
+              <span className="text-[10px] bg-green-50 text-green-600 font-medium px-2 py-0.5 rounded-full">
+                {actions.filter(a => a.completed).length}
+              </span>
+            )}
+          </div>
+          {actions.filter(a => a.completed).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              Nicio acțiune finalizată încă.
+            </p>
+          ) : (
+            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+              {[...actions.filter(a => a.completed)].reverse().map(action => (
+                <div key={action.id} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <CheckCircle size={15} className="text-green-500 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-400 line-through">{action.text}</p>
+                    {action.completedAt && (
+                      <p className="text-[10px] text-gray-300 mt-0.5">
+                        {new Date(action.completedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {' · '}
+                        {new Date(action.completedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
