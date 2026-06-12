@@ -8,7 +8,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: role }, { data: subs }, { data: rawPartners }] = await Promise.all([
+  const [{ data: role }, { data: subs }, { data: rawPartners }, { data: rawStages }] = await Promise.all([
     supabase
       .from('roles')
       .select('id, title, rate, rate_currency, rate_type, client:clients(name)')
@@ -35,6 +35,12 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
       .from('partners')
       .select('id, first_name, last_name, name')
       .order('last_name', { ascending: true }),
+
+    supabase
+      .from('role_stages')
+      .select('id, name, order_index')
+      .eq('role_id', id)
+      .order('order_index'),
   ])
 
   if (!role) notFound()
@@ -84,9 +90,15 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
     role: { title: typedRole.title, client: typedRole.client },
   }))
 
+  const stages = (rawStages ?? []).map((s: { id: string; name: string; order_index: number }) => ({
+    id: s.id,
+    name: s.name,
+    order_index: s.order_index,
+  }))
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
-      <RolePipelineClient role={typedRole} initialSubmissions={submissions} partners={partners} />
+      <RolePipelineClient role={typedRole} initialSubmissions={submissions} partners={partners} stages={stages} roleId={id} />
     </div>
   )
 }

@@ -16,7 +16,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
 import { cn } from '@/lib/utils'
 import { MessageSquare, Trash2, FileSignature, CheckCircle2 } from 'lucide-react'
-import { StatusModal } from './StatusModal'
+import { StatusModal, type RoleStage } from './StatusModal'
 import { ContractModal, type PartnerOption } from './ContractModal'
 import type { InterviewSlot } from './InterviewPanel'
 
@@ -257,10 +257,12 @@ export function KanbanBoard({
   submissions: initialSubmissions,
   onRefresh,
   partners = [],
+  stages = [],
 }: {
   submissions: Submission[]
   onRefresh: () => void
   partners?: PartnerOption[]
+  stages?: RoleStage[]
 }) {
   const [items, setItems] = useState<Submission[]>(initialSubmissions)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -362,6 +364,7 @@ export function KanbanBoard({
       {selected && (
         <StatusModal
           submission={selected}
+          stages={stages}
           onClose={() => setSelected(null)}
           onSaved={handleStatusSaved}
         />

@@ -6,18 +6,16 @@ import { PIPELINE_STATUSES, type PipelineStatus } from '@/lib/pipeline'
 import type { Submission } from './KanbanBoard'
 import type { InterviewSlot } from './InterviewPanel'
 
+export interface RoleStage { id: string; name: string; order_index: number }
+
 interface Props {
   submission: Submission
+  stages?: RoleStage[]
   onClose: () => void
   onSaved: (submissionId: string, newStatus: PipelineStatus) => void
 }
 
-const DEFAULT_SLOTS: InterviewSlot[] = [
-  { label: 'Interview 1', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 2', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 3', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 4', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-]
+const FALLBACK_LABELS = ['Interview 1', 'Interview 2', 'Interview 3', 'Interview 4']
 
 const INTERVIEW_STATUS_OPTIONS = [
   { value: 'waiting_customer', label: 'Waiting customer' },
@@ -33,14 +31,22 @@ const SLOT_STATUS_COLORS: Record<string, string> = {
   rejected:         'text-red-600 bg-red-50 border-red-200',
 }
 
-function mergeSlots(saved: InterviewSlot[]): InterviewSlot[] {
-  return DEFAULT_SLOTS.map((def, i) => ({ ...def, ...(saved[i] ?? {}) }))
+function buildSlots(stages: RoleStage[] | undefined, saved: InterviewSlot[]): InterviewSlot[] {
+  const labels = stages && stages.length > 0
+    ? stages.slice(0, 4).map(s => s.name)
+    : FALLBACK_LABELS
+  return labels.map((label, i) => {
+    const base: InterviewSlot = { label, enabled: false, datetime: '', status: 'waiting_customer', feedback: '' }
+    const merged = { ...base, ...(saved[i] ?? {}) }
+    merged.label = label
+    return merged
+  })
 }
 
-export function StatusModal({ submission, onClose, onSaved }: Props) {
+export function StatusModal({ submission, stages, onClose, onSaved }: Props) {
   const [status, setStatus] = useState<PipelineStatus>(submission.status)
   const [slots, setSlots] = useState<InterviewSlot[]>(() =>
-    mergeSlots((submission.interviews ?? []) as InterviewSlot[])
+    buildSlots(stages, (submission.interviews ?? []) as InterviewSlot[])
   )
   const [feedback, setFeedback] = useState('')
   const [saving, setSaving] = useState(false)
@@ -48,10 +54,10 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
 
   useEffect(() => {
     setStatus(submission.status)
-    setSlots(mergeSlots((submission.interviews ?? []) as InterviewSlot[]))
+    setSlots(buildSlots(stages, (submission.interviews ?? []) as InterviewSlot[]))
     setFeedback('')
     setError('')
-  }, [submission.id])
+  }, [submission.id, stages])
 
   function updateSlot(idx: number, field: keyof InterviewSlot, value: unknown) {
     setSlots(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s))

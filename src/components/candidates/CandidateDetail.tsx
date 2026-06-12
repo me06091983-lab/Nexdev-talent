@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { CandidateForm } from './CandidateForm'
 import { cn } from '@/lib/utils'
-import { Clock, User, AlertCircle, RefreshCw, MessageSquare, ScrollText } from 'lucide-react'
+import { Clock, User, AlertCircle, RefreshCw, MessageSquare, ScrollText, StickyNote, Trash2 } from 'lucide-react'
 
 const SUBMISSION_STATUS: Record<string, { label: string; cls: string }> = {
   pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
@@ -53,18 +53,130 @@ interface HistoryData {
   contracts: ContractEntry[]
 }
 
+interface NoteEntry {
+  id: string
+  text: string
+  created_at: string
+}
+
 interface CandidateDetailProps {
   initial: Record<string, unknown>
   candidateId: string
   candidateName: string
 }
 
-function fmt(dateStr: string) {
+function fmtDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function fmtDateTime(iso: string) {
+  if (!iso) return 'dată necunoscută'
+  const d = new Date(iso)
+  return d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+}
+
+function parseNotes(raw: unknown): NoteEntry[] {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed as NoteEntry[]
+    return [{ id: 'legacy-0', text: raw, created_at: '' }]
+  } catch {
+    return [{ id: 'legacy-0', text: raw, created_at: '' }]
+  }
+}
+
+// ─── Notes Panel ─────────────────────────────────────────────────────────────
+
+function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; initialNotesRaw: unknown }) {
+  const [notes, setNotes] = useState<NoteEntry[]>(() => parseNotes(initialNotesRaw))
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function persistNotes(updated: NoteEntry[]) {
+    await fetch(`/api/candidates/${candidateId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: JSON.stringify(updated) }),
+    })
+  }
+
+  async function addNote() {
+    const trimmed = text.trim()
+    if (!trimmed || saving) return
+    setSaving(true)
+    const entry: NoteEntry = { id: crypto.randomUUID(), text: trimmed, created_at: new Date().toISOString() }
+    const updated = [entry, ...notes]
+    await persistNotes(updated)
+    setNotes(updated)
+    setText('')
+    setSaving(false)
+  }
+
+  async function deleteNote(id: string) {
+    const updated = notes.filter(n => n.id !== id)
+    setNotes(updated)
+    await persistNotes(updated)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-4">
+        <textarea
+          rows={3}
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote() }}
+          placeholder="Scrie o notă internă... (Ctrl+Enter pentru a salva)"
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300 resize-none"
+        />
+        <div className="flex justify-end mt-2">
+          <button
+            onClick={addNote}
+            disabled={saving || !text.trim()}
+            className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Salvez...' : 'Adaugă notă'}
+          </button>
+        </div>
+      </div>
+
+      {notes.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center text-sm text-gray-400">
+          Nicio notă adăugată pentru acest candidat.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {notes.map(note => (
+            <div key={note.id} className="glass rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{note.text}</p>
+                  {note.created_at && (
+                    <p className="text-[11px] text-gray-400 mt-2">{fmtDateTime(note.created_at)}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteNote(note.id)}
+                  className="flex-shrink-0 p-1 text-gray-300 hover:text-red-400 transition-colors rounded mt-0.5"
+                  title="Șterge nota"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export function CandidateDetail({ initial, candidateId, candidateName }: CandidateDetailProps) {
-  const [tab, setTab] = useState<'profil' | 'istoric'>('profil')
+  const [tab, setTab] = useState<'profil' | 'note' | 'istoric'>('profil')
   const [data, setData] = useState<HistoryData>({ submissions: [], contracts: [] })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -101,7 +213,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {tab === 'profil' ? 'Editează:' : 'Istoric:'} {candidateName}
+          {tab === 'profil' ? 'Editează:' : tab === 'note' ? 'Note interne:' : 'Istoric:'} {candidateName}
         </h1>
       </div>
 
@@ -115,6 +227,15 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
           )}
         >
           <User size={15} /> Profil
+        </button>
+        <button
+          onClick={() => setTab('note')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+            tab === 'note' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          )}
+        >
+          <StickyNote size={15} /> Note interne
         </button>
         <button
           onClick={() => setTab('istoric')}
@@ -136,6 +257,10 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
         <div className="glass rounded-2xl p-8">
           <CandidateForm initial={initial} candidateId={candidateId} />
         </div>
+      )}
+
+      {tab === 'note' && (
+        <NotesPanel candidateId={candidateId} initialNotesRaw={initial.notes} />
       )}
 
       {tab === 'istoric' && (
@@ -192,9 +317,9 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                          <span>Start: <span className="font-medium text-gray-700">{fmt(c.start_date)}</span></span>
+                          <span>Start: <span className="font-medium text-gray-700">{fmtDate(c.start_date)}</span></span>
                           {c.end_date && (
-                            <span>End: <span className="font-medium text-gray-700">{fmt(c.end_date)}</span></span>
+                            <span>End: <span className="font-medium text-gray-700">{fmtDate(c.end_date)}</span></span>
                           )}
                           {!c.end_date && <span className="text-green-600 font-medium">Nedeterminat</span>}
                         </div>
@@ -240,7 +365,6 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   )}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        {/* Role title + client + role status */}
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <a
                             href={`/roles/${entry.role?.id}/pipeline`}
@@ -260,15 +384,13 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                           )}
                         </div>
 
-                        {/* Dates */}
                         <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-1">
-                          <span>Aplicat: <span className="text-gray-600 font-medium">{fmt(entry.created_at)}</span></span>
+                          <span>Aplicat: <span className="text-gray-600 font-medium">{fmtDate(entry.created_at)}</span></span>
                           {entry.created_at !== entry.updated_at && (
-                            <span>Actualizat: <span className="text-gray-600 font-medium">{fmt(entry.updated_at)}</span></span>
+                            <span>Actualizat: <span className="text-gray-600 font-medium">{fmtDate(entry.updated_at)}</span></span>
                           )}
                         </div>
 
-                        {/* Feedback */}
                         {feedbackToShow && (
                           <div className={cn(
                             'flex items-start gap-2 text-xs rounded-lg px-3 py-2 mt-2',
@@ -280,7 +402,6 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                         )}
                       </div>
 
-                      {/* Submission status */}
                       <span className={cn('text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0', subStatus.cls)}>
                         {subStatus.label}
                       </span>

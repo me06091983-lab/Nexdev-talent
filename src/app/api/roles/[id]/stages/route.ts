@@ -37,6 +37,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   return NextResponse.json(data, { status: 201 })
 }
 
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { stage_id, order_index } = await request.json()
+  if (!stage_id) return NextResponse.json({ error: 'stage_id lipsă' }, { status: 400 })
+
+  const { error } = await supabase
+    .from('role_stages')
+    .update({ order_index })
+    .eq('id', stage_id)
+    .eq('role_id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true })
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()

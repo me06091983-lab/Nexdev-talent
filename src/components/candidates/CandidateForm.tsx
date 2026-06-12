@@ -191,7 +191,6 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
     source_type: (initial?.source_type as string) ?? '',
     successful: (initial?.successful as boolean) ?? false,
     successful_client: (initial?.successful_client as string) ?? '',
-    notes: (initial?.notes as string) ?? '',
     gdpr_consent: (initial?.gdpr_consent as boolean) ?? false,
     company_name: (initial?.company_name as string) ?? '',
     company_cui: (initial?.company_cui as string) ?? '',
@@ -593,11 +592,7 @@ export function CandidateForm({ initial, candidateId }: CandidateFormProps) {
                 <input type="text" value={form.successful_client} onChange={e => set('successful_client', e.target.value)} className={cn(inputCls, 'max-w-sm')} />
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notițe interne</label>
-              <textarea rows={3} value={form.notes} onChange={e => set('notes', e.target.value)} className={cn(inputCls, 'resize-none')} />
-            </div>
-            <div className="flex items-center gap-3 mt-3">
+            <div className="flex items-center gap-3">
               <input type="checkbox" id="gdpr" checked={form.gdpr_consent} onChange={e => set('gdpr_consent', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
               <label htmlFor="gdpr" className="text-sm text-gray-700">Candidatul și-a dat consimțământul GDPR</label>
             </div>
