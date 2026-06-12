@@ -61,5 +61,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Recalculează statusul candidatului în funcție de contractele active
+  if (data?.candidate_id) {
+    const today = new Date().toISOString().split('T')[0]
+    const { data: activeContracts } = await supabase
+      .from('contracts')
+      .select('id')
+      .eq('candidate_id', data.candidate_id)
+      .or(`end_date.is.null,end_date.gte.${today}`)
+
+    const newStatus = (activeContracts?.length ?? 0) > 0 ? 'angajat' : 'pasiv'
+    await supabase
+      .from('candidates')
+      .update({ candidate_status: newStatus })
+      .eq('id', data.candidate_id)
+      .in('candidate_status', ['angajat', 'pasiv'])
+  }
+
   return NextResponse.json(data)
 }

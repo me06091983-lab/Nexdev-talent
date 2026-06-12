@@ -59,6 +59,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Candidat ajunge la ofertare → devine angajat
+  if (status === 'offer' && submission?.candidate_id) {
+    await supabase
+      .from('candidates')
+      .update({ candidate_status: 'angajat' })
+      .eq('id', submission.candidate_id)
+  }
+
   if (status || feedback?.trim()) {
     await supabase.from('stage_history').insert({
       submission_id: id,

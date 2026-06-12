@@ -8,21 +8,39 @@ import {
   Users,
   Building2,
   Briefcase,
-  GitPullRequest,
-  FileText,
+  Radar,
+  ScrollText,
+  Clock,
+  Receipt,
   Settings,
   LogOut,
   Handshake,
 } from 'lucide-react'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/candidates', label: 'Candidați', icon: Users },
-  { href: '/clients', label: 'Clienți', icon: Building2 },
-  { href: '/roles', label: 'Roluri', icon: Briefcase },
-  { href: '/pipeline', label: 'Radar', icon: GitPullRequest },
-  { href: '/contracts', label: 'Contracte', icon: FileText },
-  { href: '/partners', label: 'Parteneri', icon: Handshake },
+const navGroups = [
+  {
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/pipeline', label: 'Radar', icon: Radar },
+      { href: '/candidates', label: 'Candidați', icon: Users },
+      { href: '/roles', label: 'Roluri', icon: Briefcase },
+    ],
+  },
+  {
+    label: 'CRM',
+    items: [
+      { href: '/clients', label: 'Clienți', icon: Building2 },
+      { href: '/partners', label: 'Parteneri', icon: Handshake },
+    ],
+  },
+  {
+    label: 'Financiar',
+    items: [
+      { href: '/contracts', label: 'Contracte', icon: ScrollText },
+      { href: '/timesheets', label: 'Timesheeturi', icon: Clock },
+      { href: '/invoices', label: 'Facturi', icon: Receipt },
+    ],
+  },
 ]
 
 const bottomItems = [
@@ -42,26 +60,37 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const active = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
-                active
-                  ? 'bg-[#2AA3FF]/90 text-white shadow-lg shadow-blue-500/20 backdrop-blur-sm'
-                  : 'text-white/60 hover:text-white hover:bg-white/10'
-              )}
-            >
-              <Icon size={18} />
-              {item.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-1">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'pt-3' : ''}>
+            {group.label && (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const active = pathname.startsWith(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                      active
+                        ? 'bg-[#2AA3FF]/90 text-white shadow-lg shadow-blue-500/20 backdrop-blur-sm'
+                        : 'text-white/60 hover:text-white hover:bg-white/10'
+                    )}
+                  >
+                    <Icon size={18} />
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom */}

@@ -74,6 +74,13 @@ export async function POST(request: NextRequest) {
     submission = inserted
   }
 
+  // Candidat pasiv adăugat pe un rol → devine activ
+  await supabase
+    .from('candidates')
+    .update({ candidate_status: 'activ' })
+    .eq('id', candidate_id)
+    .eq('candidate_status', 'pasiv')
+
   if (note?.trim()) {
     await supabase.from('stage_history').insert({
       submission_id: submission.id,
