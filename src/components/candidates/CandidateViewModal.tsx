@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   X, Mail, Phone, MapPin, Link2, Star, ChevronDown, ChevronRight,
-  Loader2, ExternalLink, FileText, Building2, History, User,
+  Loader2, ExternalLink, Building2, History, User, ScrollText, Clock,
+  RefreshCw, MessageSquare, AlertCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
@@ -51,26 +52,51 @@ interface CandidateFull {
   achievements: Achievement[]
 }
 
-interface HistoryEntry {
+interface SubmissionEntry {
   id: string
   status: string
-  feedback: string | null
   created_at: string
   updated_at: string
   role: { id: string; title: string; status: string; client: { name: string } | null } | null
+  rejection_reason: string | null
+  last_feedback: string | null
+}
+
+interface ContractEntry {
+  id: string
+  contract_status: string
+  start_date: string
+  end_date: string | null
+  bill_rate: number
+  currency: string
+  role_title: string | null
+  role_id: string | null
 }
 
 const SENIORITY_LABELS: Record<string, string> = {
   junior: 'Junior', mid: 'Mid', senior: 'Senior', lead: 'Lead', principal: 'Principal',
 }
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  pipeline: { label: 'Pipeline', cls: 'bg-gray-100 text-gray-600' },
-  submitted: { label: 'Trimis', cls: 'bg-blue-50 text-blue-700' },
-  shortlisted: { label: 'Shortlist', cls: 'bg-indigo-50 text-indigo-700' },
-  interview: { label: 'Interviu', cls: 'bg-purple-50 text-purple-700' },
-  offer: { label: 'Ofertă', cls: 'bg-green-50 text-green-700' },
-  rejected: { label: 'Respins', cls: 'bg-red-50 text-red-600' },
+const SUBMISSION_STATUS: Record<string, { label: string; cls: string }> = {
+  pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
+  submitted:   { label: 'Propus client', cls: 'bg-blue-100 text-blue-700' },
+  shortlisted: { label: 'Selectat',      cls: 'bg-purple-100 text-purple-700' },
+  interview:   { label: 'Interviu',      cls: 'bg-amber-100 text-amber-700' },
+  rejected:    { label: 'Respins',       cls: 'bg-red-100 text-red-600' },
+  offer:       { label: 'Ofertă',        cls: 'bg-green-100 text-green-700' },
+}
+
+const ROLE_STATUS: Record<string, { label: string; cls: string }> = {
+  active:  { label: 'Rol activ',  cls: 'bg-green-50 text-green-700 border border-green-200' },
+  filled:  { label: 'Rol ocupat', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  on_hold: { label: 'On Hold',    cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  draft:   { label: 'Draft',      cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  closed:  { label: 'Rol închis', cls: 'bg-red-50 text-red-600 border border-red-200' },
+}
+
+const CONTRACT_STATUS: Record<string, { label: string; cls: string }> = {
+  activ:    { label: 'Activ',    cls: 'bg-green-100 text-green-700' },
+  terminat: { label: 'Terminat', cls: 'bg-gray-100 text-gray-500' },
 }
 
 function formatPeriod(start: string | null, end: string | null, isPresent: boolean) {
@@ -105,57 +131,179 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-// ─── CV Preview panel ────────────────────────────────────────────────────────
+// ─── History & Contracts panel ───────────────────────────────────────────────
 
-function CvPanel({ candidateId }: { candidateId: string }) {
-  const [url, setUrl] = useState<string | null>(null)
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function HistoryPanel({ candidateId }: { candidateId: string }) {
+  const [submissions, setSubmissions] = useState<SubmissionEntry[]>([])
+  const [contracts, setContracts] = useState<ContractEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetch(`/api/candidates/${candidateId}/cv`)
-      .then(r => r.json())
-      .then(data => { if (data.error) throw new Error(data.error); setUrl(data.url) })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/history`, { cache: 'no-store' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Eroare server')
+      setSubmissions(json.submissions ?? [])
+      setContracts(json.contracts ?? [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Eroare la încărcare')
+    } finally {
+      setLoading(false)
+    }
   }, [candidateId])
 
-  const isPdf = url ? !url.toLowerCase().includes('.doc') : false
+  useEffect(() => { load() }, [load])
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
-      <Loader2 size={24} className="animate-spin" />
-      <p className="text-sm">Se încarcă CV-ul...</p>
+    <div className="flex items-center justify-center h-full text-gray-400 gap-2">
+      <Loader2 size={18} className="animate-spin" />
+      <span className="text-sm">Se încarcă...</span>
     </div>
   )
 
-  if (error || !url) return (
+  if (error) return (
+    <div className="flex items-center gap-2 m-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+      <AlertCircle size={15} /> {error}
+    </div>
+  )
+
+  if (!submissions.length && !contracts.length) return (
     <div className="flex flex-col items-center justify-center h-full text-center px-6">
-      <FileText size={48} className="text-gray-200 mb-3" />
-      <p className="text-sm text-gray-500">{error || 'CV indisponibil'}</p>
-    </div>
-  )
-
-  if (isPdf) return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 flex-shrink-0">
-        <span className="text-xs text-gray-500 font-medium">CV Preview</span>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#2AA3FF] hover:underline">
-          Deschide <ExternalLink size={10} />
-        </a>
-      </div>
-      <iframe src={url} className="flex-1 w-full" title="CV Preview" />
+      <History size={40} className="text-gray-200 mb-3" />
+      <p className="text-sm text-gray-400">Nicio activitate înregistrată.</p>
+      <p className="text-xs text-gray-300 mt-1">Va apărea când candidatul este adăugat în pipeline.</p>
     </div>
   )
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-3">
-      <FileText size={48} className="text-gray-300" />
-      <p className="text-sm text-gray-600">Fișier DOCX — nu poate fi previzualizat.</p>
-      <a href={url} target="_blank" rel="noopener noreferrer"
-        className="flex items-center gap-2 px-4 py-2 bg-[#0B1A33] text-white text-sm rounded-xl hover:bg-[#0B1A33]/90 transition-colors">
-        <ExternalLink size={14} /> Descarcă CV
-      </a>
+    <div className="h-full flex flex-col">
+      {/* Panel header */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Istoric & Contracte
+        </span>
+        <button onClick={load} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+          <RefreshCw size={11} /> Reîncarcă
+        </button>
+      </div>
+
+      <div className="overflow-y-auto flex-1 p-4 space-y-5">
+
+        {/* Contracte */}
+        {contracts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <ScrollText size={13} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contracte</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+            <div className="space-y-2">
+              {contracts.map(c => {
+                const cs = CONTRACT_STATUS[c.contract_status] ?? { label: c.contract_status, cls: 'bg-gray-100 text-gray-600' }
+                return (
+                  <div key={c.id} className={cn(
+                    'rounded-xl p-3.5 border',
+                    c.contract_status === 'activ' ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-100'
+                  )}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{c.role_title ?? 'Contract'}</p>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
+                          <span>Start: <span className="text-gray-600 font-medium">{fmtDate(c.start_date)}</span></span>
+                          {c.end_date
+                            ? <span>End: <span className="text-gray-600 font-medium">{fmtDate(c.end_date)}</span></span>
+                            : <span className="text-green-600 font-medium">Nedeterminat</span>
+                          }
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-bold text-gray-900">{c.bill_rate} {c.currency}</p>
+                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', cs.cls)}>{cs.label}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Roluri aplicate */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock size={13} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Roluri aplicate</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+          {submissions.length === 0 ? (
+            <p className="text-xs text-gray-400 italic px-1">Niciun rol în istoric.</p>
+          ) : (
+            <div className="space-y-2">
+              {submissions.map(entry => {
+                const subStatus = SUBMISSION_STATUS[entry.status] ?? { label: entry.status, cls: 'bg-gray-100 text-gray-600' }
+                const roleStatus = entry.role?.status ? (ROLE_STATUS[entry.role.status] ?? null) : null
+                const isRejected = entry.status === 'rejected'
+                const feedback = isRejected
+                  ? (entry.rejection_reason ?? entry.last_feedback)
+                  : entry.last_feedback
+                return (
+                  <div key={entry.id} className={cn(
+                    'rounded-xl p-3.5 border',
+                    isRejected ? 'bg-red-50/30 border-red-100' : 'bg-white border-gray-100'
+                  )}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <a href={`/roles/${entry.role?.id}/pipeline`} target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium text-gray-800 hover:text-[#2AA3FF] transition-colors flex items-center gap-1">
+                            {entry.role?.title ?? 'Rol necunoscut'}
+                            <ExternalLink size={10} className="text-gray-300" />
+                          </a>
+                          {entry.role?.client?.name && (
+                            <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                              {entry.role.client.name}
+                            </span>
+                          )}
+                          {roleStatus && (
+                            <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full', roleStatus.cls)}>
+                              {roleStatus.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-400">
+                          Aplicat: <span className="text-gray-600">{fmtDate(entry.created_at)}</span>
+                          {entry.created_at !== entry.updated_at && (
+                            <span className="ml-2">· Actualizat: <span className="text-gray-600">{fmtDate(entry.updated_at)}</span></span>
+                          )}
+                        </div>
+                        {feedback && (
+                          <div className={cn(
+                            'flex items-start gap-1.5 text-xs rounded-lg px-2.5 py-1.5 mt-1.5',
+                            isRejected ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-600'
+                          )}>
+                            <MessageSquare size={11} className="mt-0.5 flex-shrink-0" />
+                            <span className="italic">{feedback}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className={cn('text-[11px] font-medium px-2 py-1 rounded-full flex-shrink-0', subStatus.cls)}>
+                        {subStatus.label}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -351,83 +499,14 @@ function CompanyTab({ candidate }: { candidate: CandidateFull }) {
   )
 }
 
-// ─── Tab: Istoric ─────────────────────────────────────────────────────────────
-
-function HistoryTab({ candidateId }: { candidateId: string }) {
-  const [entries, setEntries] = useState<HistoryEntry[] | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch(`/api/candidates/${candidateId}/history`)
-      .then(r => r.json())
-      .then(setEntries)
-      .catch(() => setEntries([]))
-      .finally(() => setLoading(false))
-  }, [candidateId])
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-12 text-gray-400 gap-2">
-      <Loader2 size={18} className="animate-spin" />
-      <span className="text-sm">Se încarcă istoricul...</span>
-    </div>
-  )
-
-  if (!entries?.length) return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <History size={40} className="text-gray-200 mb-3" />
-      <p className="text-sm text-gray-400">Nicio activitate înregistrată.</p>
-      <p className="text-xs text-gray-300 mt-1">Va apărea automat când candidatul este adăugat în pipeline.</p>
-    </div>
-  )
-
-  return (
-    <div className="space-y-2.5">
-      {entries.map(e => {
-        const st = STATUS_LABELS[e.status] ?? { label: e.status, cls: 'bg-gray-100 text-gray-600' }
-        const roleOpen = e.role?.status === 'active' || e.role?.status === 'on_hold'
-        return (
-          <div key={e.id} className="border border-gray-100 rounded-xl p-3.5 hover:border-gray-200 transition-colors">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  {e.role?.title ?? '—'}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  {e.role?.client && <p className="text-xs text-gray-400">{e.role.client.name}</p>}
-                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full', roleOpen ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400')}>
-                    {roleOpen ? 'Rol activ' : 'Rol închis'}
-                  </span>
-                </div>
-              </div>
-              <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', st.cls)}>
-                {st.label}
-              </span>
-            </div>
-            {e.feedback && (
-              <p className="text-xs text-gray-600 mt-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 italic">
-                &ldquo;{e.feedback}&rdquo;
-              </p>
-            )}
-            <p className="text-[11px] text-gray-300 mt-2">
-              Adăugat {new Date(e.created_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })}
-              {e.updated_at !== e.created_at && ` · Actualizat ${new Date(e.updated_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}`}
-            </p>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
-type TabId = 'profil' | 'companie' | 'istoric'
+type TabId = 'profil' | 'companie'
 
 function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'profil', label: 'Profil', icon: <User size={13} /> },
     { id: 'companie', label: 'Companie', icon: <Building2 size={13} /> },
-    { id: 'istoric', label: 'Istoric', icon: <History size={13} /> },
   ]
   return (
     <div className="flex border-b border-gray-100 px-1">
@@ -473,8 +552,7 @@ export function CandidateViewModal({
   function renderTabContent() {
     if (!candidate) return null
     if (activeTab === 'profil') return <ProfileTab candidate={candidate} />
-    if (activeTab === 'companie') return <CompanyTab candidate={candidate} />
-    return <HistoryTab candidateId={candidateId} />
+    return <CompanyTab candidate={candidate} />
   }
 
   function renderHeader(candidate: CandidateFull, large: boolean) {
@@ -532,7 +610,7 @@ export function CandidateViewModal({
   // ── Full mode ─────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-[90vw] max-w-[1280px] h-[90vh]" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-[95vw] max-w-[1400px] h-[90vh]" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b flex-shrink-0">
           {loading ? (
@@ -546,14 +624,14 @@ export function CandidateViewModal({
         {/* Body */}
         {candidate && (
           <div className="flex flex-1 min-h-0">
-            {/* Left: tabs + content */}
-            <div className="w-[420px] flex-shrink-0 flex flex-col border-r border-gray-100">
+            {/* Left: Profil + Companie */}
+            <div className="w-[400px] flex-shrink-0 flex flex-col border-r border-gray-100">
               <TabBar active={activeTab} onChange={setActiveTab} />
               <div className="overflow-y-auto flex-1 p-6">{renderTabContent()}</div>
             </div>
-            {/* Right: CV preview */}
-            <div className="flex-1 min-w-0 bg-gray-50 rounded-br-2xl overflow-hidden">
-              <CvPanel candidateId={candidateId} />
+            {/* Right: Istoric & Contracte */}
+            <div className="flex-1 min-w-0 bg-gray-50/50 rounded-br-2xl overflow-hidden">
+              <HistoryPanel candidateId={candidateId} />
             </div>
           </div>
         )}
