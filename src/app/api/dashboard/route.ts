@@ -39,7 +39,7 @@ export async function GET() {
 
     supabase
       .from('roles')
-      .select('id, title, status, client:clients!client_id(name)')
+      .select('id, title, status, positions_count, client:clients!client_id(name)')
       .is('deleted_at', null),
 
     supabase
@@ -287,6 +287,7 @@ export async function GET() {
         id: r.id,
         title: r.title,
         status: r.status,
+        positionsCount: r.positions_count ?? 1,
         clientName: client?.name ?? null,
         candidatesCount: roleCandidateCount[r.id] ?? 0,
       }

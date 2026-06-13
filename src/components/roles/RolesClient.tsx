@@ -23,6 +23,7 @@ interface Role {
   rate: number | null
   rate_currency: string
   rate_type: string
+  positions_count: number | null
   required_skills: Skill[]
   preferred_skills: Skill[]
   created_at: string
@@ -304,6 +305,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Poziții</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
                         <th className="px-4 py-3"></th>
                       </tr>
@@ -350,6 +352,15 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                   <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'zi' : 'oră'}</span></span>
                                 ) : '—'}
                               </td>
+                              <td className="px-4 py-3 text-center">
+                                {(r.positions_count ?? 1) > 1 ? (
+                                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
+                                    {r.positions_count}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-300 text-sm">1</span>
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-sm text-gray-500">
                                 {r.deadline
                                   ? new Date(r.deadline).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -379,7 +390,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                             {isExpanded && (
                               <tr className="bg-gray-50/40 border-b border-gray-100">
                                 <td></td>
-                                <td colSpan={6} className="py-1">
+                                <td colSpan={7} className="py-1">
                                   <CandidatesSubTable roleId={r.id} />
                                 </td>
                               </tr>

@@ -61,6 +61,7 @@ interface DashboardData {
     id: string
     title: string
     status: string
+    positionsCount: number
     clientName: string | null
     candidatesCount: number
   }>
@@ -624,9 +625,16 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <span className="text-[10px] text-gray-400 tabular-nums">{role.candidatesCount} cand.</span>
-                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', role.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700')}>
-                    {role.status === 'active' ? 'Activ' : 'Hold'}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    {(role.positionsCount ?? 1) > 1 && (
+                      <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                        ×{role.positionsCount}
+                      </span>
+                    )}
+                    <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', role.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700')}>
+                      {role.status === 'active' ? 'Activ' : 'Hold'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

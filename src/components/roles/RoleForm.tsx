@@ -69,6 +69,7 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
     rate: (initial?.rate as string) ?? '',
     rate_currency: (initial?.rate_currency as string) ?? 'EUR',
     rate_type: (initial?.rate_type as string) ?? 'daily',
+    positions_count: (initial?.positions_count as string) ?? '1',
   })
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
         rate: form.rate ? parseFloat(form.rate) : null,
         rate_currency: form.rate_currency,
         rate_type: form.rate_type,
+        positions_count: form.positions_count ? parseInt(form.positions_count) : 1,
         required_skill_ids: requiredSkills.map(s => s.id),
         preferred_skill_ids: preferredSkills.map(s => s.id),
       }
@@ -176,7 +178,7 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fieldglass ID</label>
                   <input type="text" value={form.fieldglass_id} onChange={e => set('fieldglass_id', e.target.value)}
@@ -185,6 +187,18 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Deadline submisii</label>
                   <input type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Număr roluri</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.positions_count}
+                    onChange={e => set('positions_count', e.target.value)}
+                    placeholder="1"
+                    className={inputCls}
+                  />
                 </div>
               </div>
 
