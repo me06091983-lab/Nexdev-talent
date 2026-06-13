@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { CandidateForm } from './CandidateForm'
 import { cn } from '@/lib/utils'
@@ -107,13 +107,18 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
   const [notes, setNotes] = useState<NoteEntry[]>(() => parseNotes(initialNotesRaw))
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
+  // Queue serial saves — prevents race conditions when add/delete overlap
+  const saveQueue = useRef<Promise<void>>(Promise.resolve())
 
-  async function persistNotes(updated: NoteEntry[]) {
-    await fetch(`/api/candidates/${candidateId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes: JSON.stringify(updated) }),
-    })
+  function persistNotes(updated: NoteEntry[]) {
+    saveQueue.current = saveQueue.current.then(() =>
+      fetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: JSON.stringify(updated) }),
+      }).then(() => {})
+    )
+    return saveQueue.current
   }
 
   async function addNote() {
@@ -122,16 +127,16 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
     setSaving(true)
     const entry: NoteEntry = { id: crypto.randomUUID(), text: trimmed, created_at: new Date().toISOString() }
     const updated = [entry, ...notes]
-    await persistNotes(updated)
     setNotes(updated)
     setText('')
+    await persistNotes(updated)
     setSaving(false)
   }
 
   async function deleteNote(id: string) {
     const updated = notes.filter(n => n.id !== id)
     setNotes(updated)
-    await persistNotes(updated)
+    persistNotes(updated)
   }
 
   return (
@@ -356,7 +361,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-[1fr_340px] gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
 
         {/* ─────────── LEFT COLUMN ─────────── */}
         <div className="space-y-5">

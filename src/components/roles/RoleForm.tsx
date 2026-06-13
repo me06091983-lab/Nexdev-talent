@@ -131,7 +131,7 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ── LEFT: informații structurate ── */}
         <div className="space-y-6">

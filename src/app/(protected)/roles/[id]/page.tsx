@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { RoleForm } from '@/components/roles/RoleForm'
+import { RoleHistory } from '@/components/roles/RoleHistory'
 
 export default async function EditRolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -33,6 +34,7 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
       </div>
       <div className="glass rounded-2xl p-8">
         <RoleForm initial={initial} roleId={id} />
+        <RoleHistory roleId={id} />
       </div>
     </div>
   )
