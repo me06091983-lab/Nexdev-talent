@@ -113,7 +113,7 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
   const c = submission.candidate
 
   function addSlot() {
-    setSlots(prev => [...prev, { label: '', enabled: true, datetime: '', status: 'waiting_customer', feedback: '' }])
+    setSlots(prev => [...prev, { label: '', enabled: true, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false }])
   }
 
   function removeSlot(idx: number) {
@@ -255,6 +255,19 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
                         ))}
                       </select>
                     </div>
+
+                    {/* Row 3: candidat acceptat */}
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={slot.candidate_accepted ?? false}
+                        onChange={e => updateSlot(idx, 'candidate_accepted', e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-gray-300 accent-green-500 cursor-pointer"
+                      />
+                      <span className={`text-xs font-medium ${slot.candidate_accepted ? 'text-green-600' : 'text-gray-500'}`}>
+                        Candidat a acceptat interviul
+                      </span>
+                    </label>
                   </div>
                 ))}
               </div>

@@ -9,18 +9,18 @@ export default async function PipelinePage() {
   const { data: rawSubs } = await supabase
     .from('submissions')
     .select(`
-      id, status, interviews, updated_at, role_id,
-      candidate:candidates(id, first_name, last_name, profile:profiles(name)),
+      id, status, ai_score, ai_summary, interviews, updated_at, role_id,
+      candidate:candidates(id, first_name, last_name, phone, profile:profiles(name)),
       role:roles(id, title, status, client:clients(name))
     `)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
 
-  // Filter to active/on_hold roles only, excluding submissions at offer stage
+  // Filter to active/on_hold roles only
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const submissions: RadarSubmission[] = (rawSubs ?? []).filter((s: any) => {
     const roleStatus = Array.isArray(s.role) ? s.role[0]?.status : s.role?.status
-    return (roleStatus === 'active' || roleStatus === 'on_hold') && s.status !== 'offer'
+    return roleStatus === 'active' || roleStatus === 'on_hold'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }).map((s: any) => {
     const role = Array.isArray(s.role) ? s.role[0] : s.role
@@ -28,6 +28,8 @@ export default async function PipelinePage() {
     return {
       id: s.id,
       status: s.status,
+      ai_score: s.ai_score ?? null,
+      ai_summary: s.ai_summary ?? null,
       interviews: s.interviews ?? [],
       updated_at: s.updated_at,
       role_id: s.role_id,
@@ -36,6 +38,7 @@ export default async function PipelinePage() {
             id: candidate.id,
             first_name: candidate.first_name,
             last_name: candidate.last_name,
+            phone: candidate.phone ?? null,
             profile: Array.isArray(candidate.profile)
               ? (candidate.profile[0] ?? null)
               : (candidate.profile ?? null),
@@ -53,7 +56,7 @@ export default async function PipelinePage() {
     }
   })
 
-  const activeCount = submissions.filter(s => s.status !== 'rejected').length
+  const activeCount = submissions.length
   const roleCount = new Set(submissions.map(s => s.role_id)).size
 
   return (

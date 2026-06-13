@@ -10,13 +10,14 @@ export interface InterviewSlot {
   datetime: string
   status: 'waiting_customer' | 'set' | 'passed' | 'rejected'
   feedback: string
+  candidate_accepted?: boolean
 }
 
 const DEFAULT_SLOTS: InterviewSlot[] = [
-  { label: 'Interview 1', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 2', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 3', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
-  { label: 'Interview 4', enabled: false, datetime: '', status: 'waiting_customer', feedback: '' },
+  { label: 'Interview 1', enabled: false, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false },
+  { label: 'Interview 2', enabled: false, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false },
+  { label: 'Interview 3', enabled: false, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false },
+  { label: 'Interview 4', enabled: false, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false },
 ]
 
 const INTERVIEW_STATUS_OPTIONS = [
@@ -114,11 +115,12 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
       {/* Interview grid */}
       <div className="px-5 py-3">
         {/* Column headers */}
-        <div className="grid grid-cols-[20px_120px_180px_160px_1fr] gap-3 mb-2 px-1">
+        <div className="grid grid-cols-[20px_120px_180px_160px_90px_1fr] gap-3 mb-2 px-1">
           <div />
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Interviu</div>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Data și ora</div>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Status</div>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Acceptat</div>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Feedback</div>
         </div>
 
@@ -126,11 +128,11 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
           {slots.map((slot, idx) => (
             <div
               key={idx}
-              className={`grid grid-cols-[20px_120px_180px_160px_1fr] gap-3 items-center px-1 py-2 rounded-xl transition-colors ${
+              className={`grid grid-cols-[20px_120px_180px_160px_90px_1fr] gap-3 items-center px-1 py-2 rounded-xl transition-colors ${
                 slot.enabled ? 'bg-blue-50/40' : 'bg-gray-50/40'
               }`}
             >
-              {/* Checkbox */}
+              {/* Checkbox activ */}
               <input
                 type="checkbox"
                 checked={slot.enabled}
@@ -171,6 +173,20 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
+
+              {/* Candidat acceptat */}
+              <label className={`flex items-center gap-1.5 cursor-pointer ${slot.enabled ? '' : 'opacity-30 pointer-events-none'}`}>
+                <input
+                  type="checkbox"
+                  checked={slot.candidate_accepted ?? false}
+                  onChange={e => update(idx, 'candidate_accepted', e.target.checked)}
+                  disabled={!slot.enabled}
+                  className="w-4 h-4 rounded border-gray-300 accent-green-500 cursor-pointer"
+                />
+                <span className={`text-xs font-medium ${slot.candidate_accepted ? 'text-green-600' : 'text-gray-400'}`}>
+                  {slot.candidate_accepted ? 'Da' : 'Nu'}
+                </span>
+              </label>
 
               {/* Feedback */}
               <input

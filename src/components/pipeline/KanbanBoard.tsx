@@ -15,7 +15,8 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
 import { cn } from '@/lib/utils'
-import { MessageSquare, Trash2, FileSignature, CheckCircle2 } from 'lucide-react'
+import { MessageSquare, Trash2, FileSignature, CheckCircle2, Phone, User, Calendar } from 'lucide-react'
+import Link from 'next/link'
 import { StatusModal } from './StatusModal'
 import { ContractModal, type PartnerOption } from './ContractModal'
 import type { InterviewSlot } from './InterviewPanel'
@@ -26,6 +27,7 @@ interface Candidate {
   id: string
   first_name: string
   last_name: string
+  phone?: string | null
   seniority: string | null
   rate_min: number | null
   rate_wish: number | null
@@ -48,6 +50,22 @@ export interface Submission {
 
 const SENIORITY_SHORT: Record<string, string> = {
   junior: 'Jr', mid: 'Mid', senior: 'Sr', lead: 'Lead', principal: 'Princ.',
+}
+
+function interviewColors(status: string, accepted: boolean) {
+  if (status === 'rejected') return { bg: 'bg-red-50', text: 'text-red-600', icon: 'text-red-500' }
+  if (status === 'set' && accepted) return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
+  if (status === 'set') return { bg: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500' }
+  if (status === 'passed') return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
+  return { bg: 'bg-gray-100', text: 'text-gray-500', icon: 'text-gray-400' }
+}
+
+function formatInterviewDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  const date = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  return `${date}, ${time}`
 }
 
 // ─── Score badge ─────────────────────────────────────────────────────────────
@@ -83,13 +101,16 @@ function CandidateCard({
   const c = submission.candidate
   const isOffer = submission.status === 'offer'
   const hasContract = !!submission.contract_id
+  const [phoneVisible, setPhoneVisible] = useState(false)
 
-  const latestInterview = (() => {
-    const slots = submission.interviews ?? []
-    const checked = slots.filter(s => s.enabled)
-    if (!checked.length) return null
-    return checked[checked.length - 1].label.replace('Interview', 'Int.')
-  })()
+  const allInterviews = ((submission.interviews ?? []) as InterviewSlot[])
+    .filter(s => s.enabled)
+    .map(s => ({
+      label: s.label.replace('Interview', 'Int.').split(' ')[0].slice(0, 10),
+      datetime: s.datetime,
+      status: s.status,
+      accepted: s.candidate_accepted ?? false,
+    }))
 
   return (
     <div
@@ -118,17 +139,29 @@ function CandidateCard({
         {submission.ai_score != null && <ScoreBadge score={Math.round(submission.ai_score)} />}
       </div>
 
+      {/* Phone popup — inline, sub nume */}
+      {phoneVisible && c?.phone && (
+        <div
+          className="mt-1.5 flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1"
+          onPointerDown={e => e.stopPropagation()}
+        >
+          <Phone size={10} className="text-[#2AA3FF] flex-shrink-0" />
+          <a
+            href={`tel:${c.phone}`}
+            className="text-[11px] font-medium text-[#2AA3FF] hover:underline"
+            onClick={e => e.stopPropagation()}
+          >
+            {c.phone}
+          </a>
+        </div>
+      )}
+
       {/* Row 2: badges */}
-      {(c?.rate_wish || c?.rate_min || latestInterview || hasContract) && (
+      {(c?.rate_wish || c?.rate_min || hasContract) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           {(c?.rate_wish || c?.rate_min) && (
             <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded font-medium">
               {c.rate_wish ?? c.rate_min} {c.currency ?? 'EUR'}
-            </span>
-          )}
-          {latestInterview && (
-            <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded">
-              {latestInterview}
             </span>
           )}
           {hasContract && (
@@ -140,7 +173,24 @@ function CandidateCard({
         </div>
       )}
 
-      {/* Row 3: contract CTA for offer cards */}
+      {/* Row 3: interviews */}
+      {allInterviews.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {allInterviews.map((int, idx) => {
+            const col = interviewColors(int.status, int.accepted)
+            return (
+              <div key={idx} className={cn('flex items-center gap-1.5 rounded-lg px-2 py-1', col.bg)}>
+                <Calendar size={10} className={cn('flex-shrink-0', col.icon)} />
+                <p className={cn('text-[10px] font-medium truncate', col.text)}>
+                  {int.label}{int.datetime ? ` · ${formatInterviewDate(int.datetime)}` : ''}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Row 4: contract CTA for offer cards */}
       {isOffer && (
         <div className="mt-2">
           <button
@@ -170,6 +220,31 @@ function CandidateCard({
         >
           <MessageSquare size={13} />
         </button>
+        {c && (
+          <Link
+            href={`/candidates/${c.id}`}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
+            title="Profil candidat"
+          >
+            <User size={13} />
+          </Link>
+        )}
+        {c?.phone && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); setPhoneVisible(v => !v) }}
+            className={cn(
+              'p-1 transition-colors rounded',
+              phoneVisible ? 'text-[#2AA3FF]' : 'text-gray-300 hover:text-[#2AA3FF]',
+            )}
+            title="Număr de telefon"
+          >
+            <Phone size={13} />
+          </button>
+        )}
         <button
           type="button"
           onPointerDown={e => e.stopPropagation()}

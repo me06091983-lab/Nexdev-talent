@@ -1,12 +1,31 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ExternalLink, Calendar, ChevronRight } from 'lucide-react'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { useDroppable, useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
+import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
+import { cn } from '@/lib/utils'
+import { Calendar, ExternalLink, Trash2, MessageSquare, User, Phone } from 'lucide-react'
+import { StatusModal } from './StatusModal'
+import type { Submission as KanbanSubmission } from './KanbanBoard'
 
 export interface RadarSubmission {
   id: string
   status: string
+  ai_score: number | null
+  ai_summary: string | null
   interviews: InterviewSlot[]
   updated_at: string
   role_id: string
@@ -14,6 +33,7 @@ export interface RadarSubmission {
     id: string
     first_name: string
     last_name: string
+    phone: string | null
     profile: { name: string } | null
   } | null
   role: {
@@ -28,278 +48,364 @@ interface InterviewSlot {
   enabled: boolean
   datetime: string
   status: string
+  candidate_accepted?: boolean
 }
 
-const STATUS_META: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
-  pipeline:    { label: 'Pipeline',   bg: 'bg-slate-100',   text: 'text-slate-700',  border: 'border-slate-200',  dot: 'bg-slate-400' },
-  submitted:   { label: 'Trimis',     bg: 'bg-indigo-50',   text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-400' },
-  shortlisted: { label: 'Shortlist',  bg: 'bg-purple-50',   text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
-  interview:   { label: 'Interviu',   bg: 'bg-amber-50',    text: 'text-amber-700',  border: 'border-amber-200',  dot: 'bg-amber-400' },
-  offer:       { label: 'Ofertă',     bg: 'bg-green-50',    text: 'text-green-700',  border: 'border-green-200',  dot: 'bg-green-500' },
-  rejected:    { label: 'Respins',    bg: 'bg-red-50',      text: 'text-red-600',    border: 'border-red-200',    dot: 'bg-red-400' },
+function interviewColors(status: string, accepted: boolean) {
+  if (status === 'rejected') return { bg: 'bg-red-50', text: 'text-red-600', icon: 'text-red-500' }
+  if (status === 'set' && accepted) return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
+  if (status === 'set') return { bg: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500' }
+  if (status === 'passed') return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
+  return { bg: 'bg-gray-100', text: 'text-gray-500', icon: 'text-gray-400' }
 }
 
-const FUNNEL_ORDER = ['pipeline', 'submitted', 'shortlisted', 'interview', 'offer']
-
-const FUNNEL_COLORS: Record<string, string> = {
-  pipeline:    'bg-slate-50 border-slate-200 text-slate-800',
-  submitted:   'bg-indigo-50 border-indigo-200 text-indigo-800',
-  shortlisted: 'bg-purple-50 border-purple-200 text-purple-800',
-  interview:   'bg-amber-50 border-amber-200 text-amber-800',
-  offer:       'bg-green-50 border-green-200 text-green-800',
-}
-
-const FUNNEL_COUNT_COLORS: Record<string, string> = {
-  pipeline:    'text-slate-500',
-  submitted:   'text-indigo-500',
-  shortlisted: 'text-purple-500',
-  interview:   'text-amber-500',
-  offer:       'text-green-600',
-}
-
-function getNextInterview(interviews: InterviewSlot[]): { label: string; datetime: string } | null {
-  const now = new Date()
-  const future = (interviews ?? [])
-    .filter(s => s.enabled && s.datetime && new Date(s.datetime) > now)
-    .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
-  return future[0] ? { label: future[0].label, datetime: future[0].datetime } : null
-}
-
-function daysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
-}
-
-function formatInterviewDatetime(dateStr: string): { date: string; time: string; relative: string } {
+function formatInterviewDate(dateStr: string): string {
+  if (!dateStr) return '—'
   const d = new Date(dateStr)
-  const now = new Date()
-  const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86_400_000)
-
-  const date = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+  const date = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
   const time = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
-
-  let relative = ''
-  if (diffDays === 0) relative = 'azi'
-  else if (diffDays === 1) relative = 'mâine'
-  else if (diffDays === -1) relative = 'ieri'
-  else if (diffDays > 1 && diffDays <= 7) relative = `în ${diffDays} zile`
-  else if (diffDays < -1) relative = `acum ${Math.abs(diffDays)} zile`
-
-  return { date, time, relative }
+  return `${date}, ${time}`
 }
 
-type FilterTab = 'all' | 'interviews' | 'blocked'
+// ─── Score badge ─────────────────────────────────────────────────────────────
 
-export function PipelineRadarClient({ submissions }: { submissions: RadarSubmission[] }) {
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
-
-  const activeSubmissions = useMemo(
-    () => submissions.filter(s => s.status !== 'rejected'),
-    [submissions]
+function ScoreBadge({ score }: { score: number }) {
+  const cls =
+    score >= 85 ? 'border-green-400 text-green-600' :
+    score >= 60 ? 'border-yellow-400 text-yellow-600' :
+                  'border-red-400 text-red-500'
+  return (
+    <span className={cn('flex-shrink-0 w-8 h-8 rounded-full border-2 text-[10px] font-bold flex items-center justify-center', cls)}>
+      {score}%
+    </span>
   )
+}
 
-  const funnelCounts = useMemo(() => {
-    const counts: Record<string, number> = {}
-    for (const s of submissions) counts[s.status] = (counts[s.status] ?? 0) + 1
-    return counts
-  }, [submissions])
+// ─── Card ────────────────────────────────────────────────────────────────────
 
-  const withNextInterview = useMemo(
-    () => activeSubmissions.filter(s => getNextInterview(s.interviews) !== null),
-    [activeSubmissions]
-  )
-
-  const blocked = useMemo(
-    () => activeSubmissions.filter(s =>
-      daysSince(s.updated_at) >= 7 && s.status !== 'offer'
-    ),
-    [activeSubmissions]
-  )
-
-  const displayed = useMemo(() => {
-    if (activeFilter === 'interviews') return withNextInterview
-    if (activeFilter === 'blocked') return blocked
-    return submissions
-  }, [activeFilter, submissions, withNextInterview, blocked])
-
-  // Sort: interviews first by date, then by days stagnant desc
-  const sorted = useMemo(() => {
-    if (activeFilter === 'interviews') {
-      return [...displayed].sort((a, b) => {
-        const na = getNextInterview(a.interviews)
-        const nb = getNextInterview(b.interviews)
-        if (!na || !nb) return 0
-        return new Date(na.datetime).getTime() - new Date(nb.datetime).getTime()
-      })
-    }
-    if (activeFilter === 'blocked') {
-      return [...displayed].sort((a, b) => daysSince(b.updated_at) - daysSince(a.updated_at))
-    }
-    return [...displayed].sort((a, b) => {
-      const order = FUNNEL_ORDER.indexOf(a.status) - FUNNEL_ORDER.indexOf(b.status)
-      if (order !== 0) return order
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    })
-  }, [displayed, activeFilter])
+function CandidateCard({
+  submission,
+  onEdit,
+  onDelete,
+}: {
+  submission: RadarSubmission
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: submission.id })
+  const style = transform ? { transform: CSS.Transform.toString(transform) } : undefined
+  const c = submission.candidate
+  const allInterviews = submission.interviews
+    .filter(s => s.enabled)
+    .map(s => ({
+      label: s.label.replace('Interview', 'Int.').split(' ')[0].slice(0, 10),
+      datetime: s.datetime,
+      status: s.status,
+      accepted: s.candidate_accepted ?? false,
+    }))
+  const [phoneVisible, setPhoneVisible] = useState(false)
 
   return (
-    <div className="space-y-5">
-      {/* Funnel stats */}
-      <div className="grid grid-cols-5 gap-2.5">
-        {FUNNEL_ORDER.map((status, i) => {
-          const count = funnelCounts[status] ?? 0
-          const meta = STATUS_META[status]
-          const isLast = i === FUNNEL_ORDER.length - 1
-          return (
-            <div key={status} className="flex items-center">
-              <button
-                type="button"
-                onClick={() => setActiveFilter('all')}
-                className={`flex-1 rounded-2xl border px-4 py-3.5 text-left transition-all hover:shadow-sm ${FUNNEL_COLORS[status]}`}
-              >
-                <div className={`text-2xl font-bold ${FUNNEL_COUNT_COLORS[status]}`}>{count}</div>
-                <div className="text-xs font-medium mt-0.5 opacity-70">{meta.label}</div>
-              </button>
-              {!isLast && (
-                <ChevronRight size={14} className="flex-shrink-0 mx-0.5 text-gray-300" />
-              )}
-            </div>
-          )
-        })}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md group',
+        isDragging && 'opacity-20',
+      )}
+    >
+      {/* Row 1: avatar + name + score */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+          {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate leading-tight">
+            {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
+          </p>
+          {c?.profile && (
+            <p className="text-[10px] text-gray-400 truncate">{c.profile.name}</p>
+          )}
+        </div>
+        {submission.ai_score != null && (
+          <ScoreBadge score={Math.round(submission.ai_score)} />
+        )}
       </div>
 
-      {/* Rejected aside */}
-      {(funnelCounts['rejected'] ?? 0) > 0 && (
-        <p className="text-xs text-gray-400">
-          + {funnelCounts['rejected']} respinși (excluși din funnel)
-        </p>
+      {/* Phone popup — inline, sub nume */}
+      {phoneVisible && c?.phone && (
+        <div
+          className="mt-1.5 flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1"
+          onPointerDown={e => e.stopPropagation()}
+        >
+          <Phone size={10} className="text-[#2AA3FF] flex-shrink-0" />
+          <a
+            href={`tel:${c.phone}`}
+            className="text-[11px] font-medium text-[#2AA3FF] hover:underline"
+            onClick={e => e.stopPropagation()}
+          >
+            {c.phone}
+          </a>
+        </div>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1 bg-gray-100/70 rounded-xl p-1 w-fit">
-        {([
-          { key: 'all',        label: `Toate (${submissions.length})` },
-          { key: 'interviews', label: `Interviuri programate (${withNextInterview.length})` },
-          { key: 'blocked',    label: `Blocați >7 zile (${blocked.length})` },
-        ] as { key: FilterTab; label: string }[]).map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveFilter(tab.key)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              activeFilter === tab.key
-                ? 'bg-white shadow-sm text-[#0B1A33]'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+      {/* Row 2: rol */}
+      {submission.role && (
+        <div className="mt-2 px-0.5">
+          <p className="text-[11px] font-semibold text-gray-700 truncate leading-tight">
+            {submission.role.title}
+          </p>
+          {submission.role.client && (
+            <p className="text-[10px] text-gray-400 truncate">{submission.role.client.name}</p>
+          )}
+        </div>
+      )}
+
+      {/* Row 3: interviews */}
+      {allInterviews.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {allInterviews.map((int, idx) => {
+            const col = interviewColors(int.status, int.accepted)
+            return (
+              <div key={idx} className={cn('flex items-center gap-1.5 rounded-lg px-2 py-1', col.bg)}>
+                <Calendar size={10} className={cn('flex-shrink-0', col.icon)} />
+                <p className={cn('text-[10px] font-medium truncate', col.text)}>
+                  {int.label}{int.datetime ? ` · ${formatInterviewDate(int.datetime)}` : ''}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Hover actions */}
+      <div className="mt-1.5 flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onEdit() }}
+          className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
+          title="Status / Feedback"
+        >
+          <MessageSquare size={12} />
+        </button>
+        {c && (
+          <Link
+            href={`/candidates/${c.id}`}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
+            title="Profil candidat"
           >
-            {tab.label}
+            <User size={12} />
+          </Link>
+        )}
+        {c?.phone && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); setPhoneVisible(v => !v) }}
+            className={cn(
+              'p-1 transition-colors rounded',
+              phoneVisible ? 'text-[#2AA3FF]' : 'text-gray-300 hover:text-[#2AA3FF]',
+            )}
+            title="Număr de telefon"
+          >
+            <Phone size={12} />
           </button>
+        )}
+        <Link
+          href={`/roles/${submission.role_id}/pipeline`}
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+          className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
+          title="Deschide pipeline-ul rolului"
+        >
+          <ExternalLink size={12} />
+        </Link>
+        <button
+          type="button"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onDelete() }}
+          className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
+          title="Șterge din pipeline"
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function DragOverlayCard({ submission }: { submission: RadarSubmission }) {
+  const c = submission.candidate
+  return (
+    <div className="bg-white rounded-xl p-3 shadow-2xl border-2 border-[#2AA3FF]/40 w-[200px] rotate-1 opacity-95">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+          {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
+        </div>
+        <p className="text-sm font-medium text-gray-900 truncate">
+          {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Column ──────────────────────────────────────────────────────────────────
+
+function KanbanColumn({
+  status,
+  items,
+  onCardEdit,
+  onCardDelete,
+}: {
+  status: typeof PIPELINE_STATUSES[number]
+  items: RadarSubmission[]
+  onCardEdit: (s: RadarSubmission) => void
+  onCardDelete: (id: string) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: status.value })
+
+  return (
+    <div className="flex-shrink-0 w-[210px] flex flex-col">
+      <div className={cn(
+        'px-3 py-2 rounded-t-xl border border-b-0 text-xs font-semibold flex items-center justify-between',
+        status.headerClass,
+      )}>
+        <span className="truncate">{status.label}</span>
+        {items.length > 0 && (
+          <span className="ml-1 flex-shrink-0 opacity-60 font-normal">{items.length}</span>
+        )}
+      </div>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'flex-1 min-h-[400px] p-2 space-y-2 rounded-b-xl border transition-all duration-150',
+          isOver
+            ? 'border-[#2AA3FF] border-dashed bg-blue-50/70 scale-[1.01]'
+            : 'border-gray-200 bg-white/30',
+        )}
+      >
+        {items.map(item => (
+          <CandidateCard
+            key={item.id}
+            submission={item}
+            onEdit={() => onCardEdit(item)}
+            onDelete={() => onCardDelete(item.id)}
+          />
         ))}
       </div>
-
-      {/* Table */}
-      {sorted.length === 0 ? (
-        <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-gray-400 text-sm">Niciun candidat în această categorie.</p>
-        </div>
-      ) : (
-        <div className="glass rounded-2xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/40 bg-white/30 text-left">
-                <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rol</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Interviu următor</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {sorted.map(s => {
-                const c = s.candidate
-                const nextInt = getNextInterview(s.interviews)
-                const meta = STATUS_META[s.status] ?? STATUS_META.pipeline
-
-                return (
-                  <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
-                    {/* Candidat */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
-                          {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {c ? `${c.first_name} ${c.last_name}` : '—'}
-                          </p>
-                          {c?.profile && (
-                            <p className="text-[11px] text-gray-400">{c.profile.name}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Rol */}
-                    <td className="px-4 py-3">
-                      <p className="text-sm text-gray-800 font-medium truncate max-w-[180px]">
-                        {s.role?.title ?? '—'}
-                      </p>
-                      {s.role?.client && (
-                        <p className="text-[11px] text-gray-400">{s.role.client.name}</p>
-                      )}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${meta.bg} ${meta.text} ${meta.border}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${meta.dot}`} />
-                        {meta.label}
-                      </span>
-                    </td>
-
-                    {/* Interviu următor */}
-                    <td className="px-4 py-3">
-                      {nextInt ? (
-                        <div className="flex items-center gap-2">
-                          <Calendar size={13} className="text-[#2AA3FF] flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-semibold text-gray-800">
-                              {nextInt.label}
-                            </p>
-                            {(() => {
-                              const { date, time, relative } = formatInterviewDatetime(nextInt.datetime)
-                              return (
-                                <>
-                                  <p className="text-[11px] text-gray-600">{date}, {time}</p>
-                                  {relative && (
-                                    <p className="text-[10px] text-[#2AA3FF] font-medium">{relative}</p>
-                                  )}
-                                </>
-                              )
-                            })()}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
-                      )}
-                    </td>
-
-                    {/* Link */}
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/roles/${s.role_id}/pipeline`}
-                        className="p-1.5 text-gray-300 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors inline-flex"
-                        title="Deschide pipeline-ul rolului"
-                      >
-                        <ExternalLink size={14} />
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
+  )
+}
+
+// ─── Board ───────────────────────────────────────────────────────────────────
+
+export function PipelineRadarClient({ submissions: initialSubmissions }: { submissions: RadarSubmission[] }) {
+  const router = useRouter()
+  const [items, setItems] = useState<RadarSubmission[]>(initialSubmissions)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<RadarSubmission | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => { setItems(initialSubmissions) }, [initialSubmissions])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  )
+
+  const activeItem = activeId ? items.find(s => s.id === activeId) ?? null : null
+
+  function handleDragStart({ active }: DragStartEvent) {
+    setActiveId(active.id as string)
+  }
+
+  async function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null)
+    if (!over) return
+    const submission = items.find(s => s.id === active.id)
+    const newStatus = over.id as PipelineStatus
+    if (!submission || submission.status === newStatus) return
+
+    setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: newStatus } : s))
+
+    try {
+      const res = await fetch(`/api/submissions/${active.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, stage_name: STATUS_LABELS[newStatus] }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: submission.status } : s))
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Ștergi candidatul din pipeline?')) return
+    setItems(prev => prev.filter(s => s.id !== id))
+    try {
+      await fetch(`/api/submissions/${id}`, { method: 'DELETE' })
+    } catch {
+      // optimistic delete stays
+    }
+  }
+
+  function handleStatusSaved(submissionId: string, newStatus: PipelineStatus) {
+    setItems(prev => prev.map(s => s.id === submissionId ? { ...s, status: newStatus } : s))
+    setSelected(null)
+    router.refresh()
+  }
+
+  return (
+    <>
+      <div className="overflow-x-auto pb-4 -mx-1 px-1">
+        {!mounted ? (
+          <div className="flex gap-2.5 min-w-max">
+            {PIPELINE_STATUSES.map(status => (
+              <div
+                key={status.value}
+                className="flex-shrink-0 w-[210px] h-24 rounded-xl bg-gray-50 border border-gray-100 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex gap-2.5 min-w-max">
+              {PIPELINE_STATUSES.map(status => (
+                <KanbanColumn
+                  key={status.value}
+                  status={status}
+                  items={items.filter(s => s.status === status.value)}
+                  onCardEdit={setSelected}
+                  onCardDelete={handleDelete}
+                />
+              ))}
+            </div>
+            <DragOverlay dropAnimation={{ duration: 120, easing: 'ease-out' }}>
+              {activeItem ? <DragOverlayCard submission={activeItem} /> : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+      </div>
+
+      {selected && (
+        <StatusModal
+          submission={selected as unknown as KanbanSubmission}
+          onClose={() => setSelected(null)}
+          onSaved={handleStatusSaved}
+        />
+      )}
+    </>
   )
 }
