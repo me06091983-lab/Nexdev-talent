@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Plus, Sparkles } from 'lucide-react'
 import { KanbanBoard, type Submission } from './KanbanBoard'
 import { AddCandidateModal } from './AddCandidateModal'
@@ -22,10 +22,37 @@ interface Props {
   partners: PartnerOption[]
 }
 
+type FxRates = Record<string, number>
+
+function calcEurEquivalents(
+  rate: number,
+  currency: string,
+  rateType: string,
+  fxRates: FxRates,
+): { eurDay: number; eurHour: number } | null {
+  // 1 EUR = fxRates[currency] units of that currency
+  const fxRate = currency === 'EUR' ? 1 : fxRates[currency]
+  if (!fxRate) return null
+
+  const rateInEur = rate / fxRate
+  const eurDay = rateType === 'daily' ? rateInEur : rateInEur * 8
+  const eurHour = rateType === 'hourly' ? rateInEur : rateInEur / 8
+
+  return { eurDay: Math.round(eurDay), eurHour: Math.round(eurHour) }
+}
+
 export function RolePipelineClient({ role, initialSubmissions, partners }: Props) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [showAdd, setShowAdd] = useState(false)
   const [showAI, setShowAI] = useState(false)
+  const [fxRates, setFxRates] = useState<FxRates>({})
+
+  useEffect(() => {
+    fetch('/api/exchange-rates')
+      .then(r => r.ok ? r.json() : {})
+      .then(setFxRates)
+      .catch(() => {})
+  }, [])
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/submissions?role_id=${role.id}`)
@@ -63,7 +90,28 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
             <h1 className="text-xl font-bold text-[#0B1A33]">{role.title}</h1>
             <p className="text-sm text-gray-400">
               {role.client?.name ?? ''}
-              {role.rate ? ` · ${role.rate} ${role.rate_currency ?? 'EUR'} / ${role.rate_type === 'daily' ? 'zi' : 'oră'}` : ''}
+              {role.rate && (() => {
+                const currency = role.rate_currency ?? 'EUR'
+                const rateType = role.rate_type ?? 'daily'
+                const isEurDay = currency === 'EUR' && rateType === 'daily'
+                const label = rateType === 'daily' ? 'zi' : 'oră'
+                const base = ` · ${role.rate} ${currency} / ${label}`
+
+                if (isEurDay) return base
+
+                const eur = calcEurEquivalents(role.rate, currency, rateType, fxRates)
+                if (!eur) return base
+
+                return (
+                  <>
+                    {base}
+                    <span className="text-gray-300 mx-1">·</span>
+                    <span className="text-indigo-500 font-medium">≈ {eur.eurDay} EUR/zi</span>
+                    <span className="text-gray-300 mx-1">·</span>
+                    <span className="text-indigo-400">≈ {eur.eurHour} EUR/oră</span>
+                  </>
+                )
+              })()}
               {' · '}
               <span className="text-gray-500">{submissions.length} candidați</span>
             </p>
