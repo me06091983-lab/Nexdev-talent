@@ -160,9 +160,14 @@ function CandidateCard({
       {/* Row 2: badges */}
       {(c?.rate_wish || c?.rate_min || hasContract) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          {(c?.rate_wish || c?.rate_min) && (
-            <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded font-medium">
-              {c.rate_wish ?? c.rate_min} {c.currency ?? 'EUR'}
+          {c?.rate_min != null && (
+            <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded font-medium">
+              min {c.rate_min} {c.currency ?? 'EUR'}
+            </span>
+          )}
+          {c?.rate_wish != null && (
+            <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
+              dorit {c.rate_wish} {c.currency ?? 'EUR'}
             </span>
           )}
           {hasContract && (
