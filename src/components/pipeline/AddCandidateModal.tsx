@@ -18,13 +18,41 @@ interface Props {
   onAdded: () => void
 }
 
+function ScoreCircle({ score }: { score: number }) {
+  const cls = score >= 85
+    ? 'border-green-400 text-green-600 bg-green-50'
+    : score >= 60
+    ? 'border-yellow-400 text-yellow-600 bg-yellow-50'
+    : 'border-red-300 text-red-500 bg-red-50'
+  return (
+    <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 text-[10px] font-bold flex items-center justify-center ${cls}`}>
+      {score}%
+    </span>
+  )
+}
+
 export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
   const [query, setQuery] = useState('')
   const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [scores, setScores] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(false)
   const [adding, setAdding] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
+
+  // Fetch existing AI scores for this role
+  useEffect(() => {
+    fetch(`/api/submissions?role_id=${roleId}`)
+      .then(r => r.ok ? r.json() : [])
+      .then((subs: Array<{ candidate_id: string; ai_score: number | null }>) => {
+        const map: Record<string, number> = {}
+        for (const s of subs) {
+          if (s.ai_score != null) map[s.candidate_id] = Math.round(s.ai_score)
+        }
+        setScores(map)
+      })
+      .catch(() => {})
+  }, [roleId])
 
   const search = useCallback(async (q: string) => {
     setLoading(true)
@@ -99,25 +127,29 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
                 {query ? 'Niciun candidat găsit' : 'Tastează un nume pentru a căuta'}
               </p>
             ) : (
-              candidates.map(c => (
-                <div key={c.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
-                    {`${c.first_name[0]}${c.last_name[0]}`.toUpperCase()}
+              candidates.map(c => {
+                const score = scores[c.id]
+                return (
+                  <div key={c.id} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                      {`${c.first_name[0]}${c.last_name[0]}`.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{c.first_name} {c.last_name}</p>
+                      <p className="text-xs text-gray-400">{c.profile?.name ?? ''}{c.seniority ? ` · ${c.seniority}` : ''}</p>
+                    </div>
+                    {score != null && <ScoreCircle score={score} />}
+                    <button
+                      onClick={() => addCandidate(c.id)}
+                      disabled={adding === c.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0B1A33] text-white text-xs font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors disabled:opacity-50"
+                    >
+                      {adding === c.id ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                      Adaugă
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{c.first_name} {c.last_name}</p>
-                    <p className="text-xs text-gray-400">{c.profile?.name ?? ''}{c.seniority ? ` · ${c.seniority}` : ''}</p>
-                  </div>
-                  <button
-                    onClick={() => addCandidate(c.id)}
-                    disabled={adding === c.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0B1A33] text-white text-xs font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors disabled:opacity-50"
-                  >
-                    {adding === c.id ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
-                    Adaugă
-                  </button>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
 

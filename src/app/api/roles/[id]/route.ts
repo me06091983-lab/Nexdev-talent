@@ -42,7 +42,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (skillRows.length) await supabase.from('role_skills').insert(skillRows)
   }
 
-  // Când rolul devine "Ocupat", candidații cu ofertă activă pe acest rol devin "Angajat"
+  // Când rolul devine "Ocupat", marchează ca "Angajat" candidatul cu ofertă
+  // DOAR dacă există exact 1 ofertă activă (caz fără ambiguitate).
+  // Dacă sunt mai multe oferte, utilizatorul trebuie să marcheze manual.
   if (roleData.status === 'filled') {
     const admin = createAdminClient()
     const { data: offers } = await admin
@@ -52,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .eq('status', 'offer')
       .is('deleted_at', null)
     const candidateIds = (offers ?? []).map((s: { candidate_id: string }) => s.candidate_id).filter(Boolean)
-    if (candidateIds.length) {
+    if (candidateIds.length === 1) {
       await admin
         .from('candidates')
         .update({ candidate_status: 'angajat', successful: true })

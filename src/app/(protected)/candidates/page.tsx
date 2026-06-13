@@ -4,11 +4,12 @@ import { CandidatesClient } from '@/components/candidates/CandidatesClient'
 
 export type CandidateRole = { role_id: string; role_title: string; status: string }
 export type CandidateRolesMap = Record<string, CandidateRole[]>
+export type CandidateAiScoreMap = Record<string, number>
 
 export default async function CandidatesPage() {
   const supabase = await createClient()
 
-  const [{ data: candidates }, { data: profiles }, { data: submissions }] = await Promise.all([
+  const [{ data: candidates }, { data: profiles }, { data: submissions }, { data: aiScores }] = await Promise.all([
     supabase
       .from('candidates')
       .select('*, profile:profiles(id, name), candidate_skills(skill:skills(id, name, category))')
@@ -19,6 +20,11 @@ export default async function CandidatesPage() {
       .from('submissions')
       .select('candidate_id, status, role:roles(id, title, status)')
       .is('deleted_at', null),
+    supabase
+      .from('submissions')
+      .select('candidate_id, ai_score')
+      .not('ai_score', 'is', null)
+      .is('deleted_at', null),
   ])
 
   // Build map: candidateId → active-role submissions
@@ -26,10 +32,18 @@ export default async function CandidatesPage() {
   for (const s of submissions ?? []) {
     const role = (s.role as unknown) as { id: string; title: string; status: string } | null
     if (!role) continue
-    // Only "open" roles (active or on_hold)
     if (role.status !== 'active' && role.status !== 'on_hold') continue
     if (!candidateRoles[s.candidate_id]) candidateRoles[s.candidate_id] = []
     candidateRoles[s.candidate_id].push({ role_id: role.id, role_title: role.title, status: s.status })
+  }
+
+  // Build map: candidateId → best AI score across all roles
+  const candidateAiScores: CandidateAiScoreMap = {}
+  for (const s of aiScores ?? []) {
+    const score = Number(s.ai_score)
+    if (!candidateAiScores[s.candidate_id] || score > candidateAiScores[s.candidate_id]) {
+      candidateAiScores[s.candidate_id] = Math.round(score)
+    }
   }
 
   const list = (candidates ?? []).map(c => ({
@@ -52,7 +66,12 @@ export default async function CandidatesPage() {
         </Link>
       </div>
 
-      <CandidatesClient candidates={list} profiles={profiles ?? []} candidateRoles={candidateRoles} />
+      <CandidatesClient
+        candidates={list}
+        profiles={profiles ?? []}
+        candidateRoles={candidateRoles}
+        candidateAiScores={candidateAiScores}
+      />
     </div>
   )
 }

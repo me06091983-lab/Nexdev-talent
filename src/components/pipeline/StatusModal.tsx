@@ -29,7 +29,13 @@ const SLOT_STATUS_COLORS: Record<string, string> = {
 }
 
 function loadSlots(saved: InterviewSlot[]): InterviewSlot[] {
-  return saved.filter(s => s.label || s.datetime || s.enabled)
+  return saved
+    .filter(s => s.label || s.datetime || s.enabled)
+    .map((s, i) => ({ ...s, _key: s.label ? `slot-${s.label}-${i}` : `slot-${i}-${s.datetime ?? ''}` }))
+}
+
+function makeSlotKey(slot: InterviewSlot & { _key?: string }, idx: number) {
+  return (slot as { _key?: string })._key ?? `slot-${idx}`
 }
 
 // ─── DateTimePicker ───────────────────────────────────────────────────────────
@@ -221,7 +227,7 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
             ) : (
               <div className="space-y-3">
                 {slots.map((slot, idx) => (
-                  <div key={idx} className="border border-gray-100 rounded-xl p-3 space-y-2.5 bg-gray-50/50">
+                  <div key={makeSlotKey(slot, idx)} className="border border-gray-100 rounded-xl p-3 space-y-2.5 bg-gray-50/50">
                     {/* Row 1: label + delete */}
                     <div className="flex items-center gap-2">
                       <input

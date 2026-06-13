@@ -45,13 +45,13 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [showAdd, setShowAdd] = useState(false)
   const [showAI, setShowAI] = useState(false)
-  const [fxRates, setFxRates] = useState<FxRates>({})
+  const [fxRates, setFxRates] = useState<FxRates | null>(null)
 
   useEffect(() => {
     fetch('/api/exchange-rates')
-      .then(r => r.ok ? r.json() : {})
-      .then(setFxRates)
-      .catch(() => {})
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setFxRates(data ?? {}))
+      .catch(() => setFxRates({}))
   }, [])
 
   const refresh = useCallback(async () => {
@@ -99,8 +99,10 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
 
                 if (isEurDay) return base
 
+                if (fxRates === null) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs în curs de încărcare...)</span></>
+
                 const eur = calcEurEquivalents(role.rate, currency, rateType, fxRates)
-                if (!eur) return base
+                if (!eur) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs indisponibil)</span></>
 
                 return (
                   <>

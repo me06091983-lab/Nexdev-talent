@@ -348,6 +348,7 @@ export function KanbanBoard({
   const [selected, setSelected] = useState<Submission | null>(null)
   const [contracting, setContracting] = useState<Submission | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [dragError, setDragError] = useState('')
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setItems(initialSubmissions) }, [initialSubmissions])
@@ -380,6 +381,8 @@ export function KanbanBoard({
       if (!res.ok) throw new Error()
     } catch {
       setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: submission.status } : s))
+      setDragError('Mutarea nu a putut fi salvată. Încearcă din nou.')
+      setTimeout(() => setDragError(''), 4000)
     }
   }
 
@@ -407,6 +410,11 @@ export function KanbanBoard({
 
   return (
     <>
+      {dragError && (
+        <div className="mb-3 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-xl">
+          <span>{dragError}</span>
+        </div>
+      )}
       <div className="overflow-x-auto pb-4 -mx-1 px-1">
         {!mounted ? (
           <div className="flex gap-2.5 min-w-max">

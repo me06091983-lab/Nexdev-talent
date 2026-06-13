@@ -12,3 +12,27 @@ export type PipelineStatus = typeof PIPELINE_STATUSES[number]['value']
 export const STATUS_LABELS: Record<string, string> = Object.fromEntries(
   PIPELINE_STATUSES.map(s => [s.value, s.label])
 )
+
+export const CANDIDATE_STATUSES = [
+  { value: 'activ',     label: 'Activ',      cls: 'bg-green-100 text-green-700 border border-green-200' },
+  { value: 'pasiv',     label: 'Pasiv',      cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
+  { value: 'angajat',   label: 'Angajat',    cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  { value: 'blacklist', label: 'Black List', cls: 'bg-red-100 text-red-600 border border-red-200' },
+] as const
+
+export const CANDIDATE_STATUS_LABELS = Object.fromEntries(
+  CANDIDATE_STATUSES.map(s => [s.value, s.label])
+)
+
+export const ROLE_STATUSES = [
+  { value: 'draft',    label: 'Draft',      cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  { value: 'active',   label: 'Activ',      cls: 'bg-green-50 text-green-700 border border-green-200' },
+  { value: 'on_hold',  label: 'On Hold',    cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  { value: 'closed',   label: 'Închis',     cls: 'bg-red-50 text-red-600 border border-red-200' },
+  { value: 'filled',   label: 'Ocupat',     cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+] as const
+
+export const CONTRACT_STATUSES = [
+  { value: 'activ',    label: 'Activ',    cls: 'bg-green-100 text-green-700' },
+  { value: 'terminat', label: 'Terminat', cls: 'bg-gray-100 text-gray-500' },
+] as const

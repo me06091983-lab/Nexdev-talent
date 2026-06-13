@@ -388,7 +388,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                 <th className={thCls}>Perioadă</th>
                 <th className={thCls}>Pay rate</th>
                 <th className={thCls}>Bill rate</th>
-                <th className={thCls}>Marjă/lună</th>
+                <th className={thCls} title="Estimat: 20 zile/lună (rate zilnic) sau 160 ore/lună (rate orar)">Marjă/lună <span className="text-gray-300 font-normal text-[10px]">est.</span></th>
                 {tab === 'activ'
                   ? <th className={thCls}>Status</th>
                   : <th className={thCls}>Motiv terminare</th>

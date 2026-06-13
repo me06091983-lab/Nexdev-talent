@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, Fragment } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Pencil, Trash2, Star, X, Info, Eye, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, Pencil, Trash2, Star, X, Info, Eye, ChevronDown, ChevronRight, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
 import { CandidateViewModal } from './CandidateViewModal'
-import type { CandidateRole, CandidateRolesMap } from '@/app/(protected)/candidates/page'
+import type { CandidateRole, CandidateRolesMap, CandidateAiScoreMap } from '@/app/(protected)/candidates/page'
 
 interface Skill { id: string; name: string; category: string }
 interface Profile { id: string; name: string }
@@ -60,10 +60,68 @@ const PIPELINE_STATUS_COLORS: Record<string, string> = {
   offer: 'bg-green-50 text-green-700 border-green-200',
 }
 
-export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: { candidates: Candidate[]; profiles: Profile[]; candidateRoles?: CandidateRolesMap }) {
+function AiScoreBadge({ score }: { score: number }) {
+  const cls = score >= 85
+    ? 'border-green-400 text-green-600 bg-green-50'
+    : score >= 60
+    ? 'border-yellow-400 text-yellow-600 bg-yellow-50'
+    : 'border-red-300 text-red-500 bg-red-50'
+  return (
+    <span className={cn('inline-flex items-center justify-center w-9 h-6 rounded-full border text-[10px] font-bold', cls)}>
+      {score}%
+    </span>
+  )
+}
+
+function exportCsv(candidates: Candidate[], aiScores: CandidateAiScoreMap) {
+  const headers = ['Prenume', 'Nume', 'Email', 'Telefon', 'Profil', 'Senioritate', 'Locație', 'Rate minim', 'Rate dorit', 'Monedă', 'Status', 'Sursă', 'Scor AI', 'Adăugat la']
+  const rows = candidates.map(c => [
+    c.first_name,
+    c.last_name,
+    c.email ?? '',
+    '',
+    c.profile?.name ?? '',
+    SENIORITY_LABELS[c.seniority ?? ''] ?? c.seniority ?? '',
+    c.location ?? '',
+    c.rate_min ?? '',
+    c.rate_wish ?? '',
+    c.currency ?? 'EUR',
+    c.candidate_status ?? '',
+    c.source_type ?? '',
+    aiScores[c.id] ?? '',
+    new Date(c.created_at).toLocaleDateString('ro-RO'),
+  ])
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `candidati_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export function CandidatesClient({
+  candidates,
+  profiles,
+  candidateRoles = {},
+  candidateAiScores = {},
+}: {
+  candidates: Candidate[]
+  profiles: Profile[]
+  candidateRoles?: CandidateRolesMap
+  candidateAiScores?: CandidateAiScoreMap
+}) {
   const router = useRouter()
 
-  // Search state
+  // Read initial filters from URL
+  function getParam(key: string) {
+    if (typeof window === 'undefined') return ''
+    return new URLSearchParams(window.location.search).get(key) ?? ''
+  }
+
   const [nameSearch, setNameSearch] = useState('')
   const [profileSearch, setProfileSearch] = useState('')
   const [skillSearch, setSkillSearch] = useState('')
@@ -73,50 +131,76 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
   const [viewId, setViewId] = useState<string | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['activ']))
 
-  // Parsează "aws and java and python" în termeni individuali
-  const skillTerms = skillSearch
+  // Read URL params on mount
+  useEffect(() => {
+    setNameSearch(getParam('q'))
+    setProfileSearch(getParam('profile'))
+    setSkillSearch(getParam('skill'))
+    setSeniorityFilter(getParam('seniority'))
+    setLocationSearch(getParam('location'))
+  }, [])
+
+  // Sync URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (nameSearch) params.set('q', nameSearch)
+    if (profileSearch) params.set('profile', profileSearch)
+    if (skillSearch) params.set('skill', skillSearch)
+    if (seniorityFilter) params.set('seniority', seniorityFilter)
+    if (locationSearch) params.set('location', locationSearch)
+    const qs = params.toString()
+    const newUrl = qs ? `?${qs}` : window.location.pathname
+    window.history.replaceState(null, '', newUrl)
+  }, [nameSearch, profileSearch, skillSearch, seniorityFilter, locationSearch])
+
+  // Debounced values for filtering
+  const [debouncedName, setDebouncedName] = useState(nameSearch)
+  const [debouncedProfile, setDebouncedProfile] = useState(profileSearch)
+  const [debouncedSkill, setDebouncedSkill] = useState(skillSearch)
+  const [debouncedLocation, setDebouncedLocation] = useState(locationSearch)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function debounce(fn: () => void) {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(fn, 200)
+  }
+
+  useEffect(() => { debounce(() => setDebouncedName(nameSearch)) }, [nameSearch])
+  useEffect(() => { debounce(() => setDebouncedProfile(profileSearch)) }, [profileSearch])
+  useEffect(() => { debounce(() => setDebouncedSkill(skillSearch)) }, [skillSearch])
+  useEffect(() => { debounce(() => setDebouncedLocation(locationSearch)) }, [locationSearch])
+
+  const skillTerms = debouncedSkill
     .toLowerCase()
     .split(/\s+and\s+/)
     .map(t => t.trim())
     .filter(Boolean)
 
   const filtered = candidates.filter(c => {
-    // Caută după nume (first+last)
-    if (nameSearch) {
-      const q = nameSearch.toLowerCase()
+    if (debouncedName) {
+      const q = debouncedName.toLowerCase()
       const fullName = `${c.first_name} ${c.last_name}`.toLowerCase()
       if (!fullName.includes(q) && !c.email?.toLowerCase().includes(q)) return false
     }
-
-    // Caută după profil/rol
-    if (profileSearch) {
-      const q = profileSearch.toLowerCase()
+    if (debouncedProfile) {
+      const q = debouncedProfile.toLowerCase()
       if (!c.profile?.name.toLowerCase().includes(q)) return false
     }
-
-    // Caută după skilluri cu AND logic
     if (skillTerms.length > 0) {
       const hasAll = skillTerms.every(term =>
         c.skills.some(s => s.name.toLowerCase().includes(term))
       )
       if (!hasAll) return false
     }
-
-    // Filtre simple
     if (seniorityFilter && c.seniority !== seniorityFilter) return false
-    if (locationSearch && !c.location?.toLowerCase().includes(locationSearch.toLowerCase())) return false
-
+    if (debouncedLocation && !c.location?.toLowerCase().includes(debouncedLocation.toLowerCase())) return false
     return true
   })
 
   const hasFilters = nameSearch || profileSearch || skillSearch || seniorityFilter || locationSearch
 
   function clearAll() {
-    setNameSearch('')
-    setProfileSearch('')
-    setSkillSearch('')
-    setSeniorityFilter('')
-    setLocationSearch('')
+    setNameSearch(''); setProfileSearch(''); setSkillSearch(''); setSeniorityFilter(''); setLocationSearch('')
   }
 
   async function handleDelete(id: string, name: string) {
@@ -127,12 +211,18 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
     router.refresh()
   }
 
+  const groups = [
+    { key: 'activ',     label: 'Activi',      headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
+    { key: 'angajat',   label: 'Angajați',    headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
+    { key: 'pasiv',     label: 'Pasivi',      headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
+    { key: 'blacklist', label: 'Black List',  headerCls: 'bg-red-50 border-red-200',      countCls: 'bg-red-100 text-red-700',      chevronCls: 'text-red-400' },
+  ] as const
+
   return (
     <div>
       {/* ── SEARCH PANEL ── */}
       <div className="glass rounded-2xl p-4 mb-6 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          {/* Căutare după nume */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -141,8 +231,6 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
           </div>
-
-          {/* Căutare după profil/rol */}
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -156,9 +244,8 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          {/* Căutare după skilluri cu AND */}
-          <div className="col-span-1 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text" value={skillSearch} onChange={e => setSkillSearch(e.target.value)}
@@ -166,17 +253,13 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
           </div>
-
-          {/* Locație */}
-          <div className="relative">
+          <div>
             <input
               type="text" value={locationSearch} onChange={e => setLocationSearch(e.target.value)}
               placeholder="Filtrează după locație..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
           </div>
-
-          {/* Senioritate */}
           <select value={seniorityFilter} onChange={e => setSeniorityFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
             <option value="">Toate nivelurile</option>
@@ -184,20 +267,27 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
           </select>
         </div>
 
-        {/* Info AND search + reset */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Info size={12} />
-            <span>Skilluri: folosește <strong>and</strong> între termeni (ex: <em>aws and java and python</em>)</span>
+            <span>Skilluri: folosește <strong>and</strong> între termeni (ex: <em>aws and java</em>)</span>
           </div>
-          {hasFilters && (
-            <button onClick={clearAll} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-              <X size={12} /> Resetează filtrele
+          <div className="flex items-center gap-2">
+            {hasFilters && (
+              <button onClick={clearAll} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
+                <X size={12} /> Resetează
+              </button>
+            )}
+            <button
+              onClick={() => exportCsv(filtered, candidateAiScores)}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-2.5 py-1 rounded-lg transition-colors"
+              title="Exportă lista curentă în CSV"
+            >
+              <Download size={12} /> Export CSV
             </button>
-          )}
+          </div>
         </div>
 
-        {/* Indicatori filtre active */}
         {skillTerms.length > 1 && (
           <div className="flex flex-wrap gap-1.5">
             {skillTerms.map(t => (
@@ -209,7 +299,6 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
         )}
       </div>
 
-      {/* Rezultate */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-gray-500">
           {filtered.length} {filtered.length === 1 ? 'candidat' : 'candidați'}
@@ -226,12 +315,7 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
         </div>
       ) : (
         <div className="space-y-3">
-          {([
-            { key: 'activ',     label: 'Activi',      headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
-            { key: 'angajat',   label: 'Angajați',    headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
-            { key: 'pasiv',     label: 'Pasivi',      headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
-            { key: 'blacklist', label: 'Black List',  headerCls: 'bg-red-50 border-red-200',      countCls: 'bg-red-100 text-red-700',      chevronCls: 'text-red-400' },
-          ] as const).map(group => {
+          {groups.map(group => {
             const groupCandidates = filtered.filter(c => (c.candidate_status ?? 'pasiv') === group.key)
             const isOpen = expandedGroups.has(group.key)
             const toggle = () => setExpandedGroups(prev => {
@@ -242,7 +326,6 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
 
             return (
               <div key={group.key} className="glass rounded-2xl overflow-hidden">
-                {/* Group header */}
                 <button
                   type="button"
                   onClick={toggle}
@@ -258,108 +341,117 @@ export function CandidatesClient({ candidates, profiles, candidateRoles = {} }: 
                   </span>
                 </button>
 
-                {/* Rows */}
                 {isOpen && (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-white/40 bg-white/30 text-left">
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Profil / Nivel</th>
-                        {group.key === 'activ' && (
-                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rol curent</th>
-                        )}
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Notițe interne</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
-                        <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sursă</th>
-                        <th className="px-4 py-2.5"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {groupCandidates.length === 0 ? (
-                        <tr>
-                          <td colSpan={group.key === 'activ' ? 7 : 6} className="px-5 py-6 text-sm text-gray-400 text-center italic">
-                            Niciun candidat în această categorie.
-                          </td>
-                        </tr>
-                      ) : groupCandidates.map(c => {
-                        const roles = candidateRoles[c.id] ?? []
-                        return (
-                        <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-medium text-gray-900 text-sm">{c.first_name} {c.last_name}</span>
-                              {c.successful && <Star size={13} className="text-yellow-400 fill-yellow-400" />}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-0.5 space-x-2">
-                              {c.email && <span>{c.email}</span>}
-                              {c.location && <span>📍 {c.location}</span>}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="text-sm text-gray-700">{c.profile?.name ?? '—'}</div>
-                            {c.seniority && (
-                              <Badge variant="gray" className="mt-1">{SENIORITY_LABELS[c.seniority]}</Badge>
-                            )}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-white/40 bg-white/30 text-left">
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Profil / Nivel</th>
                           {group.key === 'activ' && (
-                            <td className="px-4 py-3 max-w-[220px]">
-                              {roles.length === 0 ? (
-                                <span className="text-xs text-gray-300">—</span>
-                              ) : (
-                                <div className="space-y-1">
-                                  {roles.map(r => (
-                                    <div key={r.role_id} className="flex items-center gap-1.5 flex-wrap">
-                                      <Link href={`/roles/${r.role_id}/pipeline`}
-                                        className="text-xs text-gray-700 hover:text-[#2AA3FF] hover:underline font-medium truncate max-w-[130px]"
-                                        title={r.role_title}>
-                                        {r.role_title}
-                                      </Link>
-                                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${PIPELINE_STATUS_COLORS[r.status] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                                        {PIPELINE_STATUS_LABELS[r.status] ?? r.status}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
+                            <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rol curent</th>
                           )}
-                          <td className="px-4 py-3 max-w-[260px]">
-                            {getNotesPreview(c.notes)
-                              ? <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{getNotesPreview(c.notes)}</p>
-                              : <span className="text-xs text-gray-300">—</span>
-                            }
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                            {c.rate_min || c.rate_wish ? (
-                              <div className="space-y-0.5">
-                                {c.rate_min && <div className="text-xs text-gray-500">Min: {c.rate_min} {c.currency}</div>}
-                                {c.rate_wish && <div className="text-xs font-medium text-gray-700">Dorit: {c.rate_wish} {c.currency}</div>}
-                              </div>
-                            ) : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">{c.source_type || '—'}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1 justify-end">
-                              <button onClick={() => setViewId(c.id)}
-                                className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors" title="Vizualizează">
-                                <Eye size={15} />
-                              </button>
-                              <Link href={`/candidates/${c.id}`}
-                                className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors" title="Editează">
-                                <Pencil size={15} />
-                              </Link>
-                              <button onClick={() => handleDelete(c.id, `${c.first_name} ${c.last_name}`)}
-                                disabled={deleting === c.id}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Șterge">
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Notițe</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Scor AI</th>
+                          <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sursă</th>
+                          <th className="px-4 py-2.5"></th>
                         </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {groupCandidates.length === 0 ? (
+                          <tr>
+                            <td colSpan={group.key === 'activ' ? 8 : 7} className="px-5 py-6 text-sm text-gray-400 text-center italic">
+                              Niciun candidat în această categorie.
+                            </td>
+                          </tr>
+                        ) : groupCandidates.map(c => {
+                          const roles = candidateRoles[c.id] ?? []
+                          const bestScore = candidateAiScores[c.id]
+                          return (
+                            <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium text-gray-900 text-sm">{c.first_name} {c.last_name}</span>
+                                  {c.successful && <Star size={13} className="text-yellow-400 fill-yellow-400" />}
+                                </div>
+                                <div className="text-xs text-gray-400 mt-0.5 space-x-2">
+                                  {c.email && <span>{c.email}</span>}
+                                  {c.location && <span>📍 {c.location}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="text-sm text-gray-700">{c.profile?.name ?? '—'}</div>
+                                {c.seniority && (
+                                  <Badge variant="gray" className="mt-1">{SENIORITY_LABELS[c.seniority]}</Badge>
+                                )}
+                              </td>
+                              {group.key === 'activ' && (
+                                <td className="px-4 py-3 max-w-[220px]">
+                                  {roles.length === 0 ? (
+                                    <span className="text-xs text-gray-300">—</span>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      {roles.map(r => (
+                                        <div key={r.role_id} className="flex items-center gap-1.5 flex-wrap">
+                                          <Link href={`/roles/${r.role_id}/pipeline`}
+                                            className="text-xs text-gray-700 hover:text-[#2AA3FF] hover:underline font-medium truncate max-w-[130px]"
+                                            title={r.role_title}>
+                                            {r.role_title}
+                                          </Link>
+                                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${PIPELINE_STATUS_COLORS[r.status] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                                            {PIPELINE_STATUS_LABELS[r.status] ?? r.status}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                              )}
+                              <td className="px-4 py-3 max-w-[260px]">
+                                {getNotesPreview(c.notes)
+                                  ? <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{getNotesPreview(c.notes)}</p>
+                                  : <span className="text-xs text-gray-300">—</span>
+                                }
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                {c.rate_min || c.rate_wish ? (
+                                  <div className="space-y-0.5">
+                                    {c.rate_min && <div className="text-xs text-gray-500">Min: {c.rate_min} {c.currency}</div>}
+                                    {c.rate_wish && <div className="text-xs font-medium text-gray-700">Dorit: {c.rate_wish} {c.currency}</div>}
+                                  </div>
+                                ) : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {bestScore != null
+                                  ? <AiScoreBadge score={bestScore} />
+                                  : <span className="text-xs text-gray-300">—</span>
+                                }
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">{c.source_type || '—'}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1 justify-end">
+                                  <button onClick={() => setViewId(c.id)}
+                                    className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors" title="Vizualizează">
+                                    <Eye size={15} />
+                                  </button>
+                                  <Link href={`/candidates/${c.id}`}
+                                    className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors" title="Editează">
+                                    <Pencil size={15} />
+                                  </Link>
+                                  <button onClick={() => handleDelete(c.id, `${c.first_name} ${c.last_name}`)}
+                                    disabled={deleting === c.id}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Șterge">
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )

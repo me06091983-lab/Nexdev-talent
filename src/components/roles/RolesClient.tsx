@@ -93,13 +93,18 @@ const SENIORITY_LABELS: Record<string, string> = {
 function CandidatesSubTable({ roleId }: { roleId: string }) {
   const [subs, setSubs] = useState<Submission[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
   const load = useCallback(async () => {
+    const timeout = setTimeout(() => { setLoadError(true); setLoading(false) }, 10000)
     try {
       const res = await fetch(`/api/submissions?role_id=${roleId}`)
       const data = await res.json()
       setSubs(data ?? [])
+    } catch {
+      setLoadError(true)
     } finally {
+      clearTimeout(timeout)
       setLoading(false)
     }
   }, [roleId])
@@ -112,6 +117,10 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
         <Loader2 size={14} className="animate-spin" /> Se încarcă candidații...
       </div>
     )
+  }
+
+  if (loadError) {
+    return <p className="py-4 px-6 text-sm text-red-400 italic">Eroare la încărcarea candidaților. Reîncarcă pagina.</p>
   }
 
   if (!subs?.length) {
