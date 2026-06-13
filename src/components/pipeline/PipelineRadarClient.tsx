@@ -55,7 +55,8 @@ function interviewColors(status: string, accepted: boolean) {
   if (status === 'rejected') return { bg: 'bg-red-50', text: 'text-red-600', icon: 'text-red-500' }
   if (status === 'set' && accepted) return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
   if (status === 'set') return { bg: 'bg-orange-50', text: 'text-orange-700', icon: 'text-orange-500' }
-  if (status === 'passed') return { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' }
+  if (status === 'pending_feedback') return { bg: 'bg-yellow-50', text: 'text-yellow-700', icon: 'text-yellow-500' }
+  if (status === 'passed') return { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-500' }
   return { bg: 'bg-gray-100', text: 'text-gray-500', icon: 'text-gray-400' }
 }
 

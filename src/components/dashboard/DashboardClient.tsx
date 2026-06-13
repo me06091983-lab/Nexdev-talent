@@ -16,7 +16,6 @@ import {
   ArrowUp,
   ArrowDown,
   CheckCircle,
-  ChevronDown,
   ChevronRight,
   ChevronLeft,
   Receipt,
@@ -79,6 +78,37 @@ interface DashboardData {
     status: string
     updated_at: string
   }>
+  pendingFeedbackInterviews: Array<{
+    submissionId: string
+    candidateName: string
+    roleTitle: string | null
+    clientName: string | null
+    roleId: string | null
+    interviewLabel: string
+    datetime: string
+    interviewStatus: string
+    candidateAccepted: boolean
+  }>
+  interviewHistory: Array<{
+    submissionId: string
+    candidateName: string
+    roleTitle: string | null
+    clientName: string | null
+    roleId: string | null
+    interviewLabel: string
+    datetime: string
+    interviewStatus: string
+    candidateAccepted: boolean
+  }>
+  topAiMatches: Array<{
+    id: string
+    candidateId: string | null
+    candidateName: string
+    roleTitle: string | null
+    clientName: string | null
+    aiScore: number
+    status: string
+  }>
   weeklyInterviews: Array<{
     submissionId: string
     candidateName: string
@@ -87,6 +117,8 @@ interface DashboardData {
     roleId: string | null
     interviewLabel: string
     datetime: string
+    interviewStatus: string
+    candidateAccepted: boolean
     isToday: boolean
   }>
   contracts: {
@@ -315,10 +347,78 @@ function ClientRevenueTooltip({ active, payload }: any) {
 
 // ─── Tab 1: Recrutare ─────────────────────────────────────────────────────────
 
-function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
+const PIPELINE_PIE_COLORS: Record<string, string> = {
+  pipeline: '#94a3b8', submitted: '#6366f1', shortlisted: '#a855f7',
+  interview: '#f59e0b', offer: '#22c55e', rejected: '#ef4444',
+  new: '#94a3b8', cv_received: '#60a5fa', in_review: '#818cf8',
+  match_found: '#c084fc', to_contact: '#fb923c', contacted: '#34d399',
+  screening_scheduled: '#22d3ee', screening_done: '#14b8a6', on_hold: '#fbbf24',
+}
+
+const AVATAR_COLORS = ['bg-blue-500', 'bg-purple-500', 'bg-amber-500', 'bg-green-500', 'bg-rose-500']
+
+function initials(name: string) {
+  const parts = name.trim().split(' ')
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+}
+
+function InterviewCard({ iv }: {
+  iv: { candidateName: string; roleTitle: string | null; clientName: string | null; interviewLabel: string; datetime: string; interviewStatus: string; candidateAccepted: boolean }
+}) {
+  const bg =
+    iv.interviewStatus === 'rejected' ? 'bg-red-50 border-red-100' :
+    iv.interviewStatus === 'pending_feedback' ? 'bg-yellow-50 border-yellow-100' :
+    iv.interviewStatus === 'passed' ? 'bg-blue-50 border-blue-100' :
+    iv.interviewStatus === 'set' && iv.candidateAccepted ? 'bg-green-50 border-green-100' :
+    iv.interviewStatus === 'set' ? 'bg-orange-50 border-orange-100' :
+    'bg-white border-gray-100'
+  const textColor =
+    iv.interviewStatus === 'rejected' ? 'text-red-600' :
+    iv.interviewStatus === 'pending_feedback' ? 'text-yellow-700' :
+    iv.interviewStatus === 'passed' ? 'text-blue-700' :
+    iv.interviewStatus === 'set' && iv.candidateAccepted ? 'text-green-700' :
+    iv.interviewStatus === 'set' ? 'text-orange-600' :
+    'text-gray-500'
+  const statusLabel =
+    iv.interviewStatus === 'rejected' ? 'Respins' :
+    iv.interviewStatus === 'pending_feedback' ? 'Pending Feedback' :
+    iv.interviewStatus === 'passed' ? 'Passed' :
+    iv.interviewStatus === 'set' ? 'Set' :
+    iv.interviewStatus === 'waiting_customer' ? 'Waiting customer' :
+    iv.interviewStatus
+  const d = new Date(iv.datetime)
+  const dateStr = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className={cn('flex items-start gap-3 px-3 py-2.5 rounded-xl border', bg)}>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-gray-800 truncate">{iv.candidateName}</p>
+        <p className="text-[10px] text-gray-400 truncate mt-0.5">
+          {iv.roleTitle ?? '—'}{iv.clientName ? ` · ${iv.clientName}` : ''}
+        </p>
+        <p className={cn('text-[10px] font-medium mt-0.5', textColor)}>{iv.interviewLabel}</p>
+      </div>
+      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+        <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', textColor,
+          iv.interviewStatus === 'rejected' ? 'bg-red-100' :
+          iv.interviewStatus === 'pending_feedback' ? 'bg-yellow-100' :
+          iv.interviewStatus === 'passed' ? 'bg-blue-100' :
+          iv.interviewStatus === 'set' ? 'bg-orange-100' : 'bg-gray-100'
+        )}>
+          {statusLabel}
+        </span>
+        <span className="text-[10px] text-gray-500 font-medium">{dateStr}</span>
+        <span className="text-[10px] text-gray-400">{timeStr}</span>
+      </div>
+    </div>
+  )
+}
+
+function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean }) {
   const [actions, setActions] = useState<{ id: string; text: string; completed?: boolean; completedAt?: string }[]>([])
   const [newAction, setNewAction] = useState('')
-  const [collapsedRoles, setCollapsedRoles] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     try {
@@ -326,15 +426,6 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
       if (saved) setActions(JSON.parse(saved))
     } catch { /* ignore */ }
   }, [])
-
-  function toggleRole(roleId: string) {
-    setCollapsedRoles(prev => {
-      const next = new Set(prev)
-      if (next.has(roleId)) next.delete(roleId)
-      else next.add(roleId)
-      return next
-    })
-  }
 
   function addAction() {
     const trimmed = newAction.trim()
@@ -356,120 +447,288 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
   const totalSubmissions = Object.values(data.submissionsByStatus).reduce((s, v) => s + v, 0)
   const rejectedCount = data.submissionsByStatus['rejected'] ?? 0
   const activeSubmissions = totalSubmissions - rejectedCount
+  const deContactatCount = (data.submissionsByStatus['to_contact'] ?? 0) + (data.submissionsByStatus['contacted'] ?? 0)
+
+  const pipelineChartData = Object.entries(data.submissionsByStatus)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => ({
+      key: k,
+      label: PIPELINE_STAGE_LABELS[k] ?? k,
+      value: v,
+      color: PIPELINE_PIE_COLORS[k] ?? '#94a3b8',
+    }))
+    .sort((a, b) => b.value - a.value)
+
+  const topRoles = [...data.candidatesByRole]
+    .sort((a, b) => b.candidates.length - a.candidates.length)
+    .slice(0, 6)
+  const maxCandidates = Math.max(...topRoles.map(r => r.candidates.length), 1)
 
   return (
     <div className="space-y-5">
-      {/* Row 1: Stat Cards */}
-      <div className="grid grid-cols-4 gap-3">
-        <StatCard label="Total Candidați" value={data.candidates.total} icon={Users} iconColor="text-blue-500" iconBg="bg-blue-50" />
-        <StatCard label="Activi în pipeline" value={data.candidates.byStatus.activ} icon={Activity} iconColor="text-green-500" iconBg="bg-green-50" />
-        <StatCard label="Roluri active" value={data.roles.active} icon={Briefcase} iconColor="text-indigo-500" iconBg="bg-indigo-50" />
-        <StatCard label="Submisii active" value={activeSubmissions} icon={Send} iconColor="text-amber-500" iconBg="bg-amber-50" />
+      {/* Greeting */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-[#0B1A33]">Bun venit înapoi, Marius! 👋</h2>
+          <p className="text-gray-400 text-sm mt-0.5">Iată ce se întâmplă cu recrutarea ta astăzi.</p>
+        </div>
       </div>
 
-      {/* Row 2: Interviuri săptămână + Candidați per rol */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Weekly interviews */}
-        <div className="col-span-5 glass rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri — 14 zile</h3>
-            {data.weeklyInterviews.length > 0 && (
-              <span className="text-[10px] bg-[#2AA3FF]/10 text-[#2AA3FF] font-medium px-2 py-0.5 rounded-full">
-                {data.weeklyInterviews.length}
-              </span>
-            )}
+      {/* Row 1: KPI Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="glass rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Users size={17} className="text-blue-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Candidați noi</p>
           </div>
-          {data.weeklyInterviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
-              <Calendar size={24} className="text-gray-300" />
-              <span>Niciun interviu planificat</span>
-              <span className="text-xs text-gray-300">această săptămână</span>
+          <p className="text-3xl font-bold text-[#0B1A33] leading-none">{data.candidates.recentlyAdded}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">în ultimele 7 zile</p>
+        </div>
+        <div className="glass rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+              <Briefcase size={17} className="text-indigo-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Joburi active</p>
+          </div>
+          <p className="text-3xl font-bold text-[#0B1A33] leading-none">{data.roles.active}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">{data.roles.onHold} în așteptare</p>
+        </div>
+        <div className="glass rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+              <Activity size={17} className="text-purple-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Potriviri AI</p>
+          </div>
+          <p className="text-3xl font-bold text-[#0B1A33] leading-none">{activeSubmissions}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">candidați în pipeline</p>
+        </div>
+        <div className="glass rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <Send size={17} className="text-amber-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">De contactat</p>
+          </div>
+          <p className="text-3xl font-bold text-[#0B1A33] leading-none">{deContactatCount}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">candidați în așteptare</p>
+        </div>
+      </div>
+
+      {/* Row 2: 3 boxuri interviuri */}
+      {(() => {
+        const futureInterviews = data.weeklyInterviews.filter(
+          iv => iv.interviewStatus === 'waiting_customer' || iv.interviewStatus === 'set'
+        )
+        return (
+          <div className="grid grid-cols-3 gap-4">
+            {/* Interviuri viitoare */}
+            <div className="glass rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri viitoare</h3>
+                {futureInterviews.length > 0 && (
+                  <span className="text-[10px] bg-[#2AA3FF]/10 text-[#2AA3FF] font-medium px-2 py-0.5 rounded-full">
+                    {futureInterviews.length}
+                  </span>
+                )}
+              </div>
+              {futureInterviews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
+                  <Calendar size={22} className="text-gray-300" />
+                  <span className="text-center">Niciun interviu planificat</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
+                  {futureInterviews.map((iv, idx) => (
+                    <InterviewCard key={idx} iv={iv} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Așteptare feedback */}
+            <div className="glass rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Așteptare feedback</h3>
+                {data.pendingFeedbackInterviews.length > 0 && (
+                  <span className="text-[10px] bg-yellow-50 text-yellow-700 font-medium px-2 py-0.5 rounded-full border border-yellow-200">
+                    {data.pendingFeedbackInterviews.length}
+                  </span>
+                )}
+              </div>
+              {data.pendingFeedbackInterviews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
+                  <Calendar size={22} className="text-gray-300" />
+                  <span className="text-center">Niciun interviu în așteptare feedback</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
+                  {data.pendingFeedbackInterviews.map((iv, idx) => (
+                    <InterviewCard key={idx} iv={iv} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Istoric interviuri */}
+            <div className="glass rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric interviuri</h3>
+                {data.interviewHistory.length > 0 && (
+                  <span className="text-[10px] bg-gray-100 text-gray-500 font-medium px-2 py-0.5 rounded-full">
+                    {data.interviewHistory.length}
+                  </span>
+                )}
+              </div>
+              {data.interviewHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
+                  <Calendar size={22} className="text-gray-300" />
+                  <span className="text-center">Niciun interviu finalizat în 30 zile</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
+                  {data.interviewHistory.map((iv, idx) => (
+                    <InterviewCard key={idx} iv={iv} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Roluri deschise */}
+      <div className="glass rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[#0B1A33]">Roluri deschise</h3>
+          <span className="text-[10px] text-gray-400">{data.openRoles.length} roluri</span>
+        </div>
+        {data.openRoles.length === 0 ? (
+          <div className="flex items-center justify-center h-20 text-gray-400 text-sm gap-2">
+            <Briefcase size={18} className="text-gray-300" />
+            <span>Niciun rol deschis momentan</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {data.openRoles.map(role => (
+              <div key={role.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50/60 border border-gray-100">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <Briefcase size={12} className="text-indigo-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-800 truncate">{role.title}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{role.clientName ?? '—'}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className="text-[10px] text-gray-400 tabular-nums">{role.candidatesCount} cand.</span>
+                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', role.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700')}>
+                    {role.status === 'active' ? 'Activ' : 'Hold'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Row 3: Activitate recentă + Joburi cu candidați */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Activitate recentă */}
+        <div className="col-span-5 glass rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Activitate recentă</h3>
+          </div>
+          {data.recentActivity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-2">
+              <Activity size={24} className="text-gray-300" />
+              <span>Nicio activitate recentă</span>
             </div>
           ) : (
-            <div className="space-y-3 overflow-y-auto max-h-[270px] pr-1">
-              {groupWeeklyInterviewsByDay(data.weeklyInterviews).map(group => (
-                <div key={group.dateKey}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', group.isToday ? 'bg-[#2AA3FF]' : 'bg-gray-300')} />
-                    <span className={cn(
-                      'text-[10px] font-semibold uppercase tracking-wide',
-                      group.isToday ? 'text-[#2AA3FF]' : 'text-gray-400'
-                    )}>
-                      {group.isToday ? 'Azi' : group.dateLabel}
-                    </span>
-                  </div>
-                  <div className="space-y-1 ml-3.5">
-                    {group.items.map((iv, idx) => (
-                      <div key={idx} className={cn(
-                        'flex items-start gap-2 px-3 py-2 rounded-xl border',
-                        iv.isToday ? 'bg-blue-50/60 border-blue-100' : 'bg-white border-gray-100'
-                      )}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-gray-800 truncate">{iv.candidateName}</p>
-                          <p className="text-[10px] text-gray-400 truncate mt-0.5">
-                            {iv.roleTitle ?? '—'} · {iv.clientName ?? '—'}
-                          </p>
-                          <p className={cn('text-[10px] mt-0.5', iv.isToday ? 'text-[#2AA3FF] font-medium' : 'text-gray-400')}>
-                            {iv.interviewLabel}
-                          </p>
-                        </div>
-                        <span className={cn(
-                          'text-[10px] font-semibold flex-shrink-0 mt-0.5',
-                          iv.isToday ? 'text-[#2AA3FF]' : 'text-gray-500'
-                        )}>
-                          {new Date(iv.datetime).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+            <div className="space-y-3.5 overflow-y-auto max-h-[280px] pr-1">
+              {data.recentActivity.slice(0, 8).map(item => {
+                const name = item.candidate
+                  ? `${item.candidate.first_name} ${item.candidate.last_name}`
+                  : '—'
+                const init = item.candidate
+                  ? `${item.candidate.first_name[0]}${item.candidate.last_name[0]}`.toUpperCase()
+                  : '?'
+                return (
+                  <div key={item.id} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                      {init}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-800 leading-snug">
+                        <span className="font-semibold">{name}</span>
+                        {' → '}
+                        <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium', STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-600')}>
+                          {PIPELINE_STAGE_LABELS[item.status] ?? item.status}
                         </span>
-                      </div>
-                    ))}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        {item.role?.title ?? '—'}{item.client ? ` · ${item.client.name}` : ''}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-gray-300 flex-shrink-0 mt-0.5">{timeAgo(item.updated_at)}</span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
 
-        {/* Candidați per rol */}
+        {/* Joburi cu cei mai mulți candidați */}
         <div className="col-span-7 glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Candidați per rol</h3>
-          {data.candidatesByRole.length === 0 ? (
-            <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
-              <div className="text-center">
-                <Users size={24} className="mx-auto mb-2 text-gray-300" />
-                Niciun candidat activ în pipeline
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Joburi cu cele mai bune potriviri</h3>
+          </div>
+          {topRoles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-2">
+              <Briefcase size={24} className="text-gray-300" />
+              <span>Niciun rol activ cu candidați</span>
             </div>
           ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[270px] pr-1">
-              {data.candidatesByRole.map(group => {
-                const isCollapsed = collapsedRoles.has(group.roleId)
+            <div className="space-y-3.5 overflow-y-auto max-h-[280px] pr-1">
+              {topRoles.map(role => {
+                const pct = Math.round((role.candidates.length / maxCandidates) * 100)
+                const avatars = role.candidates.slice(0, 4)
+                const extra = role.candidates.length - 4
                 return (
-                  <div key={group.roleId} className="border border-gray-100 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => toggleRole(group.roleId)}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      {isCollapsed
-                        ? <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
-                        : <ChevronDown size={14} className="text-[#2AA3FF] flex-shrink-0" />
-                      }
-                      <span className="text-xs font-semibold text-gray-800 truncate flex-1">{group.roleTitle}</span>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0">{group.clientName}</span>
-                      <span className="text-[10px] bg-gray-100 text-gray-500 rounded-full px-1.5 py-0.5 flex-shrink-0 ml-1">
-                        {group.candidates.length}
-                      </span>
-                    </button>
-                    {!isCollapsed && (
-                      <div className="border-t border-gray-50 divide-y divide-gray-50">
-                        {group.candidates.map(c => (
-                          <div key={c.submissionId} className="flex items-center justify-between px-4 py-2">
-                            <span className="text-xs text-gray-600">{c.candidateName}</span>
-                            <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-2', STATUS_COLORS[c.status] ?? 'bg-gray-100 text-gray-500')}>
-                              {PIPELINE_STAGE_LABELS[c.status] ?? c.status}
-                            </span>
-                          </div>
-                        ))}
+                  <div key={role.roleId} className="flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{role.roleTitle}</p>
+                        <span className="text-[10px] font-semibold text-[#2AA3FF] ml-2 flex-shrink-0">
+                          {role.candidates.length} candidați
+                        </span>
                       </div>
-                    )}
+                      <p className="text-[10px] text-gray-400 mb-2 truncate">{role.clientName}</p>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#2AA3FF] rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex -space-x-2 flex-shrink-0">
+                      {avatars.map((c, idx) => (
+                        <div
+                          key={idx}
+                          className={cn('w-7 h-7 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-white', AVATAR_COLORS[idx % AVATAR_COLORS.length])}
+                          title={c.candidateName}
+                        >
+                          {initials(c.candidateName)}
+                        </div>
+                      ))}
+                      {extra > 0 && (
+                        <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                          +{extra}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )
               })}
@@ -478,73 +737,98 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
         </div>
       </div>
 
-      {/* Row 3: Roluri deschise + Activitate recentă */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Roluri deschise */}
-        <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Roluri deschise</h3>
-          {data.openRoles.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
-              <div className="text-center">
-                <Briefcase size={20} className="mx-auto mb-2 text-gray-300" />
-                Niciun rol deschis momentan
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[200px]">
-              {data.openRoles.map(role => (
-                <div key={role.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-gray-800 truncate">{role.title}</p>
-                    <p className="text-[10px] text-gray-400">{role.clientName ?? '—'}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-gray-400 tabular-nums">{role.candidatesCount} candidați</span>
-                    <span className={cn(
-                      'text-[10px] px-2 py-0.5 rounded-full font-medium',
-                      role.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                    )}>
-                      {role.status === 'active' ? 'Activ' : 'În așteptare'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-3 pt-2 border-t border-gray-100">
-            <p className="text-[10px] text-gray-400">
-              <span className="font-medium text-[#2AA3FF]">{data.candidates.recentlyAdded}</span> candidați adăugați în ultimele 30 zile
-            </p>
-          </div>
-        </div>
-
-        {/* Activitate recentă */}
-        <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Activitate recentă</h3>
-          {data.recentActivity.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+      {/* Row 3: Pipeline donut + Candidați de top */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Pipeline recrutare */}
+        <div className="col-span-5 glass rounded-2xl p-4">
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Pipeline recrutare</h3>
+          {pipelineChartData.length === 0 ? (
+            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
               <div className="text-center">
                 <Activity size={20} className="mx-auto mb-2 text-gray-300" />
-                Nicio activitate
+                Fără date pipeline
+              </div>
+            </div>
+          ) : mounted ? (
+            <div className="flex items-center gap-4">
+              <div className="relative flex-shrink-0">
+                <ResponsiveContainer width={140} height={140}>
+                  <PieChart>
+                    <Pie
+                      data={pipelineChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={64}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {pipelineChartData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PipelineTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-[#0B1A33] leading-none">{totalSubmissions}</p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">total</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[140px]">
+                {pipelineChartData.map(entry => (
+                  <div key={entry.key} className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: entry.color }} />
+                    <span className="text-[10px] text-gray-600 truncate flex-1">{entry.label}</span>
+                    <span className="text-[10px] font-semibold text-gray-700 flex-shrink-0">{entry.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
-            <div className="space-y-2 overflow-y-auto max-h-[200px] pr-1">
-              {data.recentActivity.map(item => (
-                <div key={item.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-gray-800 truncate">
-                      {item.candidate ? `${item.candidate.first_name} ${item.candidate.last_name}` : '—'}
-                    </p>
+            <ChartPlaceholder height={140} />
+          )}
+        </div>
+
+        {/* Candidați de top (AI score ≥ 90%) */}
+        <div className="col-span-7 glass rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Candidați de top</h3>
+            <span className="text-[10px] text-gray-400">scor AI ≥ 90%</span>
+          </div>
+          {data.topAiMatches.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-400 text-sm gap-2">
+              <TrendingUp size={20} className="text-gray-300" />
+              <span>Niciun candidat cu scor ≥ 90%</span>
+            </div>
+          ) : (
+            <div className="space-y-2.5 overflow-y-auto max-h-[180px] pr-1">
+              {data.topAiMatches.map(c => (
+                <div key={c.id} className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                    {initials(c.candidateName)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{c.candidateName}</p>
                     <p className="text-[10px] text-gray-400 truncate">
-                      {item.role?.title ?? '—'} · {item.client?.name ?? '—'}
+                      {c.roleTitle ?? '—'}{c.clientName ? ` · ${c.clientName}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', STATUS_COLORS[item.status] ?? 'bg-gray-100 text-gray-500')}>
-                      {PIPELINE_STAGE_LABELS[item.status] ?? item.status}
+                    <span className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-full font-semibold',
+                      c.aiScore >= 95 ? 'bg-green-100 text-green-700' : 'bg-emerald-50 text-emerald-600'
+                    )}>
+                      {c.aiScore}%
                     </span>
-                    <span className="text-[10px] text-gray-300 tabular-nums">{timeAgo(item.updated_at)}</span>
+                    <span className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-full font-medium',
+                      STATUS_COLORS[c.status] ?? 'bg-gray-100 text-gray-500'
+                    )}>
+                      {PIPELINE_STAGE_LABELS[c.status] ?? c.status}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -552,37 +836,6 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
           )}
         </div>
       </div>
-
-      {/* Row 4: Candidați la interviu */}
-      {data.interviewCandidates.length > 0 && (
-        <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Candidați la interviu</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {data.interviewCandidates.map(c => (
-              <div key={c.id} className={cn(
-                'flex items-center gap-3 p-3 rounded-xl border',
-                c.status === 'screening_scheduled' ? 'bg-cyan-50/60 border-cyan-100' : 'bg-teal-50/60 border-teal-100'
-              )}>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-gray-800">{c.candidateName}</p>
-                  <p className="text-[10px] text-gray-500 truncate">{c.roleTitle ?? '—'} · {c.clientName ?? '—'}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className={cn(
-                    'block text-[10px] px-2 py-0.5 rounded-full font-medium mb-0.5',
-                    c.status === 'screening_scheduled' ? 'bg-cyan-100 text-cyan-700' : 'bg-teal-100 text-teal-700'
-                  )}>
-                    {PIPELINE_STAGE_LABELS[c.status]}
-                  </span>
-                  <span className="text-[10px] text-gray-400">
-                    {new Date(c.updated_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Row 5: Acțiuni */}
       <div className="grid grid-cols-2 gap-4">
@@ -605,11 +858,9 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
             </button>
           </div>
           {actions.filter(a => !a.completed).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
-              Nicio acțiune activă. Bifează o acțiune pentru a o finaliza.
-            </p>
+            <p className="text-sm text-gray-400 text-center py-4">Nicio acțiune activă.</p>
           ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+            <div className="space-y-1 overflow-y-auto max-h-[200px]">
               {actions.filter(a => !a.completed).map(action => (
                 <label key={action.id} className="flex items-center gap-3 cursor-pointer group py-2 border-b border-gray-50 last:border-0">
                   <input
@@ -627,7 +878,7 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
         {/* Completed history */}
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric finalizate</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Acțiuni finalizate</h3>
             {actions.filter(a => a.completed).length > 0 && (
               <span className="text-[10px] bg-green-50 text-green-600 font-medium px-2 py-0.5 rounded-full">
                 {actions.filter(a => a.completed).length}
@@ -635,11 +886,9 @@ function TabRecrutare({ data }: { data: DashboardData; mounted: boolean }) {
             )}
           </div>
           {actions.filter(a => a.completed).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
-              Nicio acțiune finalizată încă.
-            </p>
+            <p className="text-sm text-gray-400 text-center py-4">Nicio acțiune finalizată încă.</p>
           ) : (
-            <div className="space-y-1 overflow-y-auto max-h-[220px]">
+            <div className="space-y-1 overflow-y-auto max-h-[200px]">
               {[...actions.filter(a => a.completed)].reverse().map(action => (
                 <div key={action.id} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
                   <CheckCircle size={15} className="text-green-500 flex-shrink-0 mt-0.5" />

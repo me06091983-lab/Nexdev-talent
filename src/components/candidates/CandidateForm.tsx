@@ -42,10 +42,29 @@ interface Achievement {
   description: string
 }
 
+export interface ParsedCvData {
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  linkedin_url?: string
+  location?: string
+  seniority?: string
+  matched_skills?: Skill[]
+  experiences?: Experience[]
+  certifications?: Certification[]
+  projects?: Project[]
+  achievements?: Achievement[]
+}
+
 interface CandidateFormProps {
   initial?: Record<string, unknown>
   candidateId?: string
   onSavingChange?: (saving: boolean) => void
+  /** When provided, CV is managed externally — hides internal CV upload section */
+  cvFilePath?: string
+  /** When provided (non-null), populates form fields with parsed CV data */
+  parsedCvData?: ParsedCvData | null
 }
 
 const SENIORITY_OPTIONS = [
@@ -146,9 +165,10 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   )
 }
 
-export function CandidateForm({ initial, candidateId, onSavingChange }: CandidateFormProps) {
+export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath: cvFilePathProp, parsedCvData }: CandidateFormProps) {
   const router = useRouter()
   const isEdit = !!candidateId
+  const isCvManagedExternally = cvFilePathProp !== undefined
 
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [selectedSkills, setSelectedSkills] = useState<Skill[]>((initial?.skills as Skill[]) ?? [])
@@ -164,14 +184,16 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
 
   const [saving, setSaving] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; id: string } | null>(null)
+  const [error, setError] = useState('')
+
+  // Internal CV state — used only in new candidate flow (!isCvManagedExternally)
   const [showCvPreview, setShowCvPreview] = useState(false)
   const [cvFile, setCvFile] = useState<File | null>(null)
-  const [cvFilePath, setCvFilePath] = useState<string>((initial?.cv_file_path as string) ?? '')
+  const [localCvFilePath, setLocalCvFilePath] = useState<string>((initial?.cv_file_path as string) ?? '')
   const [cvFileName, setCvFileName] = useState<string>('')
   const [cvUploading, setCvUploading] = useState(false)
   const [cvParsing, setCvParsing] = useState(false)
   const [cvParsed, setCvParsed] = useState(false)
-  const [error, setError] = useState('')
 
   const [profileName, setProfileName] = useState(
     (initial as { profile?: { name?: string } } | undefined)?.profile?.name ?? ''
@@ -203,6 +225,28 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
     fetch('/api/profiles').then(r => r.json()).then(setProfiles).catch(() => {})
   }, [])
 
+  // Apply externally parsed CV data to form fields
+  useEffect(() => {
+    if (!parsedCvData) return
+    if (parsedCvData.first_name) set('first_name', parsedCvData.first_name)
+    if (parsedCvData.last_name) set('last_name', parsedCvData.last_name)
+    if (parsedCvData.email) set('email', parsedCvData.email)
+    if (parsedCvData.phone) set('phone', parsedCvData.phone)
+    if (parsedCvData.linkedin_url) set('linkedin_url', parsedCvData.linkedin_url)
+    if (parsedCvData.location) set('location', parsedCvData.location)
+    if (parsedCvData.seniority) set('seniority', parsedCvData.seniority)
+    if (parsedCvData.matched_skills?.length) {
+      setSelectedSkills(prev => {
+        const existing = new Set(prev.map((s: Skill) => s.id))
+        return [...prev, ...parsedCvData.matched_skills!.filter((s: Skill) => !existing.has(s.id))]
+      })
+    }
+    if (parsedCvData.experiences?.length) { setExperiences(parsedCvData.experiences!); setExpExpanded(true) }
+    if (parsedCvData.certifications?.length) { setCertifications(parsedCvData.certifications!); setCertExpanded(true) }
+    if (parsedCvData.projects?.length) { setProjects(parsedCvData.projects!); setProjExpanded(true) }
+    if (parsedCvData.achievements?.length) { setAchievements(parsedCvData.achievements!); setAchExpanded(true) }
+  }, [parsedCvData])
+
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
@@ -233,6 +277,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
   const projOps = makeUpdater<Project>(setProjects)
   const achOps = makeUpdater<Achievement>(setAchievements)
 
+  // Internal CV handlers — used only in new candidate flow
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -240,7 +285,6 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
     setCvFileName(file.name)
     setCvParsed(false)
     setError('')
-    // Upload imediat la storage
     setCvUploading(true)
     try {
       const fd = new FormData()
@@ -248,7 +292,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
       const res = await fetch('/api/cv-upload', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setCvFilePath(data.path)
+      setLocalCvFilePath(data.path)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Eroare la încărcarea fișierului')
       setCvFile(null)
@@ -261,12 +305,12 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
   function handleClearCv() {
     setCvFile(null)
     setCvFileName('')
-    setCvFilePath('')
+    setLocalCvFilePath('')
     setCvParsed(false)
   }
 
   async function handleCvParse() {
-    if (!cvFile && !cvFilePath) return
+    if (!cvFile && !localCvFilePath) return
     setCvParsing(true)
     setCvParsed(false)
     setError('')
@@ -280,7 +324,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
         res = await fetch('/api/cv-parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: cvFilePath }),
+          body: JSON.stringify({ file_path: localCvFilePath }),
         })
       }
       const data = await res.json()
@@ -339,6 +383,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
     setError('')
     try {
       const profile_id = await resolveProfileId()
+      const effectiveCvFilePath = isCvManagedExternally ? (cvFilePathProp ?? '') : localCvFilePath
       const payload = {
         ...form,
         profile_id,
@@ -351,7 +396,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
         projects,
         achievements,
         skill_ids: selectedSkills.map(s => s.id),
-        ...(cvFilePath ? { cv_file_path: cvFilePath } : {}),
+        ...(effectiveCvFilePath ? { cv_file_path: effectiveCvFilePath } : {}),
       }
 
       const url = isEdit ? `/api/candidates/${candidateId}` : '/api/candidates'
@@ -379,75 +424,74 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
         </div>
       )}
 
-      {/* Upload CV */}
-      <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-blue-900">CV candidat</p>
-            {(cvFileName || cvFilePath) ? (
-              <div className="flex items-center gap-2 mt-1">
-                <FileText size={14} className="text-blue-600 flex-shrink-0" />
-                <span className="text-xs text-blue-700 truncate">
-                  {cvFileName || cvFilePath.split('/').pop()}
+      {/* CV upload — shown only in new candidate flow (not managed externally) */}
+      {!isCvManagedExternally && (
+        <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4 mb-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900">CV candidat</p>
+              {(cvFileName || localCvFilePath) ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <FileText size={14} className="text-blue-600 flex-shrink-0" />
+                  <span className="text-xs text-blue-700 truncate">
+                    {cvFileName || localCvFilePath.split('/').pop()}
+                  </span>
+                  {cvUploading && <Loader2 size={12} className="animate-spin text-blue-500 flex-shrink-0" />}
+                  {!cvUploading && localCvFilePath && <CheckCircle size={12} className="text-green-600 flex-shrink-0" />}
+                  {!cvUploading && (
+                    <button type="button" onClick={handleClearCv}
+                      className="ml-1 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-blue-700 mt-0.5">PDF sau DOCX — acceptat pentru upload și parsare AI</p>
+              )}
+              {cvParsed && (
+                <span className="inline-flex items-center gap-1 text-green-700 text-xs font-medium mt-1">
+                  <CheckCircle size={12} /> Câmpurile au fost completate din CV
                 </span>
-                {cvUploading && <Loader2 size={12} className="animate-spin text-blue-500 flex-shrink-0" />}
-                {!cvUploading && cvFilePath && <CheckCircle size={12} className="text-green-600 flex-shrink-0" />}
-                {!cvUploading && (
-                  <button type="button" onClick={handleClearCv}
-                    className="ml-1 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-blue-700 mt-0.5">PDF sau DOCX — acceptat pentru upload și parsare AI</p>
-            )}
-            {cvParsed && (
-              <span className="inline-flex items-center gap-1 text-green-700 text-xs font-medium mt-1">
-                <CheckCircle size={12} /> Câmpurile au fost completate din CV
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Buton Populează automat — apare dacă există fișier (nou sau existent) */}
-            {(cvFilePath || cvFile) && !cvUploading && (
-              <button
-                type="button"
-                onClick={handleCvParse}
-                disabled={cvParsing}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  cvParsing
-                    ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
-                )}
-              >
-                {cvParsing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {cvParsing ? 'Se parsează...' : 'Populează automat'}
-              </button>
-            )}
-            {/* Buton Vizualizează CV — doar în edit mode cu CV existent */}
-            {isEdit && cvFilePath && !cvUploading && (
-              <button
-                type="button"
-                onClick={() => setShowCvPreview(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors flex-shrink-0"
-              >
-                <Eye size={14} /> Vizualizează
-              </button>
-            )}
-            {/* Buton Upload */}
-            <label className={cn(
-              'inline-flex items-center gap-1.5 cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
-              cvUploading ? 'bg-blue-200 text-blue-500 cursor-not-allowed' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'
-            )}>
-              {cvUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {cvUploading ? 'Se încarcă...' : (cvFilePath ? 'Înlocuiește' : 'Alege fișier')}
-              <input type="file" accept=".pdf,.docx,.doc" onChange={handleFileSelect} disabled={cvUploading || cvParsing} className="hidden" />
-            </label>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {(localCvFilePath || cvFile) && !cvUploading && (
+                <button
+                  type="button"
+                  onClick={handleCvParse}
+                  disabled={cvParsing}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    cvParsing
+                      ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  )}
+                >
+                  {cvParsing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {cvParsing ? 'Se parsează...' : 'Populează automat'}
+                </button>
+              )}
+              {isEdit && localCvFilePath && !cvUploading && (
+                <button
+                  type="button"
+                  onClick={() => setShowCvPreview(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors flex-shrink-0"
+                >
+                  <Eye size={14} /> Vizualizează
+                </button>
+              )}
+              <label className={cn(
+                'inline-flex items-center gap-1.5 cursor-pointer px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
+                cvUploading ? 'bg-blue-200 text-blue-500 cursor-not-allowed' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'
+              )}>
+                {cvUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {cvUploading ? 'Se încarcă...' : (localCvFilePath ? 'Înlocuiește' : 'Alege fișier')}
+                <input type="file" accept=".pdf,.docx,.doc" onChange={handleFileSelect} disabled={cvUploading || cvParsing} className="hidden" />
+              </label>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Two-column layout */}
       <div className="grid grid-cols-2 gap-8">
@@ -588,7 +632,6 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date companie</h3>
 
-            {/* Company data */}
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nume companie</label>
@@ -783,6 +826,8 @@ export function CandidateForm({ initial, candidateId, onSavingChange }: Candidat
 
         </div>
       </div>
+
+      {/* CV preview modal — new candidate flow only */}
       {showCvPreview && isEdit && candidateId && (
         <CandidateCVModal
           candidateId={candidateId}

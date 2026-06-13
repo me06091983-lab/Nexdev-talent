@@ -18,7 +18,7 @@ export async function GET() {
   const weekStart = new Date(today)
   weekStart.setHours(0, 0, 0, 0)
   const weekEnd = new Date(today)
-  weekEnd.setDate(today.getDate() + 14)
+  weekEnd.setDate(today.getDate() + 30)
   weekEnd.setHours(23, 59, 59, 999)
 
   const [
@@ -30,6 +30,7 @@ export async function GET() {
     timesheetsRes,
     allActiveSubsRes,
     interviewSubsRes,
+    topAiRes,
   ] = await Promise.all([
     supabase
       .from('candidates')
@@ -93,6 +94,19 @@ export async function GET() {
       `)
       .not('interviews', 'is', null)
       .is('deleted_at', null),
+
+    supabase
+      .from('submissions')
+      .select(`
+        id, ai_score, status, updated_at,
+        candidate:candidates!candidate_id(id, first_name, last_name),
+        role:roles!role_id(id, title, client:clients!client_id(name))
+      `)
+      .gte('ai_score', 90)
+      .is('deleted_at', null)
+      .neq('status', 'rejected')
+      .order('ai_score', { ascending: false })
+      .limit(10),
   ])
 
   // ── Candidates ─────────────────────────────────────────────────────────────
@@ -310,9 +324,9 @@ export async function GET() {
     const candidate = Array.isArray(sub.candidate) ? sub.candidate[0] : sub.candidate
     const role = Array.isArray(sub.role) ? sub.role[0] : sub.role
     const client = role ? (Array.isArray(role.client) ? role.client[0] : role.client) : null
-    const slots: { label: string; enabled: boolean; datetime: string; status: string }[] = sub.interviews ?? []
+    const slots: { label: string; enabled: boolean; datetime: string; status: string; candidate_accepted?: boolean }[] = sub.interviews ?? []
     for (const slot of slots) {
-      if (!slot.enabled || slot.status !== 'set' || !slot.datetime) continue
+      if (!slot.enabled || !slot.datetime) continue
       const slotDate = new Date(slot.datetime)
       if (slotDate < weekStart || slotDate > weekEnd) continue
       weeklyInterviews.push({
@@ -323,11 +337,70 @@ export async function GET() {
         roleId: role?.id ?? null,
         interviewLabel: slot.label,
         datetime: slot.datetime,
+        interviewStatus: slot.status,
+        candidateAccepted: slot.candidate_accepted ?? false,
         isToday: slotDate.toDateString() === today.toDateString(),
       })
     }
   }
   weeklyInterviews.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+
+  // ── Pending feedback interviews ────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pendingFeedbackInterviews: any[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const interviewHistory: any[] = []
+  const thirtyDaysAgoDate = new Date(today)
+  thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const sub of (interviewSubsRes.data ?? []) as any[]) {
+    const candidate = Array.isArray(sub.candidate) ? sub.candidate[0] : sub.candidate
+    const role = Array.isArray(sub.role) ? sub.role[0] : sub.role
+    const client = role ? (Array.isArray(role.client) ? role.client[0] : role.client) : null
+    const slots: { label: string; enabled: boolean; datetime: string; status: string; candidate_accepted?: boolean }[] = sub.interviews ?? []
+    for (const slot of slots) {
+      if (!slot.enabled || !slot.datetime) continue
+      const item = {
+        submissionId: sub.id,
+        candidateName: candidate ? `${candidate.first_name} ${candidate.last_name}` : '—',
+        roleTitle: role?.title ?? null,
+        clientName: client?.name ?? null,
+        roleId: role?.id ?? null,
+        interviewLabel: slot.label,
+        datetime: slot.datetime,
+        interviewStatus: slot.status,
+        candidateAccepted: slot.candidate_accepted ?? false,
+      }
+      if (slot.status === 'pending_feedback') {
+        pendingFeedbackInterviews.push(item)
+      } else if (slot.status === 'passed' || slot.status === 'rejected') {
+        const slotDate = new Date(slot.datetime)
+        if (slotDate >= thirtyDaysAgoDate) {
+          interviewHistory.push(item)
+        }
+      }
+    }
+  }
+  pendingFeedbackInterviews.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+  interviewHistory.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
+
+  // ── Top AI matches (score >= 90) ───────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const topAiMatches = (topAiRes.data ?? []).map((s: any) => {
+    const candidate = Array.isArray(s.candidate) ? s.candidate[0] : s.candidate
+    const role = Array.isArray(s.role) ? s.role[0] : s.role
+    const client = role ? (Array.isArray(role.client) ? role.client[0] : role.client) : null
+    return {
+      id: s.id,
+      candidateId: candidate?.id ?? null,
+      candidateName: candidate ? `${candidate.first_name} ${candidate.last_name}` : '—',
+      roleTitle: role?.title ?? null,
+      clientName: client?.name ?? null,
+      aiScore: Math.round(s.ai_score),
+      status: s.status,
+    }
+  })
 
   // ── Financials ─────────────────────────────────────────────────────────────
   // Build contract lookup for timesheets
@@ -413,6 +486,9 @@ export async function GET() {
     candidatesByRole,
     interviewCandidates,
     weeklyInterviews,
+    pendingFeedbackInterviews,
+    interviewHistory,
+    topAiMatches,
     contracts: {
       active: activeContracts.length,
       terminated: terminatedContracts.length,

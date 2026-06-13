@@ -15,6 +15,7 @@ interface Props {
 const INTERVIEW_STATUS_OPTIONS = [
   { value: 'waiting_customer', label: 'Waiting customer' },
   { value: 'set',              label: 'Set' },
+  { value: 'pending_feedback', label: 'Pending Feedback' },
   { value: 'passed',           label: 'Passed' },
   { value: 'rejected',         label: 'Rejected' },
 ]
@@ -22,6 +23,7 @@ const INTERVIEW_STATUS_OPTIONS = [
 const SLOT_STATUS_COLORS: Record<string, string> = {
   waiting_customer: 'text-gray-500 bg-gray-50 border-gray-200',
   set:              'text-blue-600 bg-blue-50 border-blue-200',
+  pending_feedback: 'text-yellow-700 bg-yellow-50 border-yellow-200',
   passed:           'text-green-600 bg-green-50 border-green-200',
   rejected:         'text-red-600 bg-red-50 border-red-200',
 }
