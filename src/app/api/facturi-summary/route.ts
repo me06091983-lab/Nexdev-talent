@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const supabase = createAdminClient()
   const year = parseInt(new URL(request.url).searchParams.get('year') ?? String(new Date().getFullYear()))
