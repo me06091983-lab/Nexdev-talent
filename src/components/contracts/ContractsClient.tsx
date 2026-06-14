@@ -50,8 +50,8 @@ function calcMargin(c: Contract) {
   const units = c.rate_type === 'daily' ? 20 : 160
   const grossMonthly = (c.bill_rate - c.pay_rate) * units
   const monthlyComms =
-    (c.partner_commission && c.partner_commission_type === 'monthly' ? c.partner_commission : 0) +
-    (c.partner_commission_2 && c.partner_commission_2_type === 'monthly' ? c.partner_commission_2 : 0)
+    (c.partner_commission && c.partner_commission_type === 'hourly' ? c.partner_commission * 160 : 0) +
+    (c.partner_commission_2 && c.partner_commission_2_type === 'hourly' ? c.partner_commission_2 * 160 : 0)
   const netMonthly = grossMonthly - monthlyComms
   const netUnit = units > 0 ? netMonthly / units : 0
   const netPct = c.bill_rate > 0 ? Math.round((netUnit / c.bill_rate) * 100) : 0
@@ -134,8 +134,8 @@ function HistoryRateCell({ value, change, currency, rateType }: {
 function HistoryMarginCell({ entry, c }: { entry: HistoryEntry; c: Contract }) {
   const units = c.rate_type === 'daily' ? 20 : 160
   const monthlyComms =
-    (c.partner_commission && c.partner_commission_type === 'monthly' ? c.partner_commission : 0) +
-    (c.partner_commission_2 && c.partner_commission_2_type === 'monthly' ? c.partner_commission_2 : 0)
+    (c.partner_commission && c.partner_commission_type === 'hourly' ? c.partner_commission * 160 : 0) +
+    (c.partner_commission_2 && c.partner_commission_2_type === 'hourly' ? c.partner_commission_2 * 160 : 0)
 
   const newPay = entry.pay_rate
   const newBill = entry.bill_rate

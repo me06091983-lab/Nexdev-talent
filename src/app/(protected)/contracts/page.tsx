@@ -110,8 +110,8 @@ export default async function ContractsPage() {
     currencyMap[cur].cost    += c.pay_rate  * units
     currencyMap[cur].count   += 1
     currencyMap[cur].comms   +=
-      (c.partner_commission  && c.partner_commission_type  === 'monthly' ? Number(c.partner_commission)  : 0) +
-      (c.partner_commission_2 && c.partner_commission_2_type === 'monthly' ? Number(c.partner_commission_2) : 0)
+      (c.partner_commission  && c.partner_commission_type  === 'hourly' ? Number(c.partner_commission)  * 160 : 0) +
+      (c.partner_commission_2 && c.partner_commission_2_type === 'hourly' ? Number(c.partner_commission_2) * 160 : 0)
   }
   const currencySummaries = Object.entries(currencyMap)
     .map(([cur, g]) => ({

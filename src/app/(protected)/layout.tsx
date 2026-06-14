@@ -14,5 +14,8 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
-  return <AppShell>{children}</AppShell>
+  const role = (user.app_metadata?.role as string) ?? 'recruiter'
+  const email = user.email ?? ''
+
+  return <AppShell role={role} email={email}>{children}</AppShell>
 }

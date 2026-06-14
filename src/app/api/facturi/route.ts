@@ -60,11 +60,11 @@ export async function GET(request: NextRequest) {
     candidate_name: f.contract_id ? (contractCandMap[f.contract_id] ?? null) : null,
   }))
 
-  // Active contracts for "primite" dropdown
+  // Active contracts for dropdowns (primite + emise)
   const today = new Date().toISOString().split('T')[0]
   const { data: activeContracts } = await supabase
     .from('contracts')
-    .select('id, currency, candidate:candidates!candidate_id(id, first_name, last_name)')
+    .select('id, currency, role:roles!role_id(client_id), candidate:candidates!candidate_id(id, first_name, last_name)')
     .lte('start_date', today)
     .or(`end_date.is.null,end_date.gte.${today}`)
     .not('candidate_id', 'is', null)
@@ -75,18 +75,16 @@ export async function GET(request: NextRequest) {
     .select('id, name')
     .order('name', { ascending: true })
 
-  // Deduplicate by candidate_id — keep the most recent contract per candidate
-  const seenCandidates = new Set<string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parsedContracts = (activeContracts ?? []).reduce<{ id: string; currency: string; candidate_name: string }[]>((acc, c: any) => {
+  const parsedContracts = (activeContracts ?? []).reduce<{ id: string; currency: string; candidate_name: string; client_id: string | null }[]>((acc, c: any) => {
     const cand = Array.isArray(c.candidate) ? c.candidate[0] : c.candidate
     if (!cand) return acc
-    if (seenCandidates.has(cand.id)) return acc
-    seenCandidates.add(cand.id)
+    const role = Array.isArray(c.role) ? c.role[0] : c.role
     acc.push({
       id: c.id as string,
       currency: (c.currency ?? 'EUR') as string,
       candidate_name: `${cand.first_name} ${cand.last_name}`,
+      client_id: role?.client_id ?? null,
     })
     return acc
   }, [])

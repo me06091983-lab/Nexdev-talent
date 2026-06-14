@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     .from('contracts')
     .select(`
       id, candidate_id, role_id, bill_rate, pay_rate, rate_type, currency, start_date, end_date,
+      partner_commission, partner_commission_type, partner_commission_2, partner_commission_2_type,
       candidate:candidates!candidate_id(id, first_name, last_name, company_tva, profile:profiles(name)),
       role:roles!role_id(id, title, client:clients(name))
     `)
@@ -59,6 +60,10 @@ export async function GET(request: NextRequest) {
       currency: c.currency ?? 'EUR',
       start_date: c.start_date,
       end_date: c.end_date ?? null,
+      partner_commission:        c.partner_commission        ?? 0,
+      partner_commission_type:   c.partner_commission_type   ?? 'hourly',
+      partner_commission_2:      c.partner_commission_2      ?? 0,
+      partner_commission_2_type: c.partner_commission_2_type ?? 'hourly',
       hours: hoursMap[c.id] ?? {},
     }
   })

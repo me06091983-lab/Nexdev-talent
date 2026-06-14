@@ -136,9 +136,9 @@ export async function POST(request: NextRequest) {
       rate_type: rate_type ?? 'daily',
       currency: currency ?? 'EUR',
       partner_commission: partner_commission ? Number(partner_commission) : null,
-      partner_commission_type: partner_commission_type ?? 'monthly',
+      partner_commission_type: partner_commission_type ?? 'hourly',
       partner_commission_2: partner_commission_2 ? Number(partner_commission_2) : null,
-      partner_commission_2_type: partner_commission_2_type ?? 'monthly',
+      partner_commission_2_type: partner_commission_2_type ?? 'hourly',
       notes: notes?.trim() || null,
     })
     .select()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, FileText, Loader2, ArrowUpRight, ArrowDownLeft, TrendingUp } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileText, Loader2, ArrowUpRight, ArrowDownLeft, TrendingUp, Handshake } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
@@ -20,6 +20,10 @@ interface ContractRow {
   start_date: string
   end_date: string | null
   candidate_tva: boolean
+  partner_commission: number
+  partner_commission_type: string
+  partner_commission_2: number
+  partner_commission_2_type: string
   hours: Record<number, number>
 }
 
@@ -73,20 +77,26 @@ export function FacturiClient() {
 
   const monthSummary = useMemo(() => {
     const month = selectedMonth + 1
-    const byCur: Record<string, { revenue: number; cost: number; tvaCollected: number; tvaPaid: number }> = {}
+    const byCur: Record<string, { revenue: number; cost: number; comms: number; tvaCollected: number; tvaPaid: number }> = {}
 
     for (const row of rows) {
       if (!isMonthActive(row, year, selectedMonth)) continue
       const h = row.hours[month] ?? 0
       const cur = row.currency
-      if (!byCur[cur]) byCur[cur] = { revenue: 0, cost: 0, tvaCollected: 0, tvaPaid: 0 }
+      if (!byCur[cur]) byCur[cur] = { revenue: 0, cost: 0, comms: 0, tvaCollected: 0, tvaPaid: 0 }
       const tvaE = tva ? 1 + TVA_RATE : 1
       const tvaP = tva && row.candidate_tva ? 1 + TVA_RATE : 1
-      byCur[cur].revenue += h * row.bill_rate * tvaE
-      byCur[cur].cost    += h * row.pay_rate  * tvaP
+      const billH = row.rate_type === 'daily' ? row.bill_rate / 8 : row.bill_rate
+      const payH  = row.rate_type === 'daily' ? row.pay_rate  / 8 : row.pay_rate
+      byCur[cur].revenue += h * billH * tvaE
+      byCur[cur].cost    += h * payH  * tvaP
+      // Comisioane parteneri: 'hourly' = X RON/oră × ore lucrate; 'onetime' = plătit o singură dată
+      const comm1 = row.partner_commission_type   === 'hourly' ? row.partner_commission   * h : 0
+      const comm2 = row.partner_commission_2_type === 'hourly' ? row.partner_commission_2 * h : 0
+      byCur[cur].comms += comm1 + comm2
       if (tva) {
-        byCur[cur].tvaCollected += h * row.bill_rate * TVA_RATE
-        if (row.candidate_tva) byCur[cur].tvaPaid += h * row.pay_rate * TVA_RATE
+        byCur[cur].tvaCollected += h * billH * TVA_RATE
+        if (row.candidate_tva) byCur[cur].tvaPaid += h * payH * TVA_RATE
       }
     }
 
@@ -94,12 +104,13 @@ export function FacturiClient() {
       .map(([currency, g]) => ({
         currency,
         revenue: g.revenue,
-        cost: g.cost,
-        profit: g.revenue - g.cost,
-        profitPct: g.revenue > 0 ? Math.round(((g.revenue - g.cost) / g.revenue) * 100) : 0,
+        cost:    g.cost,
+        comms:   g.comms,
+        profit:  g.revenue - g.cost - g.comms,
+        profitPct: g.revenue > 0 ? Math.round(((g.revenue - g.cost - g.comms) / g.revenue) * 100) : 0,
         tvaCollected: g.tvaCollected,
-        tvaPaid: g.tvaPaid,
-        tvaNet: g.tvaCollected - g.tvaPaid,
+        tvaPaid:      g.tvaPaid,
+        tvaNet:       g.tvaCollected - g.tvaPaid,
       }))
       .sort((a, b) => b.revenue - a.revenue)
   }, [rows, year, selectedMonth, tva])
@@ -109,10 +120,15 @@ export function FacturiClient() {
     return tab === 'emit' ? row.bill_rate : row.pay_rate
   }
 
+  function getHourlyRate(row: ContractRow): number {
+    const base = getBaseRate(row)
+    return row.rate_type === 'daily' ? base / 8 : base
+  }
+
   function calcAmount(row: ContractRow, month: number): number {
     const h = row.hours[month] ?? 0
     if (!h) return 0
-    return h * getBaseRate(row) * tvaMultiplier(row)
+    return h * getHourlyRate(row) * tvaMultiplier(row)
   }
 
   function calcRowTotal(row: ContractRow): number {
@@ -224,8 +240,8 @@ export function FacturiClient() {
           ) : (
             monthSummary.map(s => (
               <div key={s.currency} className="space-y-2">
-                {/* Rând 1: Incasări / Cheltuieli / Profit net */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Rând 1: Incasări / Cheltuieli / Comision / Profit net */}
+                <div className="grid grid-cols-4 gap-2">
                   <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
                     <ArrowUpRight size={13} className="text-indigo-400 flex-shrink-0" />
                     <div>
@@ -245,6 +261,18 @@ export function FacturiClient() {
                       </p>
                       <p className="text-lg font-bold text-[#0B1A33] leading-none">
                         {fmt(s.cost)}<span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
+                    <Handshake size={13} className="text-amber-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
+                        Comision parteneri · {monthLabel}
+                      </p>
+                      <p className="text-lg font-bold text-[#0B1A33] leading-none">
+                        {fmt(s.comms)}
+                        <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
                       </p>
                     </div>
                   </div>

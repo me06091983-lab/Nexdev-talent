@@ -32,6 +32,7 @@ interface ActiveContract {
   id: string
   currency: string
   candidate_name: string
+  client_id: string | null
 }
 
 interface Client {
@@ -163,13 +164,13 @@ export function FacturareClient() {
 
   useEffect(() => { fetchData(year, month, showAll) }, [year, month, showAll, fetchData])
 
-  // ── Expected amount from timesheets (only for primite + luna_efectiva set) ──
+  // ── Expected amount from timesheets (primite = pay_rate, emise = bill_rate) ──
   useEffect(() => {
     setExpectedAmt(null)
     setAmountMismatch(false)
     setTvaMismatch(false)
 
-    if (form.type !== 'primita' || !form.contract_id || !form.luna_efectiva || !form.data_emitere) return
+    if (!form.contract_id || !form.luna_efectiva || !form.data_emitere) return
 
     const yr = parseInt(form.data_emitere.split('-')[0])
     if (isNaN(yr)) return
@@ -182,12 +183,14 @@ export function FacturareClient() {
         const row = (d.rows ?? []).find((r: any) => r.contract_id === form.contract_id)
         if (!row) { setExpectedAmt(null); return }
 
-        const mn          = parseInt(form.luna_efectiva)
-        const hours       = (row.hours ?? {})[mn] ?? 0
-        const hourlyRate  = row.rate_type === 'daily' ? row.pay_rate / 8 : row.pay_rate
-        const netValue    = Math.round(hours * hourlyRate * 100) / 100
+        const mn         = parseInt(form.luna_efectiva)
+        const hours      = (row.hours ?? {})[mn] ?? 0
+        const rate       = form.type === 'emisa' ? row.bill_rate : row.pay_rate
+        const hourlyRate = row.rate_type === 'daily' ? rate / 8 : rate
+        const netValue   = Math.round(hours * hourlyRate * 100) / 100
+        const hasTva     = form.type === 'emisa' ? true : row.candidate_tva
 
-        setExpectedAmt({ netValue, currency: row.currency, hasTva: row.candidate_tva })
+        setExpectedAmt({ netValue, currency: row.currency, hasTva })
       })
       .catch(() => setExpectedAmt(null))
       .finally(() => setLoadingExpected(false))
@@ -239,6 +242,12 @@ export function FacturareClient() {
     }
   }
 
+  function handleClientChange(clientId: string) {
+    setForm(prev => ({ ...prev, client_id: clientId, contract_id: '' }))
+    setAmountMismatch(false)
+    setTvaMismatch(false)
+  }
+
   function handleContractChange(contractId: string) {
     const contract = data?.activeContracts.find(c => c.id === contractId)
     setForm(prev => ({ ...prev, contract_id: contractId, valuta: contract?.currency ?? prev.valuta }))
@@ -272,7 +281,7 @@ export function FacturareClient() {
     }
 
     // Soft block on first save if net amount or currency doesn't match timesheet
-    if (form.type === 'primita' && expectedAmt !== null && !amountMismatch) {
+    if (expectedAmt !== null && !amountMismatch) {
       const entered      = parseFloat(form.valoare || '0')
       const amtDiffers   = expectedAmt.netValue > 0 && Math.abs(entered - expectedAmt.netValue) > 0.01
       const curDiffers   = form.valuta !== expectedAmt.currency
@@ -299,7 +308,7 @@ export function FacturareClient() {
     const body = {
       type:             form.type,
       client_id:        form.type === 'emisa'  ? (form.client_id   || null) : null,
-      contract_id:      form.type === 'primita' ? (form.contract_id || null) : null,
+      contract_id:      form.contract_id || null,
       numar_factura:    form.numar_factura.trim() || null,
       valoare:          parseFloat(form.valoare),
       valuta:           form.valuta,
@@ -427,17 +436,34 @@ export function FacturareClient() {
       <div className="grid grid-cols-2 gap-3">
         {/* Client / Candidat */}
         {form.type === 'emisa' ? (
-          <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Client *</label>
-            <select
-              value={form.client_id}
-              onChange={e => setForm(p => ({ ...p, client_id: e.target.value }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
-            >
-              <option value="">Selectează client...</option>
-              {data?.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+          <>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Client *</label>
+              <select
+                value={form.client_id}
+                onChange={e => handleClientChange(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
+              >
+                <option value="">Selectează client...</option>
+                {data?.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            {form.client_id && (
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Candidat (contract activ)</label>
+                <select
+                  value={form.contract_id}
+                  onChange={e => handleContractChange(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
+                >
+                  <option value="">— Fără candidat specific —</option>
+                  {(data?.activeContracts ?? [])
+                    .filter(c => c.client_id === form.client_id)
+                    .map(c => <option key={c.id} value={c.id}>{c.candidate_name}</option>)}
+                </select>
+              </div>
+            )}
+          </>
         ) : (
           <div className="col-span-2">
             <label className="block text-xs font-medium text-gray-500 mb-1">Candidat (contract activ) *</label>

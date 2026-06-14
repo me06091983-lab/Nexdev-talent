@@ -457,21 +457,22 @@ export async function GET() {
     const payHourly  = isHourly ? contract.pay_rate  : contract.pay_rate  / 8
     const revenue    = hours * billHourly
     const cost       = hours * payHourly
-    const monthlyComms =
-      (contract.partner_commission && contract.partner_commission_type === 'monthly' ? Number(contract.partner_commission) : 0) +
-      (contract.partner_commission_2 && contract.partner_commission_2_type === 'monthly' ? Number(contract.partner_commission_2) : 0)
+    const hourlyComms =
+      (contract.partner_commission && contract.partner_commission_type === 'hourly' ? Number(contract.partner_commission) : 0) +
+      (contract.partner_commission_2 && contract.partner_commission_2_type === 'hourly' ? Number(contract.partner_commission_2) : 0)
+    const totalComms = hourlyComms * hours
     financialMap[key].revenue += revenue
     financialMap[key].cost += cost
-    financialMap[key].comms += monthlyComms
-    financialMap[key].profit += revenue - cost - monthlyComms
+    financialMap[key].comms += totalComms
+    financialMap[key].profit += revenue - cost - totalComms
 
     if (ts.year === currentYear) {
       const cur = contract.currency
       if (!ytdCurrencyMap[cur]) ytdCurrencyMap[cur] = { revenue: 0, cost: 0, comms: 0, profit: 0 }
       ytdCurrencyMap[cur].revenue += revenue
       ytdCurrencyMap[cur].cost += cost
-      ytdCurrencyMap[cur].comms += monthlyComms
-      ytdCurrencyMap[cur].profit += revenue - cost - monthlyComms
+      ytdCurrencyMap[cur].comms += totalComms
+      ytdCurrencyMap[cur].profit += revenue - cost - totalComms
     }
   }
 

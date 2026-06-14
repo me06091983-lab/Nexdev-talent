@@ -32,7 +32,7 @@ interface Props {
 }
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'RON'] as const
-type CommType = 'monthly' | 'onetime'
+type CommType = 'hourly' | 'onetime'
 
 function SearchableSelect({
   options, value, onSelect, placeholder, displayValue,
@@ -96,10 +96,10 @@ function SearchableSelect({
 function CommTypeToggle({ value, onChange }: { value: CommType; onChange: (v: CommType) => void }) {
   return (
     <div className="flex rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-      {(['monthly', 'onetime'] as CommType[]).map(t => (
+      {(['hourly', 'onetime'] as CommType[]).map(t => (
         <button key={t} type="button" onClick={() => onChange(t)}
           className={`px-2.5 py-2 text-[11px] font-medium whitespace-nowrap transition-colors ${value === t ? 'bg-[#0B1A33] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
-          {t === 'monthly' ? 'Lunar' : 'O dată'}
+          {t === 'hourly' ? 'Pe oră' : 'O dată'}
         </button>
       ))}
     </div>
@@ -123,10 +123,10 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
   const [billRate, setBillRate] = useState('')
   const [currency, setCurrency] = useState<'EUR' | 'USD' | 'GBP' | 'RON'>('EUR')
   const [comm1, setComm1] = useState('')
-  const [comm1Type, setComm1Type] = useState<CommType>('monthly')
+  const [comm1Type, setComm1Type] = useState<CommType>('hourly')
   const [partner1Id, setPartner1Id] = useState('')
   const [comm2, setComm2] = useState('')
-  const [comm2Type, setComm2Type] = useState<CommType>('monthly')
+  const [comm2Type, setComm2Type] = useState<CommType>('hourly')
   const [partner2Id, setPartner2Id] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -146,10 +146,10 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
         setBillRate(String(data.bill_rate ?? ''))
         setCurrency(data.currency ?? 'EUR')
         setComm1(data.partner_commission ? String(data.partner_commission) : '')
-        setComm1Type(data.partner_commission_type ?? 'monthly')
+        setComm1Type(data.partner_commission_type ?? 'hourly')
         setPartner1Id(data.partner_id ?? '')
         setComm2(data.partner_commission_2 ? String(data.partner_commission_2) : '')
-        setComm2Type(data.partner_commission_2_type ?? 'monthly')
+        setComm2Type(data.partner_commission_2_type ?? 'hourly')
         setPartner2Id(data.partner_id_2 ?? '')
         setNotes(data.notes ?? '')
       })
@@ -165,8 +165,8 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
   const grossPct = bill > 0 ? Math.round((grossUnit / bill) * 100) : 0
 
   const monthlyComms =
-    (comm1 && comm1Type === 'monthly' ? parseFloat(comm1) || 0 : 0) +
-    (comm2 && comm2Type === 'monthly' ? parseFloat(comm2) || 0 : 0)
+    (comm1 && comm1Type === 'hourly' ? (parseFloat(comm1) || 0) * 160 : 0) +
+    (comm2 && comm2Type === 'hourly' ? (parseFloat(comm2) || 0) * 160 : 0)
 
   const netMonthly = grossMonthly - monthlyComms
   const netUnit = units > 0 ? netMonthly / units : 0
@@ -408,7 +408,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
                 </div>
                 {hasComm && monthlyComms > 0 && (
                   <p className="text-[11px] text-gray-500 pl-5">
-                    Comisioane lunare: <span className="text-red-500 font-medium">−{monthlyComms.toFixed(2)} {currency}/lună</span>
+                    Comisioane parteneri: <span className="text-red-500 font-medium">−{monthlyComms.toFixed(2)} {currency}/lună (est.)</span>
                   </p>
                 )}
                 <div className="pl-5 pt-0.5 border-t border-gray-200/60">

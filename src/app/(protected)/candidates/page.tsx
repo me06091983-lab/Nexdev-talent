@@ -12,7 +12,7 @@ export default async function CandidatesPage() {
   const [{ data: candidates }, { data: profiles }, { data: submissions }, { data: aiScores }] = await Promise.all([
     supabase
       .from('candidates')
-      .select('*, profile:profiles(id, name), candidate_skills(skill:skills(id, name, category))')
+      .select('*, profile:profiles(id, name), partner:partners(id, name), candidate_skills(skill:skills(id, name, category))')
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabase.from('profiles').select('id, name').order('name'),
@@ -48,7 +48,8 @@ export default async function CandidatesPage() {
 
   const list = (candidates ?? []).map(c => ({
     ...c,
-    skills: c.candidate_skills?.map((cs: { skill: unknown }) => cs.skill) ?? [],
+    skills:       c.candidate_skills?.map((cs: { skill: unknown }) => cs.skill) ?? [],
+    partner_name: (c.partner as { name?: string } | null)?.name ?? null,
   }))
 
   return (
