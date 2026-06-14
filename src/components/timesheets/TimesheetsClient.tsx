@@ -39,24 +39,27 @@ export function TimesheetsClient() {
   const [loading, setLoading] = useState(true)
   const [localHours, setLocalHours] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<Set<string>>(new Set())
+  const [saveErrors, setSaveErrors] = useState<Set<string>>(new Set())
   const savedTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchData = useCallback(async (y: number) => {
     setLoading(true)
-    const res = await fetch(`/api/timesheets?year=${y}`)
-    if (res.ok) {
-      const data = await res.json()
-      setRows(data.rows)
-      const init: Record<string, string> = {}
-      for (const row of data.rows as ContractRow[]) {
-        for (let m = 1; m <= 12; m++) {
-          const h = row.hours[m]
-          init[`${row.contract_id}-${m}`] = h != null && h > 0 ? String(h) : ''
+    try {
+      const res = await fetch(`/api/timesheets?year=${y}`)
+      if (res.ok) {
+        const data = await res.json()
+        setRows(data.rows)
+        const init: Record<string, string> = {}
+        for (const row of data.rows as ContractRow[]) {
+          for (let m = 1; m <= 12; m++) {
+            const h = row.hours[m]
+            init[`${row.contract_id}-${m}`] = h != null && h > 0 ? String(h) : ''
+          }
         }
+        setLocalHours(init)
       }
-      setLocalHours(init)
-    }
-    setLoading(false)
+    } catch { /* network error — rows stay empty */ }
+    finally { setLoading(false) }
   }, [])
 
   useEffect(() => { fetchData(year) }, [year, fetchData])
@@ -67,13 +70,25 @@ export function TimesheetsClient() {
 
     clearTimeout(savedTimers.current[key])
     setSaving(prev => new Set(prev).add(key))
+    setSaveErrors(prev => { const s = new Set(prev); s.delete(key); return s })
 
     try {
-      await fetch('/api/timesheets', {
+      const res = await fetch('/api/timesheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contract_id: contractId, candidate_id: candidateId, year, month, hours }),
       })
+      if (!res.ok) {
+        setSaveErrors(prev => new Set(prev).add(key))
+        savedTimers.current[key] = setTimeout(() => {
+          setSaveErrors(prev => { const s = new Set(prev); s.delete(key); return s })
+        }, 3000)
+      }
+    } catch {
+      setSaveErrors(prev => new Set(prev).add(key))
+      savedTimers.current[key] = setTimeout(() => {
+        setSaveErrors(prev => { const s = new Set(prev); s.delete(key); return s })
+      }, 3000)
     } finally {
       setSaving(prev => { const s = new Set(prev); s.delete(key); return s })
     }
@@ -172,6 +187,7 @@ export function TimesheetsClient() {
                       const key = `${row.contract_id}-${month}`
                       const active = isMonthActive(row, year, mi)
                       const isSaving = saving.has(key)
+                      const isError = saveErrors.has(key)
                       const val = localHours[key] ?? ''
                       const hasValue = val !== '' && parseInt(val, 10) > 0
                       const isCurrentCol = mi === currentMonth && year === currentYear
@@ -192,10 +208,13 @@ export function TimesheetsClient() {
                               }}
                               onBlur={e => handleSave(row.contract_id, row.candidate_id, month, e.target.value)}
                               placeholder="—"
+                              title={isError ? 'Eroare la salvare' : undefined}
                               className={cn(
                                 'w-14 text-center text-sm rounded-lg border py-1.5 transition-all',
                                 'focus:outline-none focus:ring-2 focus:ring-green-300/40 focus:border-green-400',
-                                isSaving
+                                isError
+                                  ? 'border-red-300 bg-red-50 text-red-600'
+                                  : isSaving
                                   ? 'border-amber-200 bg-amber-50 text-amber-600'
                                   : hasValue
                                   ? 'border-green-200 bg-green-50 font-medium text-gray-800'

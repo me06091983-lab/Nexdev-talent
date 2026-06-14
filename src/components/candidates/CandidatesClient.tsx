@@ -51,6 +51,12 @@ const PIPELINE_STATUS_LABELS: Record<string, string> = {
   interview: 'Interviu', rejected: 'Respins', offer: 'Ofertă',
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  own: 'Propriu',
+  recruiter: 'Recruiter',
+  partner: 'Partener',
+}
+
 const PIPELINE_STATUS_COLORS: Record<string, string> = {
   pipeline: 'bg-blue-50 text-blue-700 border-blue-200',
   submitted: 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -87,7 +93,7 @@ function exportCsv(candidates: Candidate[], aiScores: CandidateAiScoreMap) {
     c.rate_wish ?? '',
     c.currency ?? 'EUR',
     c.candidate_status ?? '',
-    c.source_type ?? '',
+    SOURCE_TYPE_LABELS[c.source_type ?? ''] ?? c.source_type ?? '',
     aiScores[c.id] ?? '',
     new Date(c.created_at).toLocaleDateString('ro-RO'),
   ])
@@ -206,9 +212,17 @@ export function CandidatesClient({
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Ștergi candidatul "${name}"?`)) return
     setDeleting(id)
-    await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
-    setDeleting(null)
-    router.refresh()
+    try {
+      const res = await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Eroare la ștergerea candidatului.')
+        return
+      }
+      router.refresh()
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const groups = [
@@ -428,7 +442,7 @@ export function CandidatesClient({
                                   : <span className="text-xs text-gray-300">—</span>
                                 }
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">{c.source_type || '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-500">{SOURCE_TYPE_LABELS[c.source_type ?? ''] ?? c.source_type ?? '—'}</td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1 justify-end">
                                   <button onClick={() => setViewId(c.id)}

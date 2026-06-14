@@ -179,7 +179,12 @@ export function PartnersClient({ partners: initial }: { partners: Partner[] }) {
     if (!confirm('Ștergi acest partener? Contractele legate de el vor pierde referința.')) return
     setDeletingId(id)
     try {
-      await fetch(`/api/partners/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/partners/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Eroare la ștergerea partenerului.')
+        return
+      }
       setPartners(p => p.filter(x => x.id !== id))
       router.refresh()
     } finally {

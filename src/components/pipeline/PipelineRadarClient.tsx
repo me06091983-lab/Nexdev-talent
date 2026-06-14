@@ -351,9 +351,10 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
     if (!confirm('Ștergi candidatul din pipeline?')) return
     setItems(prev => prev.filter(s => s.id !== id))
     try {
-      await fetch(`/api/submissions/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/submissions/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
     } catch {
-      // optimistic delete stays
+      router.refresh()
     }
   }
 

@@ -62,7 +62,8 @@ function daysLeftBadge(endDate: string | null) {
   if (!endDate) return { label: 'Activ', cls: 'bg-green-50 text-green-700 border-green-200' }
   const end = new Date(endDate)
   const now = new Date()
-  if (end < now) return { label: 'Activ', cls: 'bg-green-50 text-green-700 border-green-200' }
+  now.setHours(0, 0, 0, 0)
+  if (end < now) return { label: 'Expirat', cls: 'bg-red-50 text-red-700 border-red-200' }
   const daysLeft = Math.ceil((end.getTime() - now.getTime()) / 86_400_000)
   if (daysLeft <= 30) return { label: `${daysLeft} zile`, cls: 'bg-red-50 text-red-700 border-red-200' }
   if (daysLeft <= 60) return { label: `${daysLeft} zile`, cls: 'bg-amber-50 text-amber-700 border-amber-200' }
@@ -613,7 +614,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
         <ContractModal candidates={candidates} roles={roles} partners={partners} onClose={() => setShowNew(false)} onSaved={handleSaved} />
       )}
       {editContractId && (
-        <ContractModal contractId={editContractId} onClose={() => setEditContractId(null)} onSaved={handleSaved} />
+        <ContractModal contractId={editContractId} partners={partners} onClose={() => setEditContractId(null)} onSaved={handleSaved} />
       )}
       {terminateId && (
         <TerminateModal onConfirm={handleTerminate} onClose={() => setTerminateId(null)} loading={terminating} />

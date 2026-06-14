@@ -227,9 +227,17 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Ștergi rolul "${title}"?`)) return
     setDeleting(id)
-    await fetch(`/api/roles/${id}`, { method: 'DELETE' })
-    setDeleting(null)
-    router.refresh()
+    try {
+      const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Eroare la ștergerea rolului.')
+        return
+      }
+      router.refresh()
+    } finally {
+      setDeleting(null)
+    }
   }
 
   return (

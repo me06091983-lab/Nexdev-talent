@@ -314,42 +314,57 @@ export function FacturareClient() {
     const url    = editingId ? `/api/facturi/${editingId}` : '/api/facturi'
     const method = editingId ? 'PATCH' : 'POST'
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
 
-    if (res.ok) {
-      closeForm()
-      fetchData(year, month, showAll)
-    } else {
-      const d = await res.json()
-      setFormError(d.error ?? 'Eroare la salvare')
+      if (res.ok) {
+        closeForm()
+        fetchData(year, month, showAll)
+      } else {
+        const d = await res.json()
+        setFormError(d.error ?? 'Eroare la salvare')
+      }
+    } catch {
+      setFormError('Eroare de rețea. Verifică conexiunea și încearcă din nou.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   async function toggleStatus(f: Factura) {
     setTogglingId(f.id)
     const nowPaid = !f.incasata_platita
-    await fetch(`/api/facturi/${f.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        incasata_platita: nowPaid,
-        data_incasare_plata: nowPaid ? new Date().toISOString().split('T')[0] : null,
-      }),
-    })
-    setTogglingId(null)
-    fetchData(year, month, showAll)
+    try {
+      await fetch(`/api/facturi/${f.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          incasata_platita: nowPaid,
+          data_incasare_plata: nowPaid ? new Date().toISOString().split('T')[0] : null,
+        }),
+      })
+    } finally {
+      setTogglingId(null)
+      fetchData(year, month, showAll)
+    }
   }
 
   async function deleteFactura(id: string) {
     if (!confirm('Ștergi această factură?')) return
     setDeletingId(id)
-    await fetch(`/api/facturi/${id}`, { method: 'DELETE' })
-    setDeletingId(null)
+    try {
+      const res = await fetch(`/api/facturi/${id}`, { method: 'DELETE' })
+      if (!res.ok) { alert('Eroare la ștergerea facturii.'); return }
+    } catch {
+      alert('Eroare de rețea la ștergerea facturii.')
+      return
+    } finally {
+      setDeletingId(null)
+    }
     fetchData(year, month, showAll)
   }
 

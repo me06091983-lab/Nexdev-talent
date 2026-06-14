@@ -9,6 +9,9 @@ import { CandidateCVModal } from '@/components/candidates/CandidateCVModal'
 
 interface Skill { id: string; name: string; category: string }
 interface Profile { id: string; name: string }
+interface Partner { id: string; first_name?: string; last_name: string; name?: string }
+
+const RON_RATES: Record<string, number> = { EUR: 5.0, USD: 4.55, GBP: 5.95 }
 
 interface Experience {
   id: string
@@ -171,6 +174,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
   const isCvManagedExternally = cvFilePathProp !== undefined
 
   const [profiles, setProfiles] = useState<Profile[]>([])
+  const [partners, setPartners] = useState<Partner[]>([])
   const [selectedSkills, setSelectedSkills] = useState<Skill[]>((initial?.skills as Skill[]) ?? [])
   const [experiences, setExperiences] = useState<Experience[]>((initial?.experiences as Experience[]) ?? [])
   const [certifications, setCertifications] = useState<Certification[]>((initial?.certifications as Certification[]) ?? [])
@@ -185,6 +189,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
   const [saving, setSaving] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; id: string } | null>(null)
   const [error, setError] = useState('')
+  const [isDirty, setIsDirty] = useState(false)
 
   // Internal CV state — used only in new candidate flow (!isCvManagedExternally)
   const [showCvPreview, setShowCvPreview] = useState(false)
@@ -210,8 +215,10 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     rate_min: (initial?.rate_min as string) ?? '',
     rate_wish: (initial?.rate_wish as string) ?? '',
     currency: (initial?.currency as string) ?? 'EUR',
-    candidate_status: (initial?.candidate_status as string) ?? 'pasiv',
+    rate_unit: (initial?.rate_unit as string) ?? 'zi',
+    partner_id: (initial?.partner_id as string) ?? '',
     source_type: (initial?.source_type as string) ?? '',
+    candidate_status: (initial?.candidate_status as string) ?? 'pasiv',
     successful: (initial?.successful as boolean) ?? false,
     successful_client: (initial?.successful_client as string) ?? '',
     gdpr_consent: (initial?.gdpr_consent as boolean) ?? false,
@@ -223,6 +230,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
 
   useEffect(() => {
     fetch('/api/profiles').then(r => r.json()).then(setProfiles).catch(() => {})
+    fetch('/api/partners').then(r => r.json()).then(setPartners).catch(() => {})
   }, [])
 
   // Apply externally parsed CV data to form fields
@@ -249,7 +257,15 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
 
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }))
+    setIsDirty(true)
   }
+
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   async function handleEmailBlur() {
     if (isEdit || !form.email) return
@@ -381,16 +397,23 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     setSaving(true)
     onSavingChange?.(true)
     setError('')
+    setDuplicateWarning(null)
     try {
       const profile_id = await resolveProfileId()
       const effectiveCvFilePath = isCvManagedExternally ? (cvFilePathProp ?? '') : localCvFilePath
+
+      // Destructure fields that need special handling to avoid auto-spreading issues
+      const { rate_min: _rm, rate_wish: _rw, seniority: _sen, partner_id: _pid, rate_unit: _ru, source_type: _st, ...restForm } = form
+
       const payload = {
-        ...form,
+        ...restForm,
         profile_id,
         seniority: form.seniority || null,
         rate_min: form.rate_min ? parseFloat(form.rate_min) : null,
         rate_wish: form.rate_wish ? parseFloat(form.rate_wish) : null,
-        source_type: form.source_type || '',
+        rate_unit: form.rate_unit || 'zi',
+        partner_id: form.partner_id || null,
+        source_type: form.partner_id ? 'partner' : '',
         experiences,
         certifications,
         projects,
@@ -404,6 +427,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+      setIsDirty(false)
       router.push('/candidates')
       router.refresh()
     } catch (err) {
@@ -528,7 +552,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
-                <input type="url" value={form.linkedin_url} onChange={e => set('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/..." className={inputCls} />
+                <input type="text" value={form.linkedin_url} onChange={e => set('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/..." className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Locație</label>
@@ -602,30 +626,86 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
 
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rate & Sursă</h3>
-            <div className="grid grid-cols-3 gap-3">
+
+            {/* Rate inputs */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rate minim</label>
-                <div className="flex gap-1.5">
-                  <input type="number" min="0" step="0.01" value={form.rate_min} onChange={e => set('rate_min', e.target.value)}
-                    placeholder="0" className="glass-input flex-1 min-w-0 px-3 py-2.5 rounded-lg text-sm" />
-                  <select value={form.currency} onChange={e => set('currency', e.target.value)}
-                    className="glass-input w-[68px] px-2 py-2.5 rounded-lg text-sm">
-                    {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+                <input type="number" min="0" step="0.01" value={form.rate_min} onChange={e => set('rate_min', e.target.value)}
+                  placeholder="0" className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rate dorit</label>
                 <input type="number" min="0" step="0.01" value={form.rate_wish} onChange={e => set('rate_wish', e.target.value)}
                   placeholder="0" className={inputCls} />
               </div>
+            </div>
+
+            {/* Currency + Per unit */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sursă <span className="text-xs text-gray-400 font-normal">(text liber)</span>
-                </label>
-                <input type="text" value={form.source_type} onChange={e => set('source_type', e.target.value)}
-                  placeholder="ex: LinkedIn, Partener X..." className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monedă</label>
+                <select value={form.currency} onChange={e => set('currency', e.target.value)} className={inputCls}>
+                  {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Per</label>
+                <div className="flex gap-2">
+                  {(['zi', 'ora'] as const).map(unit => (
+                    <button
+                      key={unit}
+                      type="button"
+                      onClick={() => set('rate_unit', unit)}
+                      className={cn(
+                        'flex-1 py-2.5 rounded-lg text-sm font-medium border transition-all',
+                        form.rate_unit === unit
+                          ? 'bg-[#0B1A33] text-white border-[#0B1A33]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                      )}
+                    >
+                      {unit === 'zi' ? 'Zi' : 'Oră'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RON equivalent — shown only when currency is not RON and a rate is entered */}
+            {form.currency !== 'RON' && (form.rate_min || form.rate_wish) && RON_RATES[form.currency] && (
+              <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200/70 rounded-lg text-xs text-amber-800">
+                <span className="font-medium">Echivalent indicativ RON:</span>
+                {form.rate_min && (
+                  <span className="ml-2">
+                    minim ~{Math.round(parseFloat(form.rate_min) * RON_RATES[form.currency]).toLocaleString('ro-RO')} RON/{form.rate_unit}
+                  </span>
+                )}
+                {form.rate_min && form.rate_wish && <span className="mx-1 text-amber-500">·</span>}
+                {form.rate_wish && (
+                  <span>
+                    dorit ~{Math.round(parseFloat(form.rate_wish) * RON_RATES[form.currency]).toLocaleString('ro-RO')} RON/{form.rate_unit}
+                  </span>
+                )}
+                <span className="ml-2 text-amber-600/70">(curs aproximativ)</span>
+              </div>
+            )}
+
+            {/* Source — partner dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sursă / Partener</label>
+              <select
+                value={form.partner_id}
+                onChange={e => set('partner_id', e.target.value)}
+                className={inputCls}
+              >
+                <option value="">— Sursă proprie / LinkedIn —</option>
+                {partners.map(p => {
+                  const label = p.name
+                    ? p.name
+                    : [p.first_name, p.last_name].filter(Boolean).join(' ')
+                  return <option key={p.id} value={p.id}>{label}</option>
+                })}
+              </select>
             </div>
           </section>
 

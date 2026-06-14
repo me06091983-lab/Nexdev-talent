@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
   }))
 
   for (const f of data ?? []) {
-    const mn = f.luna_efectiva ?? parseInt((f.data_emitere as string).split('-')[1])
-    if (mn < 1 || mn > 12) continue
+    const mn = f.luna_efectiva ?? parseInt((f.data_emitere as string)?.split('-')[1] ?? '')
+    if (!mn || isNaN(mn) || mn < 1 || mn > 12) continue
     const m = months[mn - 1]
     if (f.type === 'emisa') {
       m.emise_total    += f.valoare

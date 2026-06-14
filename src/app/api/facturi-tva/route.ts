@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
       if (!ref) continue
       const refYear = parseInt(ref.split('-')[0])
       if (refYear !== year) continue
-      mn = f.luna_efectiva ?? parseInt(ref.split('-')[1])
+      mn = f.luna_efectiva ?? parseInt(ref.split('-')[1] ?? '')
     }
 
-    if (mn < 1 || mn > 12) continue
+    if (!mn || isNaN(mn) || mn < 1 || mn > 12) continue
 
     if (f.type === 'emisa') {
       months[mn - 1].tva_incasat += tva
