@@ -435,6 +435,9 @@ export async function GET() {
     })
   }
 
+  // YTD = current year months (declared here so it's available in the timesheets loop below)
+  const currentYear = today.getFullYear()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timesheets: any[] = timesheetsRes.data ?? []
   const financialMap: Record<string, { revenue: number; cost: number; comms: number; profit: number }> = {}
@@ -487,7 +490,6 @@ export async function GET() {
   }))
 
   // YTD = current year months
-  const currentYear = today.getFullYear()
   const ytdMonths = monthly.filter(m => m.year === currentYear)
   const ytd = {
     revenue: ytdMonths.reduce((s, m) => s + m.revenue, 0),
