@@ -17,6 +17,8 @@ interface Factura {
   data_emitere: string
   data_scadenta: string | null
   incasata_platita: boolean
+  data_incasare_plata: string | null
+  tva_valoare: number
   numar_factura: string | null
   client_id: string | null
   contract_id: string | null
@@ -53,12 +55,14 @@ interface FormState {
   data_emitere: string
   data_scadenta: string
   incasata_platita: boolean
+  data_incasare_plata: string
+  tva_valoare: string
   luna_efectiva: string
   notes: string
 }
 
 interface ExpectedAmt {
-  value: number
+  netValue: number
   currency: string
   hasTva: boolean
 }
@@ -94,6 +98,8 @@ function emptyForm(type: 'emisa' | 'primita'): FormState {
     data_emitere: new Date().toISOString().split('T')[0],
     data_scadenta: '',
     incasata_platita: false,
+    data_incasare_plata: '',
+    tva_valoare: '',
     luna_efectiva: '',
     notes: '',
   }
@@ -101,17 +107,19 @@ function emptyForm(type: 'emisa' | 'primita'): FormState {
 
 function facturaToForm(f: Factura): FormState {
   return {
-    type:             f.type,
-    client_id:        f.client_id   ?? '',
-    contract_id:      f.contract_id ?? '',
-    numar_factura:    f.numar_factura ?? '',
-    valoare:          String(f.valoare),
-    valuta:           f.valuta,
-    data_emitere:     f.data_emitere,
-    data_scadenta:    f.data_scadenta ?? '',
-    incasata_platita: f.incasata_platita,
-    luna_efectiva:    f.luna_efectiva != null ? String(f.luna_efectiva) : '',
-    notes:            f.notes ?? '',
+    type:                f.type,
+    client_id:           f.client_id   ?? '',
+    contract_id:         f.contract_id ?? '',
+    numar_factura:       f.numar_factura ?? '',
+    valoare:             String(f.valoare),
+    valuta:              f.valuta,
+    data_emitere:        f.data_emitere,
+    data_scadenta:       f.data_scadenta ?? '',
+    incasata_platita:    f.incasata_platita,
+    data_incasare_plata: f.data_incasare_plata ?? '',
+    tva_valoare:         f.tva_valoare > 0 ? String(f.tva_valoare) : '',
+    luna_efectiva:       f.luna_efectiva != null ? String(f.luna_efectiva) : '',
+    notes:               f.notes ?? '',
   }
 }
 
@@ -140,6 +148,7 @@ export function FacturareClient() {
   const [expectedAmt,    setExpectedAmt]    = useState<ExpectedAmt | null>(null)
   const [amountMismatch, setAmountMismatch] = useState(false)
   const [loadingExpected, setLoadingExpected] = useState(false)
+  const [tvaMismatch,    setTvaMismatch]    = useState(false)
 
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -158,6 +167,7 @@ export function FacturareClient() {
   useEffect(() => {
     setExpectedAmt(null)
     setAmountMismatch(false)
+    setTvaMismatch(false)
 
     if (form.type !== 'primita' || !form.contract_id || !form.luna_efectiva || !form.data_emitere) return
 
@@ -172,12 +182,11 @@ export function FacturareClient() {
         const row = (d.rows ?? []).find((r: any) => r.contract_id === form.contract_id)
         if (!row) { setExpectedAmt(null); return }
 
-        const mn    = parseInt(form.luna_efectiva)
-        const hours = (row.hours ?? {})[mn] ?? 0
-        const mult  = row.candidate_tva ? (1 + TVA) : 1
-        const value = Math.round(hours * row.pay_rate * mult * 100) / 100
+        const mn      = parseInt(form.luna_efectiva)
+        const hours   = (row.hours ?? {})[mn] ?? 0
+        const netValue = Math.round(hours * row.pay_rate * 100) / 100
 
-        setExpectedAmt({ value, currency: row.currency, hasTva: row.candidate_tva })
+        setExpectedAmt({ netValue, currency: row.currency, hasTva: row.candidate_tva })
       })
       .catch(() => setExpectedAmt(null))
       .finally(() => setLoadingExpected(false))
@@ -194,6 +203,7 @@ export function FacturareClient() {
     setFormError('')
     setExpectedAmt(null)
     setAmountMismatch(false)
+    setTvaMismatch(false)
     setShowForm(true)
   }
 
@@ -203,6 +213,7 @@ export function FacturareClient() {
     setFormError('')
     setExpectedAmt(null)
     setAmountMismatch(false)
+    setTvaMismatch(false)
     setShowForm(true)
   }
 
@@ -212,6 +223,7 @@ export function FacturareClient() {
     setFormError('')
     setExpectedAmt(null)
     setAmountMismatch(false)
+    setTvaMismatch(false)
   }
 
   function handleTabChange(t: 'emisa' | 'primita') {
@@ -222,6 +234,7 @@ export function FacturareClient() {
       setFormError('')
       setExpectedAmt(null)
       setAmountMismatch(false)
+    setTvaMismatch(false)
     }
   }
 
@@ -229,11 +242,18 @@ export function FacturareClient() {
     const contract = data?.activeContracts.find(c => c.id === contractId)
     setForm(prev => ({ ...prev, contract_id: contractId, valuta: contract?.currency ?? prev.valuta }))
     setAmountMismatch(false)
+    setTvaMismatch(false)
   }
 
   function handleValoarChange(val: string) {
     setForm(p => ({ ...p, valoare: val }))
-    setAmountMismatch(false) // Reset mismatch when user edits the value
+    setAmountMismatch(false)
+    setTvaMismatch(false)
+  }
+
+  function handleTvaChange(val: string) {
+    setForm(p => ({ ...p, tva_valoare: val }))
+    setTvaMismatch(false)
   }
 
   async function handleSubmit() {
@@ -250,12 +270,25 @@ export function FacturareClient() {
       return
     }
 
-    // Soft block on first save if amount doesn't match timesheet
+    // Soft block on first save if net amount or currency doesn't match timesheet
     if (form.type === 'primita' && expectedAmt !== null && !amountMismatch) {
-      const entered = parseFloat(form.valoare || '0')
-      if (Math.abs(entered - expectedAmt.value) > 0.01) {
+      const entered      = parseFloat(form.valoare || '0')
+      const amtDiffers   = expectedAmt.netValue > 0 && Math.abs(entered - expectedAmt.netValue) > 0.01
+      const curDiffers   = form.valuta !== expectedAmt.currency
+      if (amtDiffers || curDiffers) {
         setAmountMismatch(true)
-        return // Blocked — user must click Save again to confirm
+        return
+      }
+    }
+
+    // Soft block if TVA differs from 21% of net value — only for RON invoices
+    if (!tvaMismatch && form.valuta === 'RON' && form.tva_valoare) {
+      const net         = parseFloat(form.valoare    || '0')
+      const tvaEntered  = parseFloat(form.tva_valoare || '0')
+      const tvaExpected = Math.round(net * 0.21 * 100) / 100
+      if (net > 0 && Math.abs(tvaEntered - tvaExpected) > 0.01) {
+        setTvaMismatch(true)
+        return
       }
     }
 
@@ -271,8 +304,10 @@ export function FacturareClient() {
       valuta:           form.valuta,
       data_emitere:     form.data_emitere,
       data_scadenta:    form.data_scadenta || null,
-      incasata_platita: form.incasata_platita,
-      luna_efectiva:    form.luna_efectiva ? parseInt(form.luna_efectiva) : null,
+      incasata_platita:    form.incasata_platita,
+      data_incasare_plata: form.incasata_platita && form.data_incasare_plata ? form.data_incasare_plata : null,
+      tva_valoare:         parseFloat(form.tva_valoare || '0'),
+      luna_efectiva:       form.luna_efectiva ? parseInt(form.luna_efectiva) : null,
       notes:            form.notes.trim() || null,
     }
 
@@ -297,10 +332,14 @@ export function FacturareClient() {
 
   async function toggleStatus(f: Factura) {
     setTogglingId(f.id)
+    const nowPaid = !f.incasata_platita
     await fetch(`/api/facturi/${f.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ incasata_platita: !f.incasata_platita }),
+      body: JSON.stringify({
+        incasata_platita: nowPaid,
+        data_incasare_plata: nowPaid ? new Date().toISOString().split('T')[0] : null,
+      }),
     })
     setTogglingId(null)
     fetchData(year, month, showAll)
@@ -449,10 +488,10 @@ export function FacturareClient() {
           />
         </div>
 
-        {/* Valoare */}
+        {/* Valoare NETĂ */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">
-            Valoare *
+            Valoare NETĂ *
             {loadingExpected && (
               <Loader2 size={10} className="inline ml-1 animate-spin text-gray-400" />
             )}
@@ -480,17 +519,51 @@ export function FacturareClient() {
                 ? <AlertCircle size={11} className="flex-shrink-0" />
                 : <Check size={11} className="flex-shrink-0 text-green-500" />}
               {amountMismatch
-                ? <>Suma din timesheet: <strong>{fmt(expectedAmt.value, expectedAmt.currency)}</strong>{expectedAmt.hasTva ? ' (cu TVA 21%)' : ''}</>
-                : <>Așteptat din timesheet: {fmt(expectedAmt.value, expectedAmt.currency)}{expectedAmt.hasTva ? ' (cu TVA 21%)' : ''}</>
+                ? <>Valoare netă așteptată: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></>
+                : <>Valoare netă din timesheet: {fmt(expectedAmt.netValue, expectedAmt.currency)}{expectedAmt.hasTva ? ' (TVA separat)' : ''}</>
               }
             </p>
           )}
-          {expectedAmt !== null && expectedAmt.value === 0 && !loadingExpected && (
+          {expectedAmt !== null && expectedAmt.netValue === 0 && !loadingExpected && (
             <p className="text-[11px] mt-1 text-amber-500 flex items-center gap-1">
               <AlertCircle size={11} />
               Nicio oră înregistrată în timesheet pentru luna selectată.
             </p>
           )}
+        </div>
+
+        {/* TVA */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">TVA</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={form.tva_valoare}
+            onChange={e => handleTvaChange(e.target.value)}
+            className={cn(
+              'w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2',
+              tvaMismatch
+                ? 'border-red-400 text-red-600 bg-red-50 focus:ring-red-300/30'
+                : 'border-gray-200 focus:ring-[#2AA3FF]/30'
+            )}
+          />
+          {tvaMismatch && form.valuta === 'RON' && (
+            <p className="text-[11px] mt-1 flex items-center gap-1 text-red-500 font-medium">
+              <AlertCircle size={11} className="flex-shrink-0" />
+              TVA așteptat (21%): <strong>{(Math.round(parseFloat(form.valoare || '0') * 0.21 * 100) / 100).toFixed(2)}</strong>
+            </p>
+          )}
+        </div>
+
+        {/* Valoare totală (auto-calculată) */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Valoare totală</label>
+          <div className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-semibold tabular-nums">
+            {((parseFloat(form.valoare || '0') + parseFloat(form.tva_valoare || '0')) || 0).toFixed(2)}
+            <span className="ml-1.5 text-xs font-normal text-gray-400">{form.valuta}</span>
+          </div>
         </div>
 
         {/* Valută */}
@@ -505,18 +578,39 @@ export function FacturareClient() {
           </select>
         </div>
 
-        {/* Checkbox */}
-        <div className="col-span-2 flex items-center gap-2 pt-1">
-          <input
-            type="checkbox"
-            id="incasata_platita"
-            checked={form.incasata_platita}
-            onChange={e => setForm(p => ({ ...p, incasata_platita: e.target.checked }))}
-            className="w-4 h-4 rounded accent-green-500"
-          />
-          <label htmlFor="incasata_platita" className="text-sm text-gray-600 cursor-pointer">
-            {form.type === 'emisa' ? 'Factură deja încasată' : 'Factură deja plătită'}
-          </label>
+        {/* Checkbox + data efectivă */}
+        <div className="col-span-2 flex flex-wrap items-center gap-4 pt-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="incasata_platita"
+              checked={form.incasata_platita}
+              onChange={e => setForm(p => ({
+                ...p,
+                incasata_platita: e.target.checked,
+                data_incasare_plata: e.target.checked && !p.data_incasare_plata
+                  ? new Date().toISOString().split('T')[0]
+                  : e.target.checked ? p.data_incasare_plata : '',
+              }))}
+              className="w-4 h-4 rounded accent-green-500"
+            />
+            <label htmlFor="incasata_platita" className="text-sm text-gray-600 cursor-pointer">
+              {form.type === 'emisa' ? 'Factură deja încasată' : 'Factură deja plătită'}
+            </label>
+          </div>
+          {form.incasata_platita && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 whitespace-nowrap">
+                {form.type === 'emisa' ? 'Data încasării' : 'Data plății'}
+              </label>
+              <input
+                type="date"
+                value={form.data_incasare_plata}
+                onChange={e => setForm(p => ({ ...p, data_incasare_plata: e.target.value }))}
+                className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
+              />
+            </div>
+          )}
         </div>
 
         {/* Notițe */}
@@ -532,15 +626,39 @@ export function FacturareClient() {
         </div>
       </div>
 
-      {/* Mismatch warning banner */}
+      {/* Mismatch warning banners */}
       {amountMismatch && expectedAmt !== null && (
         <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-red-700 leading-relaxed space-y-0.5">
+            <p className="font-semibold">Valoare NETĂ sau valută diferită față de timesheet.</p>
+            {(() => {
+              const entered    = parseFloat(form.valoare || '0')
+              const amtDiffers = Math.abs(entered - expectedAmt.netValue) > 0.01
+              const curDiffers = form.valuta !== expectedAmt.currency
+              return (
+                <>
+                  {amtDiffers && (
+                    <p>Suma introdusă: <strong>{fmt(entered, form.valuta)}</strong> · Așteptat: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></p>
+                  )}
+                  {curDiffers && (
+                    <p>Valuta introdusă: <strong>{form.valuta}</strong> · Valuta din contract: <strong>{expectedAmt.currency}</strong></p>
+                  )}
+                  <p className="opacity-70">Apasă din nou <strong>Salvează</strong> dacă valorile sunt intenționat diferite.</p>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+      {tvaMismatch && form.valuta === 'RON' && (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-red-700 leading-relaxed">
-            <span className="font-semibold">Sumă diferită față de timesheet.</span>{' '}
-            Suma așteptată{expectedAmt.hasTva ? ' (pay rate × ore × TVA 21%)' : ' (pay rate × ore)'} este{' '}
-            <strong>{fmt(expectedAmt.value, expectedAmt.currency)}</strong>.
-            Apasă din nou <strong>Salvează</strong> dacă suma este intenționat diferită.
+            <span className="font-semibold">TVA diferit de 21%.</span>{' '}
+            Valoarea așteptată este{' '}
+            <strong>{(Math.round(parseFloat(form.valoare || '0') * 0.21 * 100) / 100).toFixed(2)} RON</strong>.
+            {' '}Apasă din nou <strong>Salvează</strong> dacă suma este corectă.
           </div>
         </div>
       )}
@@ -560,14 +678,14 @@ export function FacturareClient() {
           disabled={saving}
           className={cn(
             'flex-1 py-2.5 text-sm rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2',
-            amountMismatch
+            (amountMismatch || tvaMismatch)
               ? 'bg-red-600 hover:bg-red-700 text-white'
               : 'bg-[#0B1A33] hover:bg-[#0B1A33]/90 text-white'
           )}
         >
           {saving
             ? <><Loader2 size={14} className="animate-spin" /> Salvez...</>
-            : amountMismatch
+            : (amountMismatch || tvaMismatch)
             ? 'Confirmă și salvează'
             : isEditing ? 'Salvează modificările' : 'Adaugă factură'}
         </button>
@@ -760,9 +878,12 @@ export function FacturareClient() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Emitere</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Scadență</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notițe</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Valoare</th>
+                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Val. NETĂ</th>
+                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">TVA</th>
+                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {isEmit ? 'Încasată' : 'Plătită'}
+                  {isEmit ? 'Încasată' : 'Plătită'}<br />
+                  <span className="font-normal normal-case tracking-normal opacity-60">dată ef.</span>
                 </th>
                 <th className="px-3 py-3 w-20" />
               </tr>
@@ -810,30 +931,45 @@ export function FacturareClient() {
                         ? <span className="text-xs text-gray-500 line-clamp-2 leading-snug">{f.notes}</span>
                         : <span className="text-gray-300 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums whitespace-nowrap">
+                    <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap text-gray-600">
+                      {fmt(f.valoare, f.valuta)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap text-gray-500">
+                      {f.tva_valoare > 0 ? fmt(f.tva_valoare, f.valuta) : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-3 py-3 text-right font-semibold tabular-nums whitespace-nowrap">
                       <span className={isEmit ? 'text-indigo-700' : 'text-green-700'}>
-                        {fmt(f.valoare, f.valuta)}
+                        {fmt(f.valoare + (f.tva_valoare ?? 0), f.valuta)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => toggleStatus(f)}
-                        disabled={togglingId === f.id}
-                        title={f.incasata_platita
-                          ? (isEmit ? 'Marchează ca neîncasată' : 'Marchează ca neplătită')
-                          : (isEmit ? 'Marchează ca încasată' : 'Marchează ca plătită')}
-                        className={cn(
-                          'w-6 h-6 rounded-full border-2 flex items-center justify-center mx-auto transition-all',
-                          f.incasata_platita
-                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600'
-                            : 'border-gray-300 hover:border-green-400 text-transparent hover:text-green-400'
-                        )}
-                      >
-                        {togglingId === f.id
-                          ? <Loader2 size={10} className="animate-spin text-current" />
-                          : <Check size={11} />
-                        }
-                      </button>
+                      <div className="flex flex-col items-center gap-1">
+                        <button
+                          onClick={() => toggleStatus(f)}
+                          disabled={togglingId === f.id}
+                          title={f.incasata_platita
+                            ? (isEmit ? 'Marchează ca neîncasată' : 'Marchează ca neplătită')
+                            : (isEmit ? 'Marchează ca încasată' : 'Marchează ca plătită')}
+                          className={cn(
+                            'w-6 h-6 rounded-full border-2 flex items-center justify-center mx-auto transition-all',
+                            f.incasata_platita
+                              ? 'bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600'
+                              : 'border-gray-300 hover:border-green-400 text-transparent hover:text-green-400'
+                          )}
+                        >
+                          {togglingId === f.id
+                            ? <Loader2 size={10} className="animate-spin text-current" />
+                            : <Check size={11} />
+                          }
+                        </button>
+                        {f.data_incasare_plata ? (
+                          <span className="text-[10px] text-green-600 font-medium whitespace-nowrap">
+                            {fmtDate(f.data_incasare_plata)}
+                          </span>
+                        ) : f.incasata_platita ? (
+                          <span className="text-[10px] text-gray-300 whitespace-nowrap">dată lipsă</span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-0.5 justify-end">

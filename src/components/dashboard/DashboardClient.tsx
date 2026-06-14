@@ -36,6 +36,7 @@ import {
   Area,
   Line,
   Legend,
+  LabelList,
 } from 'recharts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1224,10 +1225,52 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
 
 // ─── Tab 3: Financiar ─────────────────────────────────────────────────────────
 
+// ── Period picker helpers ─────────────────────────────────────────────────────
+
+function MonthYearPicker({
+  label, value, onChange, options,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  options: { value: number; label: string }[]
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[11px] text-gray-400">{label}</span>
+      <select
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean }) {
   const { monthly, ytd } = data.financials
   const profitPct = ytd.revenue > 0 ? ((ytd.profit / ytd.revenue) * 100).toFixed(1) : '0.0'
   const profitPositive = ytd.profit >= 0
+
+  // ── Period selectors for evolution chart ──
+  const [chartFromIdx, setChartFromIdx] = useState(0)
+  const [chartToIdx,   setChartToIdx]   = useState(Math.max(0, monthly.length - 1))
+
+  // Keep indices in range when monthly changes
+  const safeFrom = Math.min(chartFromIdx, Math.max(0, monthly.length - 1))
+  const safeTo   = Math.max(safeFrom, Math.min(chartToIdx, monthly.length - 1))
+  const filteredMonthly = monthly.slice(safeFrom, safeTo + 1)
+
+  const monthOptions = monthly.map((m, i) => ({ value: i, label: m.label }))
+
+  // ── Year selector for detaliu lunar table ──
+  const availableYears = [...new Set(monthly.map(m => m.year))].sort((a, b) => a - b)
+  const [detaliuYear, setDetaliuYear] = useState(new Date().getFullYear())
+  const detaliuRows = monthly.filter(m => m.year === detaliuYear)
 
   // Last 3 months vs previous 3 months trend
   const last3 = monthly.slice(-3)
@@ -1323,10 +1366,36 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
       {/* Row 2: Composed Chart */}
       <div className="glass rounded-2xl p-4">
-        <h3 className="text-sm font-semibold text-[#0B1A33] mb-4">Evoluție financiară — ultimele 12 luni</h3>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h3 className="text-sm font-semibold text-[#0B1A33]">Evoluție financiară</h3>
+          {monthOptions.length > 0 && (
+            <div className="flex items-center gap-3">
+              <MonthYearPicker
+                label="De la"
+                value={safeFrom}
+                onChange={v => setChartFromIdx(v)}
+                options={monthOptions}
+              />
+              <MonthYearPicker
+                label="Până la"
+                value={safeTo}
+                onChange={v => setChartToIdx(v)}
+                options={monthOptions}
+              />
+              {(safeFrom !== 0 || safeTo !== monthly.length - 1) && (
+                <button
+                  onClick={() => { setChartFromIdx(0); setChartToIdx(monthly.length - 1) }}
+                  className="text-[11px] text-[#2AA3FF] hover:underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         {mounted ? (
           <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={monthly} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+            <ComposedChart data={filteredMonthly} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
@@ -1445,8 +1514,21 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
       {/* Row 4: Data table */}
       <div className="glass rounded-2xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-[#0B1A33]">Detaliu lunar — ultimele 12 luni</h3>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Detaliu lunar</h3>
+            {availableYears.length > 0 && (
+              <select
+                value={detaliuYear}
+                onChange={e => setDetaliuYear(Number(e.target.value))}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
+              >
+                {availableYears.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            )}
+          </div>
           <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors">
             <Download size={13} /> Export CSV
           </button>
@@ -1464,7 +1546,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               </tr>
             </thead>
             <tbody>
-              {monthly.map((m, i) => {
+              {detaliuRows.map((m, i) => {
                 const marja = m.revenue > 0 ? (m.profit / m.revenue) * 100 : 0
                 const marjaInt = Math.round(marja)
                 const marjaColor = marjaInt >= 20 ? 'text-green-600 font-semibold' : marjaInt >= 10 ? 'text-amber-600' : marjaInt >= 0 ? 'text-gray-500' : 'text-red-500'
@@ -1485,18 +1567,27 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-gray-200 bg-gray-50/50">
-                <td className="py-2 px-3 font-semibold text-gray-700">Total YTD</td>
-                <td className="py-2 px-3 text-right font-semibold text-gray-700">{fmt(ytd.revenue)}</td>
-                <td className="py-2 px-3 text-right font-semibold text-gray-700">{fmt(ytd.cost)}</td>
-                <td className="py-2 px-3 text-right font-semibold text-amber-600">{ytd.comms > 0 ? fmt(ytd.comms) : '—'}</td>
-                <td className={cn('py-2 px-3 text-right font-semibold', ytd.profit >= 0 ? 'text-green-700' : 'text-red-600')}>
-                  {fmt(ytd.profit)}
-                </td>
-                <td className="py-2 px-3 text-right font-semibold text-gray-600">
-                  {ytd.revenue > 0 ? ((ytd.profit / ytd.revenue) * 100).toFixed(1) : '0.0'}%
-                </td>
-              </tr>
+              {(() => {
+                const totRev  = detaliuRows.reduce((s, m) => s + m.revenue, 0)
+                const totCost = detaliuRows.reduce((s, m) => s + m.cost,    0)
+                const totComm = detaliuRows.reduce((s, m) => s + m.comms,   0)
+                const totProf = detaliuRows.reduce((s, m) => s + m.profit,  0)
+                const totMarja = totRev > 0 ? (totProf / totRev) * 100 : 0
+                return (
+                  <tr className="border-t-2 border-gray-200 bg-gray-50/50">
+                    <td className="py-2 px-3 font-semibold text-gray-700">Total {detaliuYear}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-gray-700">{fmt(totRev)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-gray-700">{fmt(totCost)}</td>
+                    <td className="py-2 px-3 text-right font-semibold text-amber-600">{totComm > 0 ? fmt(totComm) : '—'}</td>
+                    <td className={cn('py-2 px-3 text-right font-semibold', totProf >= 0 ? 'text-green-700' : 'text-red-600')}>
+                      {fmt(totProf)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-semibold text-gray-600">
+                      {totMarja.toFixed(1)}%
+                    </td>
+                  </tr>
+                )
+              })()}
             </tfoot>
           </table>
         </div>
@@ -1509,6 +1600,8 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
 interface MonthSummary { month: number; emise_total: number; emise_incasate: number; primite_total: number; primite_platite: number }
 interface FacturiSummary { months: MonthSummary[]; ytd: { emise_total: number; emise_incasate: number; primite_total: number; primite_platite: number } }
+interface TvaMonth { month: number; tva_incasat: number; tva_platit: number; diferenta: number }
+interface TvaSummary { months: TvaMonth[]; totals: { tva_incasat: number; tva_platit: number; diferenta: number } }
 
 const MONTH_LABELS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -1537,14 +1630,23 @@ function KpiCard({ label, value, sub, color }: { label: string; value: string; s
 function TabFacturi() {
   const [year, setYear]       = useState(new Date().getFullYear())
   const [summary, setSummary] = useState<FacturiSummary | null>(null)
+  const [tva,     setTva]     = useState<TvaSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [chartFromMonth, setChartFromMonth] = useState(1)
+  const [chartToMonth,   setChartToMonth]   = useState(12)
+  const [emiseMonth,     setEmiseMonth]     = useState<number | null>(null)
+  const [primiteMonth,   setPrimiteMonth]   = useState<number | null>(null)
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/facturi-summary?year=${year}`)
-      .then(r => r.json())
-      .then(d => { setSummary(d); setLoading(false) })
-      .catch(() => setLoading(false))
+    Promise.all([
+      fetch(`/api/facturi-summary?year=${year}`).then(r => r.json()),
+      fetch(`/api/facturi-tva?year=${year}`).then(r => r.json()),
+    ]).then(([sumData, tvaData]) => {
+      setSummary(sumData)
+      setTva(tvaData)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [year])
 
   const chartData = (summary?.months ?? []).map((m, i) => ({
@@ -1557,17 +1659,33 @@ function TabFacturi() {
     primite_total: m.primite_total,
   }))
 
+  const safeChartFrom = Math.min(chartFromMonth, chartToMonth)
+  const safeChartTo   = Math.max(chartFromMonth, chartToMonth)
+  const filteredChartData = chartData.slice(safeChartFrom - 1, safeChartTo)
+  const periodEmise   = filteredChartData.reduce((s, d) => s + d.emise_total, 0)
+  const periodPrimite = filteredChartData.reduce((s, d) => s + d.primite_total, 0)
+  const monthOpts = MONTH_LABELS.map((l, i) => ({ value: i + 1, label: l }))
+
+  const tvaChartData = (tva?.months ?? []).map((m, i) => ({
+    label:       MONTH_LABELS[i],
+    tva_incasat: m.tva_incasat,
+    tva_platit:  m.tva_platit,
+    diferenta:   m.diferenta,
+  }))
+
   const ytd = summary?.ytd ?? { emise_total: 0, emise_incasate: 0, primite_total: 0, primite_platite: 0 }
-  const neincasat = ytd.emise_total  - ytd.emise_incasate
+  const neincasat = ytd.emise_total   - ytd.emise_incasate
   const neplatit  = ytd.primite_total - ytd.primite_platite
 
+  const emiseBase   = (emiseMonth   !== null && summary?.months?.[emiseMonth   - 1]) ? summary.months[emiseMonth   - 1] : ytd
+  const primiteBase = (primiteMonth !== null && summary?.months?.[primiteMonth - 1]) ? summary.months[primiteMonth - 1] : ytd
   const emisePie   = [
-    { name: 'Încasate',   value: ytd.emise_incasate },
-    { name: 'Neîncasate', value: neincasat },
+    { name: 'Încasate',   value: emiseBase.emise_incasate },
+    { name: 'Neîncasate', value: emiseBase.emise_total - emiseBase.emise_incasate },
   ]
   const primitePie = [
-    { name: 'Plătite',   value: ytd.primite_platite },
-    { name: 'Neplătite', value: neplatit },
+    { name: 'Plătite',   value: primiteBase.primite_platite },
+    { name: 'Neplătite', value: primiteBase.primite_total - primiteBase.primite_platite },
   ]
   const PIE_E = ['#4F46E5', '#C7D2FE']
   const PIE_P = ['#16A34A', '#BBF7D0']
@@ -1607,41 +1725,128 @@ function TabFacturi() {
 
           {/* Main chart */}
           <div className="glass rounded-2xl p-6">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Emise vs. primite pe luni</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <p className="text-sm font-semibold text-gray-700">Emise vs. primite pe luni</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <MonthYearPicker label="De la" value={chartFromMonth} onChange={v => setChartFromMonth(Math.min(v, chartToMonth))} options={monthOpts} />
+                <MonthYearPicker label="Până la" value={chartToMonth} onChange={v => setChartToMonth(Math.max(v, chartFromMonth))} options={monthOpts} />
+                {(chartFromMonth !== 1 || chartToMonth !== 12) && (
+                  <button onClick={() => { setChartFromMonth(1); setChartToMonth(12) }}
+                    className="text-[11px] text-[#2AA3FF] hover:underline">Reset</button>
+                )}
+              </div>
+            </div>
+            {(chartFromMonth !== 1 || chartToMonth !== 12) && (periodEmise > 0 || periodPrimite > 0) && (
+              <div className="flex gap-4 mb-3">
+                <span className="text-xs bg-indigo-50 text-indigo-700 rounded-lg px-2.5 py-1 font-medium">
+                  Emise: <strong>{fmt(periodEmise)}</strong>
+                </span>
+                <span className="text-xs bg-green-50 text-green-700 rounded-lg px-2.5 py-1 font-medium">
+                  Primite: <strong>{fmt(periodPrimite)}</strong>
+                </span>
+              </div>
+            )}
             {!hasEmise && !hasPrimite ? (
               <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
                 Nu există facturi pentru {year}
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} barCategoryGap="25%" barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={filteredChartData} barCategoryGap="30%" barGap={6} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={v => fmtK(v)} />
+                  <Tooltip
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any) => {
+                      const labels: Record<string, string> = { emise_total: 'Total emise', primite_total: 'Total primite' }
+                      return [fmt(Number(value ?? 0)), labels[name] ?? name]
+                    }}
+                    contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb' }}
+                  />
+                  <Legend formatter={(value) => {
+                    const labels: Record<string, string> = { emise_total: 'Total emise', primite_total: 'Total primite' }
+                    return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
+                  }} />
+                  <Bar dataKey="emise_total" name="emise_total" fill="#4F46E5" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="emise_total" position="top" style={{ fontSize: 10, fill: '#4F46E5', fontWeight: 600 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v > 0 ? fmtK(Number(v)) : ''} />
+                  </Bar>
+                  <Bar dataKey="primite_total" name="primite_total" fill="#16A34A" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="primite_total" position="top" style={{ fontSize: 10, fill: '#16A34A', fontWeight: 600 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v > 0 ? fmtK(Number(v)) : ''} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* TVA lunar — bar chart */}
+          <div className="glass rounded-2xl p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Evoluție TVA lunar</p>
+                <p className="text-xs text-gray-400 mt-0.5">Referință: data efectivă de încasare / plată</p>
+              </div>
+              {tva?.totals && (tva.totals.tva_incasat > 0 || tva.totals.tva_platit > 0) && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs bg-indigo-50 text-indigo-700 rounded-lg px-2.5 py-1 font-medium">
+                    TVA încasat: <strong>{fmt(tva.totals.tva_incasat)}</strong>
+                  </span>
+                  <span className="text-xs bg-green-50 text-green-700 rounded-lg px-2.5 py-1 font-medium">
+                    TVA plătit: <strong>{fmt(tva.totals.tva_platit)}</strong>
+                  </span>
+                  <span className={cn('text-xs rounded-lg px-2.5 py-1 font-medium',
+                    tva.totals.diferenta >= 0 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                  )}>
+                    De plătit stat: <strong>{fmt(tva.totals.diferenta)}</strong>
+                  </span>
+                </div>
+              )}
+            </div>
+            {!tva || (tva.totals.tva_incasat === 0 && tva.totals.tva_platit === 0) ? (
+              <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
+                Nu există date TVA pentru {year}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={tvaChartData} barCategoryGap="30%" barGap={6} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={v => fmtK(v)} />
                   <Tooltip
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     formatter={(value: any, name: any) => {
                       const labels: Record<string, string> = {
-                        e_inc: 'Emise încasate', e_nei: 'Emise neîncasate',
-                        p_pla: 'Primite plătite', p_nep: 'Primite neplătite',
+                        tva_incasat: 'TVA încasat', tva_platit: 'TVA plătit', diferenta: 'TVA de plătit stat',
                       }
                       return [fmt(Number(value ?? 0)), labels[name] ?? name]
                     }}
                     contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb' }}
                   />
-                  <Legend
-                    formatter={(value) => {
-                      const labels: Record<string, string> = {
-                        e_inc: 'Emise (încasate)', e_nei: 'Emise (neîncasate)',
-                        p_pla: 'Primite (plătite)', p_nep: 'Primite (neplătite)',
-                      }
-                      return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
-                    }}
-                  />
-                  <Bar dataKey="e_inc" stackId="e" name="e_inc" fill="#4F46E5" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="e_nei" stackId="e" name="e_nei" fill="#C7D2FE" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="p_pla" stackId="p" name="p_pla" fill="#16A34A" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="p_nep" stackId="p" name="p_nep" fill="#BBF7D0" radius={[4, 4, 0, 0]} />
+                  <Legend formatter={(value) => {
+                    const labels: Record<string, string> = {
+                      tva_incasat: 'TVA încasat', tva_platit: 'TVA plătit', diferenta: 'TVA de plătit stat',
+                    }
+                    return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
+                  }} />
+                  <Bar dataKey="tva_incasat" name="tva_incasat" fill="#4F46E5" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="tva_incasat" position="top" style={{ fontSize: 10, fill: '#4F46E5', fontWeight: 600 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v > 0 ? fmtK(Number(v)) : ''} />
+                  </Bar>
+                  <Bar dataKey="tva_platit" name="tva_platit" fill="#16A34A" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="tva_platit" position="top" style={{ fontSize: 10, fill: '#16A34A', fontWeight: 600 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v > 0 ? fmtK(Number(v)) : ''} />
+                  </Bar>
+                  <Bar dataKey="diferenta" name="diferenta" fill="#D97706" radius={[6, 6, 0, 0]}>
+                    <LabelList dataKey="diferenta" position="top" style={{ fontSize: 10, fill: '#D97706', fontWeight: 600 }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => v !== 0 ? fmtK(Number(v)) : ''} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -1651,7 +1856,20 @@ function TabFacturi() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Emise donut */}
             <div className="glass rounded-2xl p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Status facturi emise</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-gray-700">Status facturi emise</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-gray-400">Luna</span>
+                  <select
+                    value={emiseMonth ?? ''}
+                    onChange={e => setEmiseMonth(e.target.value === '' ? null : Number(e.target.value))}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
+                  >
+                    <option value="">Tot anul</option>
+                    {MONTH_LABELS.map((l, i) => <option key={i} value={i + 1}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
               {!hasEmise ? (
                 <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
               ) : (
@@ -1680,7 +1898,20 @@ function TabFacturi() {
 
             {/* Primite donut */}
             <div className="glass rounded-2xl p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Status facturi primite</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-gray-700">Status facturi primite</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-gray-400">Luna</span>
+                  <select
+                    value={primiteMonth ?? ''}
+                    onChange={e => setPrimiteMonth(e.target.value === '' ? null : Number(e.target.value))}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
+                  >
+                    <option value="">Tot anul</option>
+                    {MONTH_LABELS.map((l, i) => <option key={i} value={i + 1}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
               {!hasPrimite ? (
                 <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
               ) : (
@@ -1748,6 +1979,7 @@ function TabFacturi() {
               </table>
             </div>
           </div>
+
         </>
       )}
     </div>

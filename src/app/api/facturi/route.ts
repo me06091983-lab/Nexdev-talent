@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('manual_invoices')
-    .select('id, type, valoare, valuta, data_emitere, data_scadenta, incasata_platita, numar_factura, client_id, contract_id, luna_efectiva, notes')
+    .select('id, type, valoare, tva_valoare, valuta, data_emitere, data_scadenta, incasata_platita, data_incasare_plata, numar_factura, client_id, contract_id, luna_efectiva, notes')
 
   if (all) {
     query = query
