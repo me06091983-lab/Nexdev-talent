@@ -282,7 +282,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `CV_${candidateName.replace(/\s+/g, '_')}_NexDev.docx`
+      a.download = `CV_${candidateName.replace(/\s+/g, '_')}_NexDev.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -717,15 +717,6 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
             </div>
           </div>
 
-          {/* CV preview modal */}
-          {showCvPreview && cvFilePath && (
-            <CandidateCVModal
-              candidateId={candidateId}
-              candidateName={candidateName}
-              onClose={() => setShowCvPreview(false)}
-            />
-          )}
-
           {/* Notițe interne */}
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
@@ -788,6 +779,15 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
 
         </div>
       </div>
+
+      {/* CV preview modal — la nivel rădăcină, în afara oricărui sticky/stacking context */}
+      {showCvPreview && cvFilePath && (
+        <CandidateCVModal
+          candidateId={candidateId}
+          candidateName={candidateName}
+          onClose={() => setShowCvPreview(false)}
+        />
+      )}
     </div>
   )
 }

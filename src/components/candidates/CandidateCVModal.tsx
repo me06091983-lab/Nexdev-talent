@@ -51,8 +51,8 @@ export function CandidateCVModal({ candidateId, candidateName, onClose }: Props)
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded">
-            <X size={18} />
+          <button onClick={onClose} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 transition-colors flex-shrink-0">
+            <X size={16} />
           </button>
         </div>
 
