@@ -163,6 +163,7 @@ interface DashboardData {
   financials: {
     monthly: Array<{ label: string; year: number; month: number; revenue: number; cost: number; comms: number; profit: number }>
     ytd: { revenue: number; cost: number; comms: number; profit: number }
+    ytdByCurrency: Array<{ currency: string; revenue: number; cost: number; comms: number; profit: number }>
   }
 }
 
@@ -1252,9 +1253,10 @@ function MonthYearPicker({
 }
 
 function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean }) {
-  const { monthly, ytd } = data.financials
+  const { monthly, ytd, ytdByCurrency } = data.financials
   const profitPct = ytd.revenue > 0 ? ((ytd.profit / ytd.revenue) * 100).toFixed(1) : '0.0'
   const profitPositive = ytd.profit >= 0
+  const isMultiCurrency = (ytdByCurrency ?? []).length > 1
 
   // ── Period selectors for evolution chart ──
   const [chartFromIdx, setChartFromIdx] = useState(0)
@@ -1315,54 +1317,103 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
   return (
     <div className="space-y-5">
-      {/* Row 1: YTD Cards */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Row 1: YTD Cards — per valuta cand sunt mai multe, 4 carduri clasice cand e una singura */}
+      {isMultiCurrency ? (
         <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <ArrowUpRight size={16} className="text-indigo-500" />
-            </div>
-            <p className="text-xs font-medium text-gray-500">Revenue YTD</p>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-[#0B1A33]">
+              YTD — per valuta <span className="text-xs font-normal text-gray-400">(de la 1 ian.)</span>
+            </h3>
+            <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+              {(ytdByCurrency ?? []).length} valute active
+            </span>
           </div>
-          <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.revenue)}</p>
-          <p className="text-[10px] text-gray-400 mt-1">cumulat de la 1 ian.</p>
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min((ytdByCurrency ?? []).length, 4)}, 1fr)` }}>
+            {(ytdByCurrency ?? []).map(cur => {
+              const pct = cur.revenue > 0 ? ((cur.profit / cur.revenue) * 100).toFixed(1) : '0.0'
+              const pos = cur.profit >= 0
+              return (
+                <div key={cur.currency} className={cn('rounded-xl border p-3', pos ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/20')}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-[#0B1A33]">{cur.currency}</span>
+                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', pos ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>{pct}% marja</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-indigo-500 font-medium flex items-center gap-1"><ArrowUpRight size={11} />Revenue</span>
+                      <span className="font-semibold text-gray-800 tabular-nums">{fmtK(cur.revenue)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-rose-400 font-medium flex items-center gap-1"><ArrowDownLeft size={11} />Cost</span>
+                      <span className="font-semibold text-gray-800 tabular-nums">{fmtK(cur.cost)}</span>
+                    </div>
+                    {cur.comms > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-amber-500 font-medium flex items-center gap-1"><Receipt size={11} />Comis.</span>
+                        <span className="font-semibold text-amber-700 tabular-nums">{fmtK(cur.comms)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100">
+                      <span className={cn('font-semibold flex items-center gap-1', pos ? 'text-green-600' : 'text-red-600')}><TrendingUp size={11} />Profit</span>
+                      <span className={cn('font-bold tabular-nums', pos ? 'text-green-700' : 'text-red-600')}>{fmtK(cur.profit)}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-3">
+          <div className="glass rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <ArrowUpRight size={16} className="text-indigo-500" />
+              </div>
+              <p className="text-xs font-medium text-gray-500">Revenue YTD</p>
+            </div>
+            <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.revenue)}</p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              cumulat de la 1 ian.{(ytdByCurrency ?? [])[0] ? ` · ${(ytdByCurrency ?? [])[0].currency}` : ''}
+            </p>
+          </div>
 
-        <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
-              <ArrowDownLeft size={16} className="text-rose-500" />
+          <div className="glass rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
+                <ArrowDownLeft size={16} className="text-rose-500" />
+              </div>
+              <p className="text-xs font-medium text-gray-500">Cost YTD</p>
             </div>
-            <p className="text-xs font-medium text-gray-500">Cost YTD</p>
+            <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.cost)}</p>
+            <p className="text-[10px] text-gray-400 mt-1">cumulat de la 1 ian.</p>
           </div>
-          <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.cost)}</p>
-          <p className="text-[10px] text-gray-400 mt-1">cumulat de la 1 ian.</p>
-        </div>
 
-        <div className="glass rounded-2xl p-4 border border-amber-100">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
-              <Receipt size={16} className="text-amber-500" />
+          <div className="glass rounded-2xl p-4 border border-amber-100">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                <Receipt size={16} className="text-amber-500" />
+              </div>
+              <p className="text-xs font-medium text-gray-500">Comisioane YTD</p>
             </div>
-            <p className="text-xs font-medium text-gray-500">Comisioane YTD</p>
+            <p className="text-xl font-bold text-amber-700">{fmtK(ytd.comms)}</p>
+            <p className="text-[10px] text-gray-400 mt-1">platite partenerilor</p>
           </div>
-          <p className="text-xl font-bold text-amber-700">{fmtK(ytd.comms)}</p>
-          <p className="text-[10px] text-gray-400 mt-1">plătite partenerilor</p>
-        </div>
 
-        <div className={cn('glass rounded-2xl p-4', profitPositive ? 'border border-green-100' : 'border border-red-100')}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', profitPositive ? 'bg-green-50' : 'bg-red-50')}>
-              <TrendingUp size={16} className={profitPositive ? 'text-green-500' : 'text-red-500'} />
+          <div className={cn('glass rounded-2xl p-4', profitPositive ? 'border border-green-100' : 'border border-red-100')}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', profitPositive ? 'bg-green-50' : 'bg-red-50')}>
+                <TrendingUp size={16} className={profitPositive ? 'text-green-500' : 'text-red-500'} />
+              </div>
+              <p className="text-xs font-medium text-gray-500">Profit net YTD</p>
             </div>
-            <p className="text-xs font-medium text-gray-500">Profit net YTD</p>
+            <p className={cn('text-xl font-bold', profitPositive ? 'text-green-700' : 'text-red-600')}>{fmtK(ytd.profit)}</p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              <span className={cn('font-medium', profitPositive ? 'text-green-600' : 'text-red-500')}>{profitPct}%</span> din revenue
+            </p>
           </div>
-          <p className={cn('text-xl font-bold', profitPositive ? 'text-green-700' : 'text-red-600')}>{fmtK(ytd.profit)}</p>
-          <p className="text-[10px] text-gray-400 mt-1">
-            <span className={cn('font-medium', profitPositive ? 'text-green-600' : 'text-red-500')}>{profitPct}%</span> din revenue
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Row 2: Composed Chart */}
       <div className="glass rounded-2xl p-4">

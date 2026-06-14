@@ -405,11 +405,17 @@ export async function GET() {
 
   // ── Financials ─────────────────────────────────────────────────────────────
   // Build contract lookup for timesheets
-  const contractLookup: Record<string, { bill_rate: number; pay_rate: number; partner_commission: number | null; partner_commission_type: string | null; partner_commission_2: number | null; partner_commission_2_type: string | null }> = {}
+  const contractLookup: Record<string, {
+    bill_rate: number; pay_rate: number; currency: string; rate_type: string;
+    partner_commission: number | null; partner_commission_type: string | null;
+    partner_commission_2: number | null; partner_commission_2_type: string | null;
+  }> = {}
   for (const c of allContracts) {
     contractLookup[c.id] = {
       bill_rate: c.bill_rate,
       pay_rate: c.pay_rate,
+      currency: c.currency ?? 'EUR',
+      rate_type: c.rate_type ?? 'daily',
       partner_commission: c.partner_commission,
       partner_commission_type: c.partner_commission_type,
       partner_commission_2: c.partner_commission_2,
@@ -435,6 +441,7 @@ export async function GET() {
   for (const m of months) {
     financialMap[`${m.year}-${m.month}`] = { revenue: 0, cost: 0, comms: 0, profit: 0 }
   }
+  const ytdCurrencyMap: Record<string, { revenue: number; cost: number; comms: number; profit: number }> = {}
 
   for (const ts of timesheets) {
     const key = `${ts.year}-${ts.month}`
@@ -442,8 +449,11 @@ export async function GET() {
     const contract = contractLookup[ts.contract_id]
     if (!contract) continue
     const hours = Number(ts.hours) || 0
-    const revenue = hours * contract.bill_rate
-    const cost = hours * contract.pay_rate
+    const isHourly   = contract.rate_type === 'hourly'
+    const billHourly = isHourly ? contract.bill_rate : contract.bill_rate / 8
+    const payHourly  = isHourly ? contract.pay_rate  : contract.pay_rate  / 8
+    const revenue    = hours * billHourly
+    const cost       = hours * payHourly
     const monthlyComms =
       (contract.partner_commission && contract.partner_commission_type === 'monthly' ? Number(contract.partner_commission) : 0) +
       (contract.partner_commission_2 && contract.partner_commission_2_type === 'monthly' ? Number(contract.partner_commission_2) : 0)
@@ -451,7 +461,20 @@ export async function GET() {
     financialMap[key].cost += cost
     financialMap[key].comms += monthlyComms
     financialMap[key].profit += revenue - cost - monthlyComms
+
+    if (ts.year === currentYear) {
+      const cur = contract.currency
+      if (!ytdCurrencyMap[cur]) ytdCurrencyMap[cur] = { revenue: 0, cost: 0, comms: 0, profit: 0 }
+      ytdCurrencyMap[cur].revenue += revenue
+      ytdCurrencyMap[cur].cost += cost
+      ytdCurrencyMap[cur].comms += monthlyComms
+      ytdCurrencyMap[cur].profit += revenue - cost - monthlyComms
+    }
   }
+
+  const ytdByCurrency = Object.entries(ytdCurrencyMap)
+    .map(([currency, v]) => ({ currency, ...v }))
+    .sort((a, b) => b.revenue - a.revenue)
 
   const monthly = months.map(m => ({
     label: m.label,
@@ -501,6 +524,7 @@ export async function GET() {
     financials: {
       monthly,
       ytd,
+      ytdByCurrency,
     },
   })
 }

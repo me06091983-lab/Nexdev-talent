@@ -182,9 +182,10 @@ export function FacturareClient() {
         const row = (d.rows ?? []).find((r: any) => r.contract_id === form.contract_id)
         if (!row) { setExpectedAmt(null); return }
 
-        const mn      = parseInt(form.luna_efectiva)
-        const hours   = (row.hours ?? {})[mn] ?? 0
-        const netValue = Math.round(hours * row.pay_rate * 100) / 100
+        const mn          = parseInt(form.luna_efectiva)
+        const hours       = (row.hours ?? {})[mn] ?? 0
+        const hourlyRate  = row.rate_type === 'daily' ? row.pay_rate / 8 : row.pay_rate
+        const netValue    = Math.round(hours * hourlyRate * 100) / 100
 
         setExpectedAmt({ netValue, currency: row.currency, hasTva: row.candidate_tva })
       })

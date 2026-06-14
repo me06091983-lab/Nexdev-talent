@@ -218,7 +218,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     rate_unit: (initial?.rate_unit as string) ?? 'zi',
     partner_id: (initial?.partner_id as string) ?? '',
     source_type: (initial?.source_type as string) ?? '',
-    candidate_status: (initial?.candidate_status as string) ?? 'pasiv',
+    candidate_status: (initial?.candidate_status as string) ?? (initial ? 'pasiv' : 'activ'),
     successful: (initial?.successful as boolean) ?? false,
     successful_client: (initial?.successful_client as string) ?? '',
     gdpr_consent: (initial?.gdpr_consent as boolean) ?? false,

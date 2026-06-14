@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Loader2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
@@ -40,6 +40,7 @@ export function TimesheetsClient() {
   const [localHours, setLocalHours] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<Set<string>>(new Set())
   const [saveErrors, setSaveErrors] = useState<Set<string>>(new Set())
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set())
   const savedTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const fetchData = useCallback(async (y: number) => {
@@ -83,6 +84,11 @@ export function TimesheetsClient() {
         savedTimers.current[key] = setTimeout(() => {
           setSaveErrors(prev => { const s = new Set(prev); s.delete(key); return s })
         }, 3000)
+      } else {
+        setSavedKeys(prev => new Set(prev).add(key))
+        savedTimers.current[key] = setTimeout(() => {
+          setSavedKeys(prev => { const s = new Set(prev); s.delete(key); return s })
+        }, 1500)
       }
     } catch {
       setSaveErrors(prev => new Set(prev).add(key))
@@ -188,6 +194,7 @@ export function TimesheetsClient() {
                       const active = isMonthActive(row, year, mi)
                       const isSaving = saving.has(key)
                       const isError = saveErrors.has(key)
+                      const isSaved = savedKeys.has(key)
                       const val = localHours[key] ?? ''
                       const hasValue = val !== '' && parseInt(val, 10) > 0
                       const isCurrentCol = mi === currentMonth && year === currentYear
@@ -198,29 +205,38 @@ export function TimesheetsClient() {
                           className={cn('px-1.5 py-2 text-center', isCurrentCol && 'bg-blue-50/30')}
                         >
                           {active ? (
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={val}
-                              onChange={e => {
-                                const v = e.target.value.replace(/[^0-9]/g, '')
-                                setLocalHours(prev => ({ ...prev, [key]: v }))
-                              }}
-                              onBlur={e => handleSave(row.contract_id, row.candidate_id, month, e.target.value)}
-                              placeholder="—"
-                              title={isError ? 'Eroare la salvare' : undefined}
-                              className={cn(
-                                'w-14 text-center text-sm rounded-lg border py-1.5 transition-all',
-                                'focus:outline-none focus:ring-2 focus:ring-green-300/40 focus:border-green-400',
-                                isError
-                                  ? 'border-red-300 bg-red-50 text-red-600'
-                                  : isSaving
-                                  ? 'border-amber-200 bg-amber-50 text-amber-600'
-                                  : hasValue
-                                  ? 'border-green-200 bg-green-50 font-medium text-gray-800'
-                                  : 'border-green-100 bg-green-50/60 text-green-200 placeholder:text-green-200 hover:bg-green-50 hover:border-green-200'
+                            <div className="relative inline-block">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={val}
+                                onChange={e => {
+                                  const v = e.target.value.replace(/[^0-9]/g, '')
+                                  setLocalHours(prev => ({ ...prev, [key]: v }))
+                                }}
+                                onBlur={e => handleSave(row.contract_id, row.candidate_id, month, e.target.value)}
+                                placeholder="—"
+                                title={isError ? 'Eroare la salvare' : undefined}
+                                className={cn(
+                                  'w-14 text-center text-sm rounded-lg border py-1.5 transition-all',
+                                  'focus:outline-none focus:ring-2 focus:ring-green-300/40 focus:border-green-400',
+                                  isError
+                                    ? 'border-red-300 bg-red-50 text-red-600'
+                                    : isSaving
+                                    ? 'border-amber-200 bg-amber-50 text-amber-600'
+                                    : isSaved
+                                    ? 'border-green-400 bg-green-100 font-medium text-green-800'
+                                    : hasValue
+                                    ? 'border-green-200 bg-green-50 font-medium text-gray-800'
+                                    : 'border-green-100 bg-green-50/60 text-green-200 placeholder:text-green-200 hover:bg-green-50 hover:border-green-200'
+                                )}
+                              />
+                              {isSaved && (
+                                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center pointer-events-none">
+                                  <Check size={9} className="text-white" strokeWidth={3} />
+                                </span>
                               )}
-                            />
+                            </div>
                           ) : (
                             <div className="w-14 mx-auto h-[34px] rounded-lg bg-gray-200/70 flex items-center justify-center">
                               <span className="text-gray-400 text-xs select-none">—</span>
