@@ -99,11 +99,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from('roles')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  const admin = createAdminClient()
+
+  // Get submission IDs for cascade
+  const { data: subs } = await admin.from('submissions').select('id').eq('role_id', id)
+  const subIds = (subs ?? []).map(s => s.id)
+
+  if (subIds.length) {
+    // Get contracts linked to these submissions
+    const { data: contracts } = await admin.from('contracts').select('id').in('submission_id', subIds)
+    const contractIds = (contracts ?? []).map(c => c.id)
+    if (contractIds.length) {
+      await admin.from('timesheets').delete().in('contract_id', contractIds)
+      await admin.from('contract_history').delete().in('contract_id', contractIds)
+      await admin.from('contracts').delete().in('id', contractIds)
+    }
+    await admin.from('stage_history').delete().in('submission_id', subIds)
+    await admin.from('submissions').delete().in('id', subIds)
+  }
+
+  await admin.from('role_skills').delete().eq('role_id', id)
+  await admin.from('role_stages').delete().eq('role_id', id)
+
+  const { error } = await admin.from('roles').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

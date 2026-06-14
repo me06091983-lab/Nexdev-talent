@@ -42,37 +42,24 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { candidate_id, role_id, note } = await request.json()
 
-  // Check for any existing submission (including soft-deleted)
+  // Check for existing submission
   const { data: anyExisting } = await supabase
     .from('submissions')
-    .select('id, deleted_at')
+    .select('id')
     .eq('candidate_id', candidate_id)
     .eq('role_id', role_id)
     .maybeSingle()
 
-  let submission
   if (anyExisting) {
-    if (!anyExisting.deleted_at) {
-      return NextResponse.json({ error: 'Candidatul este deja în pipeline-ul acestui rol.' }, { status: 409 })
-    }
-    // Restore soft-deleted submission
-    const { data: restored, error: restoreError } = await supabase
-      .from('submissions')
-      .update({ deleted_at: null, status: 'pipeline' })
-      .eq('id', anyExisting.id)
-      .select()
-      .single()
-    if (restoreError) return NextResponse.json({ error: restoreError.message }, { status: 500 })
-    submission = restored
-  } else {
-    const { data: inserted, error: insertError } = await supabase
-      .from('submissions')
-      .insert({ candidate_id, role_id, status: 'pipeline' })
-      .select()
-      .single()
-    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
-    submission = inserted
+    return NextResponse.json({ error: 'Candidatul este deja în pipeline-ul acestui rol.' }, { status: 409 })
   }
+
+  const { data: submission, error: insertError } = await supabase
+    .from('submissions')
+    .insert({ candidate_id, role_id, status: 'pipeline' })
+    .select()
+    .single()
+  if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
 
   // Candidat pasiv adăugat pe un rol → devine activ
   await supabase

@@ -19,11 +19,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
   const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('contracts')
-    .delete()
-    .eq('id', id)
+  await supabase.from('timesheets').delete().eq('contract_id', id)
+  await supabase.from('contract_history').delete().eq('contract_id', id)
 
+  const { error } = await supabase.from('contracts').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

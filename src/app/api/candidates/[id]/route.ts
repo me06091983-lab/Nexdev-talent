@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 const COLUMN_LABELS: Record<string, string> = {
@@ -80,13 +81,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
+  const admin = createAdminClient()
 
-  const { error } = await supabase
-    .from('candidates')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
+  // Get contract IDs for cascade
+  const { data: contracts } = await admin.from('contracts').select('id').eq('candidate_id', id)
+  const contractIds = (contracts ?? []).map(c => c.id)
 
+  if (contractIds.length) {
+    await admin.from('timesheets').delete().in('contract_id', contractIds)
+    await admin.from('contract_history').delete().in('contract_id', contractIds)
+    await admin.from('contracts').delete().in('id', contractIds)
+  }
+
+  // Get submission IDs for cascade
+  const { data: subs } = await admin.from('submissions').select('id').eq('candidate_id', id)
+  const subIds = (subs ?? []).map(s => s.id)
+  if (subIds.length) {
+    await admin.from('stage_history').delete().in('submission_id', subIds)
+    await admin.from('submissions').delete().in('id', subIds)
+  }
+
+  await admin.from('candidate_skills').delete().eq('candidate_id', id)
+
+  const { error } = await admin.from('candidates').delete().eq('id', id)
   if (error) return NextResponse.json({ error: friendlyError(error.message) }, { status: 500 })
   return NextResponse.json({ success: true })
 }
