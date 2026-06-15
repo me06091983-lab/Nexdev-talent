@@ -141,7 +141,7 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
       <thead>
         <tr className="bg-gray-50/80 text-left">
           <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Rate propus</th>
           <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stagiu</th>
           <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interviu</th>
           <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Status interviu</th>
