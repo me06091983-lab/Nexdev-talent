@@ -88,12 +88,11 @@ const SENIORITY_LABELS: Record<string, string> = {
   junior: 'Junior', mid: 'Mid', senior: 'Senior', lead: 'Lead', principal: 'Principal',
 }
 
-// ─── Candidates sub-rows ─────────────────────────────────────────────────────
-// Renders directly as <tr> elements inside the parent <tbody> so columns align.
-// Parent table has 8 columns: [toggle][Rol][Client][Skilluri][Rate][Poziții][Deadline][Actions]
-// Candidate rows map:         [indent][Candidat][Rate][Stagiu][Interviu][Status][—][—]
+// ─── Candidates sub-table ─────────────────────────────────────────────────────
+// Uses table-layout:fixed + colgroup so column widths are identical across every
+// expanded role, regardless of the parent table's column widths.
 
-function CandidateSubRows({ roleId }: { roleId: string }) {
+function CandidatesSubTable({ roleId }: { roleId: string }) {
   const [subs, setSubs] = useState<Submission[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -116,95 +115,83 @@ function CandidateSubRows({ roleId }: { roleId: string }) {
 
   if (loading) {
     return (
-      <tr className="bg-gray-50/40 border-b border-gray-100">
-        <td colSpan={8} className="px-6 py-3">
-          <div className="flex items-center gap-2 text-gray-400 text-sm">
-            <Loader2 size={14} className="animate-spin" /> Se încarcă candidații...
-          </div>
-        </td>
-      </tr>
+      <div className="flex items-center gap-2 py-3 px-4 text-gray-400 text-sm">
+        <Loader2 size={14} className="animate-spin" /> Se încarcă candidații...
+      </div>
     )
   }
 
   if (loadError) {
-    return (
-      <tr className="bg-gray-50/40 border-b border-gray-100">
-        <td colSpan={8} className="px-6 py-3 text-sm text-red-400 italic">
-          Eroare la încărcarea candidaților. Reîncarcă pagina.
-        </td>
-      </tr>
-    )
+    return <p className="py-3 px-4 text-sm text-red-400 italic">Eroare la încărcarea candidaților. Reîncarcă pagina.</p>
   }
 
   if (!subs?.length) {
-    return (
-      <tr className="bg-gray-50/40 border-b border-gray-100">
-        <td colSpan={8} className="px-6 py-3 text-sm text-gray-400 italic">
-          Niciun candidat adăugat în pipeline.
-        </td>
-      </tr>
-    )
+    return <p className="py-3 px-4 text-sm text-gray-400 italic">Niciun candidat adăugat în pipeline.</p>
   }
 
   return (
-    <>
-      <tr className="bg-gray-50/70">
-        <td className="border-l-2 border-blue-200"></td>
-        <td className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidat</td>
-        <td className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Rate</td>
-        <td className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stagiu</td>
-        <td className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interviu</td>
-        <td className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Status</td>
-        <td></td>
-        <td></td>
-      </tr>
-      {subs.map((s, idx) => {
-        const c = s.candidate
-        const rate = c?.rate_wish ?? c?.rate_min
-        const currency = c?.currency ?? 'EUR'
-        const pipeline = PIPELINE_LABELS[s.status] ?? { label: s.status, cls: 'bg-gray-100 text-gray-500' }
-        const checkedSlots = (s.interviews ?? []).filter(i => i.enabled)
-        const latestSlot = checkedSlots.length ? checkedSlots[checkedSlots.length - 1] : null
-        const intStatus = latestSlot ? (INTERVIEW_STATUS_LABELS[latestSlot.status] ?? { label: latestSlot.status, cls: 'bg-gray-100 text-gray-500' }) : null
-        const isLast = idx === subs.length - 1
+    <table className="w-full text-sm border-collapse" style={{ tableLayout: 'fixed' }}>
+      <colgroup>
+        <col style={{ width: '30%' }} />
+        <col style={{ width: '14%' }} />
+        <col style={{ width: '22%' }} />
+        <col style={{ width: '17%' }} />
+        <col style={{ width: '17%' }} />
+      </colgroup>
+      <thead>
+        <tr className="bg-gray-50/80 text-left">
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stagiu</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interviu</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Status interviu</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-100">
+        {subs.map(s => {
+          const c = s.candidate
+          const rate = c?.rate_wish ?? c?.rate_min
+          const currency = c?.currency ?? 'EUR'
+          const pipeline = PIPELINE_LABELS[s.status] ?? { label: s.status, cls: 'bg-gray-100 text-gray-500' }
+          const checkedSlots = (s.interviews ?? []).filter(i => i.enabled)
+          const latestSlot = checkedSlots.length ? checkedSlots[checkedSlots.length - 1] : null
+          const intStatus = latestSlot ? (INTERVIEW_STATUS_LABELS[latestSlot.status] ?? { label: latestSlot.status, cls: 'bg-gray-100 text-gray-500' }) : null
 
-        return (
-          <tr key={s.id} className={cn('bg-blue-50/10 hover:bg-blue-50/30 transition-colors', isLast && 'border-b border-gray-200')}>
-            <td className="border-l-2 border-blue-200 py-2"></td>
-            <td className="px-4 py-2">
-              <span className="font-medium text-gray-800 text-sm">
-                {c ? `${c.first_name} ${c.last_name}` : '—'}
-              </span>
-              {s.ai_score != null && (
-                <span className="ml-2 text-[10px] text-gray-400">{Math.round(s.ai_score)}% match</span>
-              )}
-            </td>
-            <td className="px-4 py-2 text-sm text-gray-600 whitespace-nowrap">
-              {rate ? <span className="font-medium text-amber-700">{rate} {currency}</span> : <span className="text-gray-300">—</span>}
-            </td>
-            <td className="px-4 py-2">
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${pipeline.cls}`}>
-                {pipeline.label}
-              </span>
-            </td>
-            <td className="px-4 py-2 text-sm text-gray-600">
-              {latestSlot
-                ? <span className="text-[11px] font-medium text-blue-600">{latestSlot.label.replace('Interview', 'Int.')}</span>
-                : <span className="text-gray-300">—</span>
-              }
-            </td>
-            <td className="px-4 py-2">
-              {intStatus
-                ? <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${intStatus.cls}`}>{intStatus.label}</span>
-                : <span className="text-gray-300">—</span>
-              }
-            </td>
-            <td></td>
-            <td></td>
-          </tr>
-        )
-      })}
-    </>
+          return (
+            <tr key={s.id} className="hover:bg-blue-50/20 transition-colors">
+              <td className="px-4 py-2 overflow-hidden">
+                <span className="font-medium text-gray-800 truncate block">
+                  {c ? `${c.first_name} ${c.last_name}` : '—'}
+                </span>
+                {s.ai_score != null && (
+                  <span className="text-[10px] text-gray-400">{Math.round(s.ai_score)}% match</span>
+                )}
+              </td>
+              <td className="px-4 py-2 overflow-hidden">
+                {rate ? <span className="font-medium text-amber-700 truncate block">{rate} {currency}</span> : <span className="text-gray-300">—</span>}
+              </td>
+              <td className="px-4 py-2 overflow-hidden">
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${pipeline.cls}`}>
+                  {pipeline.label}
+                </span>
+              </td>
+              <td className="px-4 py-2 overflow-hidden">
+                {latestSlot
+                  ? <span className="text-[11px] font-medium text-blue-600">{latestSlot.label.replace('Interview', 'Int.')}</span>
+                  : <span className="text-gray-300">—</span>
+                }
+              </td>
+              <td className="px-4 py-2 overflow-hidden">
+                {intStatus
+                  ? <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${intStatus.cls}`}>{intStatus.label}</span>
+                  : <span className="text-gray-300">—</span>
+                }
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
   )
 }
 
@@ -434,7 +421,14 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                 </div>
                               </td>
                             </tr>
-                            {isExpanded && <CandidateSubRows roleId={r.id} />}
+                            {isExpanded && (
+                              <tr className="bg-gray-50/40 border-b border-gray-200">
+                                <td className="border-l-2 border-blue-200"></td>
+                                <td colSpan={7} className="py-1">
+                                  <CandidatesSubTable roleId={r.id} />
+                                </td>
+                              </tr>
+                            )}
                           </Fragment>
                         )
                       })}
