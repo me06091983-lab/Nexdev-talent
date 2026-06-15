@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Plus, Sparkles } from 'lucide-react'
+import { Plus, Sparkles, Lock } from 'lucide-react'
 import { KanbanBoard, type Submission } from './KanbanBoard'
 import { AddCandidateModal } from './AddCandidateModal'
 import { AIMatchPanel } from './AIMatchPanel'
@@ -10,6 +10,7 @@ import type { PartnerOption } from './ContractModal'
 interface Role {
   id: string
   title: string
+  status: string
   client: { name: string } | null
   rate: number | null
   rate_currency: string | null
@@ -46,6 +47,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
   const [showAdd, setShowAdd] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [fxRates, setFxRates] = useState<FxRates | null>(null)
+  const isClosed = role.status === 'closed'
 
   useEffect(() => {
     fetch('/api/exchange-rates')
@@ -84,6 +86,14 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
     <div className="flex gap-5 min-h-0 flex-1">
       {/* Main column: Kanban */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
+        {/* Banner rol închis */}
+        {isClosed && (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-600 flex-shrink-0">
+            <Lock size={14} className="text-gray-400 flex-shrink-0" />
+            <span>Rol <strong>închis</strong> — vizualizare read-only. Nu se pot adăuga candidați sau modifica statusuri.</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
@@ -118,26 +128,28 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
               <span className="text-gray-500">{submissions.length} candidați</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowAI(v => !v)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border transition-colors ${
-                showAI
-                  ? 'bg-[#2AA3FF]/10 border-[#2AA3FF]/30 text-[#2AA3FF]'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              <Sparkles size={14} />
-              AI Match
-            </button>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
-            >
-              <Plus size={14} />
-              Adaugă candidat
-            </button>
-          </div>
+          {!isClosed && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAI(v => !v)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl border transition-colors ${
+                  showAI
+                    ? 'bg-[#2AA3FF]/10 border-[#2AA3FF]/30 text-[#2AA3FF]'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <Sparkles size={14} />
+                AI Match
+              </button>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
+              >
+                <Plus size={14} />
+                Adaugă candidat
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Kanban */}
@@ -146,18 +158,19 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
             submissions={submissions}
             onRefresh={refresh}
             partners={partners}
+            readOnly={isClosed}
           />
         </div>
       </div>
 
       {/* AI Panel sidebar */}
-      {showAI && (
+      {!isClosed && showAI && (
         <div className="w-80 flex-shrink-0">
           <AIMatchPanel roleId={role.id} onAddCandidate={handleAddFromAI} />
         </div>
       )}
 
-      {showAdd && (
+      {!isClosed && showAdd && (
         <AddCandidateModal roleId={role.id} onClose={() => setShowAdd(false)} onAdded={handleAdded} />
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Pencil, Trash2, X, Kanban, ChevronRight, ChevronDown, Loader2 } from 'lucide-react'
+import { Search, Pencil, Trash2, X, Kanban, ChevronRight, ChevronDown, Loader2, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 
@@ -390,17 +390,27 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                     title="Pipeline">
                                     <Kanban size={15} />
                                   </Link>
-                                  <Link href={`/roles/${r.id}`}
-                                    className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                                    title="Editează">
-                                    <Pencil size={15} />
-                                  </Link>
-                                  <button onClick={() => handleDelete(r.id, r.title)}
-                                    disabled={deleting === r.id}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                    title="Șterge">
-                                    <Trash2 size={15} />
-                                  </button>
+                                  {r.status === 'closed' ? (
+                                    <Link href={`/roles/${r.id}`}
+                                      className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
+                                      title="Vizualizează">
+                                      <Eye size={15} />
+                                    </Link>
+                                  ) : (
+                                    <>
+                                      <Link href={`/roles/${r.id}`}
+                                        className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
+                                        title="Editează">
+                                        <Pencil size={15} />
+                                      </Link>
+                                      <button onClick={() => handleDelete(r.id, r.title)}
+                                        disabled={deleting === r.id}
+                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                        title="Șterge">
+                                        <Trash2 size={15} />
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>

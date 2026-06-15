@@ -11,7 +11,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
   const [{ data: role }, { data: subs }, { data: rawPartners }] = await Promise.all([
     supabase
       .from('roles')
-      .select('id, title, rate, rate_currency, rate_type, client:clients(name)')
+      .select('id, title, rate, rate_currency, rate_type, status, client:clients(name)')
       .eq('id', id)
       .single(),
     supabase
@@ -50,6 +50,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
   const typedRole = {
     id: r.id as string,
     title: r.title as string,
+    status: r.status as string,
     client: r.client ? (Array.isArray(r.client) ? (r.client[0] ?? null) : r.client) as { name: string } : null,
     rate: r.rate as number | null,
     rate_currency: r.rate_currency as string | null,
