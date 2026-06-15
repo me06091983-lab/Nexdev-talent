@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       *,
       contract:contracts(id),
       candidate:candidates(
-        id, first_name, last_name, email, seniority, location,
+        id, first_name, last_name, email, phone, seniority, location,
         rate_min, rate_wish, currency,
         profile:profiles(id, name),
         candidate_skills(skill:skills(id, name, category))
