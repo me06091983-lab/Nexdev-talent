@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { SkillSelector } from '@/components/ui/SkillSelector'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Skill { id: string; name: string; category: string }
@@ -55,6 +55,8 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
   const [preferredSkills, setPreferredSkills] = useState<Skill[]>((initial?.preferred_skills as Skill[]) ?? [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractMsg, setExtractMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const [form, setForm] = useState({
     title: (initial?.title as string) ?? '',
@@ -78,6 +80,48 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
 
   function set(field: string, value: unknown) {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function handleExtractSkills() {
+    if (!form.description.trim()) {
+      setExtractMsg({ type: 'error', text: 'Completează mai întâi Job Description-ul.' })
+      setTimeout(() => setExtractMsg(null), 4000)
+      return
+    }
+    setExtracting(true)
+    setExtractMsg(null)
+    try {
+      const res = await fetch('/api/roles/extract-skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: form.description }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      // Merge with existing — avoid duplicates by id
+      const mergeSkills = (existing: Skill[], incoming: Skill[]) => {
+        const existingIds = new Set(existing.map(s => s.id))
+        return [...existing, ...incoming.filter(s => !existingIds.has(s.id))]
+      }
+
+      const newRequired = mergeSkills(requiredSkills, data.required ?? [])
+      const newPreferred = mergeSkills(preferredSkills, data.preferred ?? [])
+      setRequiredSkills(newRequired)
+      setPreferredSkills(newPreferred)
+
+      const totalAdded = (data.required?.length ?? 0) + (data.preferred?.length ?? 0)
+      setExtractMsg({
+        type: 'success',
+        text: `AI a identificat ${data.required?.length ?? 0} skilluri obligatorii și ${data.preferred?.length ?? 0} preferate din JD.`,
+      })
+      setTimeout(() => setExtractMsg(null), 6000)
+    } catch (err) {
+      setExtractMsg({ type: 'error', text: err instanceof Error ? err.message : 'Eroare la extragerea skillurilor.' })
+      setTimeout(() => setExtractMsg(null), 5000)
+    } finally {
+      setExtracting(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -224,15 +268,42 @@ export function RoleForm({ initial, roleId }: RoleFormProps) {
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Skilluri obligatorii</h3>
-            <SkillSelector selected={requiredSkills} onChange={setRequiredSkills}
-              placeholder="Caută skilluri obligatorii..." />
-          </section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Skilluri</h3>
+              <button
+                type="button"
+                onClick={handleExtractSkills}
+                disabled={extracting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#2AA3FF]/10 hover:bg-[#2AA3FF]/20 text-[#2AA3FF] border border-[#2AA3FF]/30 rounded-lg transition-colors disabled:opacity-60"
+              >
+                {extracting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {extracting ? 'Analizează JD...' : 'Populează din JD (AI)'}
+              </button>
+            </div>
 
-          <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Skilluri preferate</h3>
-            <SkillSelector selected={preferredSkills} onChange={setPreferredSkills}
-              placeholder="Caută skilluri preferate (nice-to-have)..." />
+            {extractMsg && (
+              <div className={cn(
+                'flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs mb-3',
+                extractMsg.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              )}>
+                {extractMsg.text}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Obligatorii</label>
+                <SkillSelector selected={requiredSkills} onChange={setRequiredSkills}
+                  placeholder="Caută skilluri obligatorii..." />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Preferate (nice-to-have)</label>
+                <SkillSelector selected={preferredSkills} onChange={setPreferredSkills}
+                  placeholder="Caută skilluri preferate..." />
+              </div>
+            </div>
           </section>
 
           <div className="pt-4 border-t border-gray-200/60">
