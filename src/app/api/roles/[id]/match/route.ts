@@ -24,17 +24,17 @@ async function scoreCandidate(
 ): Promise<{ score: number; matched_skills: string[]; missing_skills: string[]; summary: string }> {
   const skillNames = candidate.skills.map(s => s.name).join(', ') || 'Niciun skill înregistrat'
   const expText = (candidate.experiences ?? [])
-    .slice(0, 4)
-    .map(e => `${e.role} @ ${e.company} (${e.start_date ?? '?'} – ${e.is_present ? 'prezent' : (e.end_date ?? '?')})${e.description ? ': ' + e.description.slice(0, 300) : ''}`)
+    .slice(0, 10)
+    .map(e => `${e.role} @ ${e.company} (${e.start_date ?? '?'} – ${e.is_present ? 'prezent' : (e.end_date ?? '?')})${e.description ? ': ' + e.description.slice(0, 1000) : ''}`)
     .join('\n') || 'Nicio experiență înregistrată'
 
-  const prompt = `Ești recrutor tehnic senior. Scorează potrivirea candidat-rol.
+  const prompt = `Ești recrutor tehnic senior. Scorează potrivirea candidat-rol pe baza JD-ului, experienței și skillurilor candidatului.
 
 ROL: ${roleTitle} @ ${clientName}
 CERINȚE OBLIGATORII (skilluri): ${requiredSkillNames.join(', ') || 'nespecificate'}
 
 JOB DESCRIPTION:
-${jd?.slice(0, 3000) || 'Nedisponibil'}
+${jd?.slice(0, 10000) || 'Nedisponibil'}
 
 CANDIDAT: ${candidate.first_name} ${candidate.last_name}
 PROFIL: ${candidate.profile?.name ?? 'Nespecificat'}
@@ -43,9 +43,14 @@ SKILLURI: ${skillNames}
 EXPERIENȚĂ:
 ${expText}
 
-Scorează strict față de "Required Knowledge" / cerințele tehnice din JD.
+Instrucțiuni de scorare:
+1. Analizează JD-ul în detaliu, în special secțiunile "Required Knowledge", "Required Skills" și cerințele tehnice.
+2. Evaluează experiența candidatului: rolurile anterioare, durata, responsabilitățile și descrierile din fiecare poziție.
+3. Evaluează skillurile declarate ale candidatului față de cerințele din JD.
+4. Scorul reflectă atât experiența relevantă cât și acoperirea skillurilor tehnice cerute.
+
 Răspunde DOAR cu JSON valid:
-{"score":0-100,"matched_skills":["..."],"missing_skills":["..."],"summary":"2-3 propoziții în română"}`
+{"score":0-100,"matched_skills":["..."],"missing_skills":["..."],"summary":"2-3 propoziții în română despre potrivirea experienței și skillurilor față de cerințele rolului"}`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -66,6 +71,14 @@ async function batchRun<T, R>(items: T[], fn: (item: T) => Promise<R>, size = 4)
     results.push(...batch)
   }
   return results
+}
+
+// Extracts lowercase keywords from role title + first part of JD for experience matching
+function extractKeywords(roleTitle: string, jd: string): Set<string> {
+  const stopWords = new Set(['and', 'or', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'is', 'are', 'be', 'will', 'have', 'has', 'cu', 'de', 'la', 'si', 'in', 'pe', 'pentru', 'sau'])
+  const text = `${roleTitle} ${jd.slice(0, 2000)}`
+  const words = text.toLowerCase().match(/[a-z][a-z0-9+#.]{2,}/g) ?? []
+  return new Set(words.filter(w => !stopWords.has(w)))
 }
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -126,7 +139,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
   )
 
-  // Discover candidates not yet in pipeline (top 15 by skill overlap)
+  // Discover candidates not yet in pipeline
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pipelineCandidateIds = (submissions ?? []).map((s: any) => s.candidate?.id).filter(Boolean)
 
@@ -137,24 +150,39 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .neq('candidate_status', 'blacklist')
     .not('id', 'in', pipelineCandidateIds.length ? `(${pipelineCandidateIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
 
-  // Pre-filter by skill overlap
+  // Pre-filter combinat: skill overlap + potrivire cuvinte cheie din JD în experiența candidatului
   const reqSkillSet = new Set(requiredSkillNames.map(s => s.toLowerCase()))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const withOverlap = ((allCandidates ?? []) as any[])
-    .map(c => {
-      const cSkills = (c.candidate_skills ?? []).map((cs: { skill: { name: string } | { name: string }[] }) => {
-        const sk = Array.isArray(cs.skill) ? cs.skill[0] : cs.skill
-        return sk?.name?.toLowerCase() ?? ''
-      })
-      const overlap = cSkills.filter((s: string) => reqSkillSet.has(s)).length
-      return { ...c, overlap }
-    })
-    .filter(c => c.overlap > 0 || reqSkillSet.size === 0)
-    .sort((a, b) => b.overlap - a.overlap)
-    .slice(0, 10)
+  const jdKeywords = extractKeywords(role.title, role.description ?? '')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const discoveryResults = await batchRun(withOverlap, async (c: any) => {
+  const scored = ((allCandidates ?? []) as any[]).map(c => {
+    // Skill overlap score
+    const cSkills = (c.candidate_skills ?? []).map((cs: { skill: { name: string } | { name: string }[] }) => {
+      const sk = Array.isArray(cs.skill) ? cs.skill[0] : cs.skill
+      return sk?.name?.toLowerCase() ?? ''
+    })
+    const skillOverlap = reqSkillSet.size > 0
+      ? cSkills.filter((s: string) => reqSkillSet.has(s)).length
+      : 0
+
+    // Experience keyword score: words from JD found in candidate's experience titles + descriptions
+    const expText = ((c.experiences ?? []) as { role: string; description: string }[])
+      .slice(0, 10)
+      .map(e => `${e.role} ${e.description ?? ''}`)
+      .join(' ')
+      .toLowerCase()
+    const expWords = expText.match(/[a-z][a-z0-9+#.]{2,}/g) ?? []
+    const expKeywordHits = expWords.filter((w: string) => jdKeywords.has(w)).length
+
+    // Combined relevance score: skill overlap weighted higher, experience as tiebreaker
+    const relevance = skillOverlap * 3 + Math.min(expKeywordHits, 20)
+    return { ...c, relevance }
+  })
+  .sort((a, b) => b.relevance - a.relevance)
+  .slice(0, 15)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const discoveryResults = await batchRun(scored, async (c: any) => {
     const candidate: CandidateRow = {
       id: c.id, first_name: c.first_name, last_name: c.last_name,
       seniority: c.seniority, experiences: c.experiences,
