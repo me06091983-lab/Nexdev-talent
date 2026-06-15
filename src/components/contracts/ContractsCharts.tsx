@@ -36,18 +36,14 @@ function ProfitTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function ContractsCharts({ data }: { data: ChartMonth[] }) {
-  const hasData = data.some(d => d.count > 0 || d.profit !== 0)
-
-  if (!hasData) return null
-
   const maxCount = Math.max(...data.map(d => d.count), 1)
 
   return (
     <div className="grid grid-cols-2 gap-4 mb-5">
       {/* Grafic 1: nr contracte noi */}
       <div className="glass rounded-2xl p-4">
-        <p className="text-xs font-semibold text-gray-600 mb-0.5">Contracte noi / lună</p>
-        <p className="text-[10px] text-gray-400 mb-3">după data de start, ultimele 12 luni</p>
+        <p className="text-xs font-semibold text-gray-600 mb-0.5">Contracte active / lună</p>
+        <p className="text-[10px] text-gray-400 mb-3">total activ în fiecare lună, ultimele 12 luni</p>
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -73,7 +69,7 @@ export function ContractsCharts({ data }: { data: ChartMonth[] }) {
       {/* Grafic 2: profit net cumulat lunar */}
       <div className="glass rounded-2xl p-4">
         <p className="text-xs font-semibold text-gray-600 mb-0.5">Profit net lunar estimat</p>
-        <p className="text-[10px] text-gray-400 mb-3">suma marjelor nete din contractele active, EUR</p>
+        <p className="text-[10px] text-gray-400 mb-3">suma marjelor nete din contractele active în fiecare lună</p>
         <ResponsiveContainer width="100%" height={150}>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />

@@ -126,36 +126,34 @@ export default async function ContractsPage() {
     .sort((a, b) => b.revenue - a.revenue)
 
   // ── Chart data: last 12 months ──────────────────────────────────────────────
+  // For each month: count ALL active contracts + sum their net monthly margins.
+  // A contract is active in month M if start_date <= last day of M
+  // AND (no end_date OR end_date >= first day of M).
   const now = new Date()
   const chartData: ChartMonth[] = []
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const firstDay = new Date(d.getFullYear(), d.getMonth(), 1)
     const lastDay  = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = d.toLocaleDateString('ro-RO', { month: 'short', year: '2-digit' })
 
-    // nr contracte NOUL PORNITE în luna asta (după start_date)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const count = (contracts as any[]).filter(c =>
-      c.start_date?.substring(0, 7) === monthKey
-    ).length
+    let count = 0
+    let profit = 0
 
-    // profit net lunar din contractele ACTIVE în luna asta (EUR)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const profit = (contracts as any[]).reduce((sum: number, c: any) => {
-      if (c.currency !== 'EUR') return sum
+    for (const c of contracts as any[]) {
       const start = new Date(c.start_date)
       const end   = c.end_date ? new Date(c.end_date) : null
-      if (start > lastDay) return sum
-      if (end && end < firstDay) return sum
+      if (start > lastDay) continue          // contract starts after this month
+      if (end && end < firstDay) continue    // contract ended before this month
+      count++
       const units = c.rate_type === 'daily' ? 20 : 160
-      const gross = (c.bill_rate - c.pay_rate) * units
+      const gross = (Number(c.bill_rate) - Number(c.pay_rate)) * units
       const comms =
-        (c.partner_commission     && c.partner_commission_type     === 'hourly' ? Number(c.partner_commission)     * 160 : 0) +
-        (c.partner_commission_2   && c.partner_commission_2_type   === 'hourly' ? Number(c.partner_commission_2)   * 160 : 0)
-      return sum + gross - comms
-    }, 0)
+        (c.partner_commission   && c.partner_commission_type   === 'hourly' ? Number(c.partner_commission)   * 160 : 0) +
+        (c.partner_commission_2 && c.partner_commission_2_type === 'hourly' ? Number(c.partner_commission_2) * 160 : 0)
+      profit += gross - comms
+    }
 
     chartData.push({ label, count, profit: Math.round(profit) })
   }
