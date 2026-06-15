@@ -18,6 +18,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
       .from('submissions')
       .select(`
         id, status, ai_score, ai_summary, role_id, interviews,
+        submission_rate, submission_currency, submission_rate_type,
         contract:contracts(id),
         candidate:candidates(
           id, first_name, last_name, phone, seniority,
@@ -84,6 +85,9 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
     interviews: s.interviews ?? [],
     contract_id: Array.isArray(s.contract) ? (s.contract[0]?.id ?? null) : (s.contract?.id ?? null),
     role: { title: typedRole.title, client: typedRole.client },
+    submission_rate: s.submission_rate ?? null,
+    submission_currency: s.submission_currency ?? 'EUR',
+    submission_rate_type: s.submission_rate_type ?? 'daily',
   }))
 
   return (

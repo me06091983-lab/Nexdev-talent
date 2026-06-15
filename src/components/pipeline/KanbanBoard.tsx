@@ -46,6 +46,9 @@ export interface Submission {
   interviews?: InterviewSlot[]
   contract_id?: string | null
   role?: { title?: string; client?: { name: string } | null } | null
+  submission_rate?: number | null
+  submission_currency?: string | null
+  submission_rate_type?: string | null
 }
 
 const SENIORITY_SHORT: Record<string, string> = {
@@ -160,17 +163,12 @@ function CandidateCard({
         </div>
       )}
 
-      {/* Row 2: badges */}
-      {(c?.rate_wish || c?.rate_min || hasContract) && (
+      {/* Row 2: rate submisie + contract badge */}
+      {(submission.submission_rate != null || hasContract) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          {c?.rate_min != null && (
-            <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded font-medium">
-              min {c.rate_min} {c.currency ?? 'EUR'}
-            </span>
-          )}
-          {c?.rate_wish != null && (
-            <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-medium">
-              dorit {c.rate_wish} {c.currency ?? 'EUR'}
+          {submission.submission_rate != null && (
+            <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-semibold">
+              {submission.submission_rate} {submission.submission_currency ?? 'EUR'}/{submission.submission_rate_type === 'hourly' ? 'h' : 'zi'}
             </span>
           )}
           {hasContract && (

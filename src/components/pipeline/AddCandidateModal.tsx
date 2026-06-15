@@ -18,6 +18,12 @@ interface Props {
   onAdded: () => void
 }
 
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
+const RATE_TYPE_OPTIONS = [
+  { value: 'daily', label: '/zi' },
+  { value: 'hourly', label: '/oră' },
+]
+
 function ScoreCircle({ score }: { score: number }) {
   const cls = score >= 85
     ? 'border-green-400 text-green-600 bg-green-50'
@@ -40,7 +46,11 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
 
-  // Fetch existing AI scores for this role
+  // Rate submisie
+  const [submissionRate, setSubmissionRate] = useState('')
+  const [submissionCurrency, setSubmissionCurrency] = useState('EUR')
+  const [submissionRateType, setSubmissionRateType] = useState('daily')
+
   useEffect(() => {
     fetch(`/api/submissions?role_id=${roleId}`)
       .then(r => r.ok ? r.json() : [])
@@ -79,7 +89,14 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidate_id: candidateId, role_id: roleId, note: note.trim() || null }),
+        body: JSON.stringify({
+          candidate_id: candidateId,
+          role_id: roleId,
+          note: note.trim() || null,
+          submission_rate: submissionRate ? parseFloat(submissionRate) : null,
+          submission_currency: submissionCurrency,
+          submission_rate_type: submissionRateType,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Eroare')
@@ -105,6 +122,36 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
         </div>
 
         <div className="p-5 space-y-3">
+          {/* Rate submisie */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Rate submisie</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={submissionRate}
+                onChange={e => setSubmissionRate(e.target.value)}
+                placeholder="0.00"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
+              />
+              <select
+                value={submissionCurrency}
+                onChange={e => setSubmissionCurrency(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white"
+              >
+                {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                value={submissionRateType}
+                onChange={e => setSubmissionRateType(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white"
+              >
+                {RATE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -117,7 +164,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
             />
           </div>
 
-          <div className="min-h-[200px] max-h-[300px] overflow-y-auto space-y-1.5">
+          <div className="min-h-[180px] max-h-[260px] overflow-y-auto space-y-1.5">
             {loading ? (
               <div className="flex items-center justify-center py-10 text-gray-400">
                 <Loader2 size={20} className="animate-spin" />

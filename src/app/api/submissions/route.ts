@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
-  const { candidate_id, role_id, note } = await request.json()
+  const { candidate_id, role_id, note, submission_rate, submission_currency, submission_rate_type } = await request.json()
 
   // Check for existing submission
   const { data: anyExisting } = await supabase
@@ -56,7 +56,14 @@ export async function POST(request: NextRequest) {
 
   const { data: submission, error: insertError } = await supabase
     .from('submissions')
-    .insert({ candidate_id, role_id, status: 'pipeline' })
+    .insert({
+      candidate_id,
+      role_id,
+      status: 'pipeline',
+      submission_rate: submission_rate ?? null,
+      submission_currency: submission_currency ?? 'EUR',
+      submission_rate_type: submission_rate_type ?? 'daily',
+    })
     .select()
     .single()
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
