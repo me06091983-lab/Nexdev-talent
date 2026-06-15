@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     supabase
       .from('contracts')
-      .select('id, contract_status, start_date, end_date, bill_rate, currency, role:roles(id, title)')
+      .select('id, contract_status, start_date, end_date, bill_rate, pay_rate, rate_type, currency, role:roles(id, title)')
       .eq('candidate_id', id)
       .order('start_date', { ascending: false }),
   ])
@@ -75,6 +75,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       start_date: c.start_date,
       end_date: c.end_date,
       bill_rate: c.bill_rate,
+      pay_rate: c.pay_rate ?? null,
+      rate_type: c.rate_type ?? 'daily',
       currency: c.currency,
       role_title: role?.title ?? null,
       role_id: role?.id ?? null,

@@ -57,6 +57,8 @@ interface ContractEntry {
   start_date: string
   end_date: string | null
   bill_rate: number
+  pay_rate: number | null
+  rate_type: string
   currency: string
   role_title: string | null
   role_id: string | null
@@ -81,6 +83,22 @@ interface CandidateDetailProps {
 
 function fmtDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function fmtRate(n: number): string {
+  return n % 1 === 0 ? n.toFixed(0) : n.toFixed(2)
+}
+
+function calcEurEquivalents(
+  rate: number,
+  rateType: string,
+  currency: string,
+  rates: Record<string, number>
+): { perHour: number; perDay: number } {
+  const toEur = currency === 'EUR' ? rate : rate / (rates[currency] ?? 1)
+  const perHour = rateType === 'daily' ? toEur / 8 : toEur
+  const perDay = rateType === 'daily' ? toEur : toEur * 8
+  return { perHour: Math.round(perHour * 100) / 100, perDay: Math.round(perDay * 100) / 100 }
 }
 
 function fmtDateTime(iso: string) {
@@ -200,6 +218,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
   const [error, setError] = useState('')
   const [generatingCV, setGeneratingCV] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ USD: 1.10, GBP: 0.85, RON: 4.97 })
 
   // CV state — managed here, passed down to CandidateForm
   const [cvFile, setCvFile] = useState<File | null>(null)
@@ -308,6 +327,13 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
   }, [candidateId])
 
   useEffect(() => { fetchHistory() }, [fetchHistory])
+
+  useEffect(() => {
+    fetch('/api/exchange-rates')
+      .then(r => r.ok ? r.json() : null)
+      .then(rates => { if (rates) setExchangeRates(rates) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const onFocus = () => fetchHistory()
@@ -480,25 +506,73 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                     {data.contracts.map(c => {
                       const cs = CONTRACT_STATUS[c.contract_status] ?? { label: c.contract_status, cls: 'bg-gray-100 text-gray-600' }
                       const isActive = c.contract_status === 'activ'
+                      const rateLabel = c.rate_type === 'hourly' ? '/oră' : '/zi'
+                      const billEur = calcEurEquivalents(c.bill_rate, c.rate_type, c.currency, exchangeRates)
+                      const payEur = c.pay_rate != null
+                        ? calcEurEquivalents(c.pay_rate, c.rate_type, c.currency, exchangeRates)
+                        : null
                       return (
                         <div key={c.id} className={cn(
-                          'bg-white rounded-2xl p-4 flex items-center justify-between gap-4 border',
+                          'bg-white rounded-2xl p-4 border',
                           isActive ? 'border-green-100 bg-green-50/30' : 'border-gray-100'
                         )}>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-gray-900 text-sm">{c.role_title ?? 'Contract'}</span>
-                              <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', cs.cls)}>{cs.label}</span>
+                          {/* Header: title + status + dates */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="font-medium text-gray-900 text-sm">{c.role_title ?? 'Contract'}</span>
+                                <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', cs.cls)}>{cs.label}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                                <span>Start: <span className="font-medium text-gray-700">{fmtDate(c.start_date)}</span></span>
+                                {c.end_date && <span>End: <span className="font-medium text-gray-700">{fmtDate(c.end_date)}</span></span>}
+                                {!c.end_date && <span className="text-green-600 font-medium">Nedeterminat</span>}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                              <span>Start: <span className="font-medium text-gray-700">{fmtDate(c.start_date)}</span></span>
-                              {c.end_date && <span>End: <span className="font-medium text-gray-700">{fmtDate(c.end_date)}</span></span>}
-                              {!c.end_date && <span className="text-green-600 font-medium">Nedeterminat</span>}
-                            </div>
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0 font-medium">
+                              {rateLabel}
+                            </span>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-bold text-gray-900">{c.bill_rate} {c.currency}</p>
-                            <p className="text-[10px] text-gray-400">bill rate / zi</p>
+
+                          {/* Rate cards */}
+                          <div className={cn('grid gap-2', payEur ? 'grid-cols-2' : 'grid-cols-1 max-w-[220px]')}>
+                            {/* Bill rate */}
+                            <div className="bg-blue-50/60 rounded-xl p-2.5">
+                              <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wide mb-1">Bill rate</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                {fmtRate(c.bill_rate)} <span className="text-xs font-medium text-gray-500">{c.currency}{rateLabel}</span>
+                              </p>
+                              <div className="mt-1.5 space-y-0.5 border-t border-blue-100 pt-1.5">
+                                <p className="text-[10px] text-gray-500">
+                                  <span className="text-gray-400">EUR/oră: </span>
+                                  <span className="font-semibold text-gray-700">{fmtRate(billEur.perHour)}</span>
+                                </p>
+                                <p className="text-[10px] text-gray-500">
+                                  <span className="text-gray-400">EUR/zi: </span>
+                                  <span className="font-semibold text-gray-700">{fmtRate(billEur.perDay)}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Pay rate */}
+                            {payEur && c.pay_rate != null && (
+                              <div className="bg-green-50/60 rounded-xl p-2.5">
+                                <p className="text-[10px] text-green-500 font-semibold uppercase tracking-wide mb-1">Pay rate</p>
+                                <p className="text-sm font-bold text-gray-900">
+                                  {fmtRate(c.pay_rate)} <span className="text-xs font-medium text-gray-500">{c.currency}{rateLabel}</span>
+                                </p>
+                                <div className="mt-1.5 space-y-0.5 border-t border-green-100 pt-1.5">
+                                  <p className="text-[10px] text-gray-500">
+                                    <span className="text-gray-400">EUR/oră: </span>
+                                    <span className="font-semibold text-gray-700">{fmtRate(payEur.perHour)}</span>
+                                  </p>
+                                  <p className="text-[10px] text-gray-500">
+                                    <span className="text-gray-400">EUR/zi: </span>
+                                    <span className="font-semibold text-gray-700">{fmtRate(payEur.perDay)}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )
