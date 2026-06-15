@@ -41,13 +41,13 @@ interface Submission {
   id: string
   status: string
   ai_score: number | null
+  submission_rate: number | null
+  submission_currency: string | null
+  submission_rate_type: string | null
   interviews: InterviewSlot[]
   candidate: {
     first_name: string
     last_name: string
-    rate_min: number | null
-    rate_wish: number | null
-    currency: string | null
   } | null
 }
 
@@ -150,8 +150,9 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
       <tbody className="divide-y divide-gray-100">
         {subs.map(s => {
           const c = s.candidate
-          const rate = c?.rate_wish ?? c?.rate_min
-          const currency = c?.currency ?? 'EUR'
+          const rate = s.submission_rate
+          const currency = s.submission_currency ?? 'EUR'
+          const rateType = s.submission_rate_type === 'daily' ? '/zi' : '/oră'
           const pipeline = PIPELINE_LABELS[s.status] ?? { label: s.status, cls: 'bg-gray-100 text-gray-500' }
           const checkedSlots = (s.interviews ?? []).filter(i => i.enabled)
           const latestSlot = checkedSlots.length ? checkedSlots[checkedSlots.length - 1] : null
@@ -168,7 +169,9 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
                 )}
               </td>
               <td className="px-4 py-2 overflow-hidden">
-                {rate ? <span className="font-medium text-amber-700 truncate block">{rate} {currency}</span> : <span className="text-gray-300">—</span>}
+                {rate
+                  ? <span className="font-medium text-amber-700">{rate} {currency}<span className="text-gray-400 font-normal text-[10px] ml-0.5">{rateType}</span></span>
+                  : <span className="text-gray-300">—</span>}
               </td>
               <td className="px-4 py-2 overflow-hidden">
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${pipeline.cls}`}>
