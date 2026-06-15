@@ -7,7 +7,14 @@ import type { CandidateOption, RoleOption, PartnerOption } from '@/components/pi
 export default async function ContractsPage() {
   const supabase = await createClient()
 
-  const [{ data: rawContracts }, { data: rawCandidates }, { data: rawRoles }, { data: rawPartners }] = await Promise.all([
+  // Fetch exchange rates (1 EUR = X units) alongside other data
+  const fxPromise = fetch('https://api.frankfurter.app/latest?base=EUR&symbols=USD,GBP,RON', {
+    next: { revalidate: 3600 },
+  })
+    .then(r => r.ok ? r.json().then((d: { rates: Record<string, number> }) => d.rates) : null)
+    .catch(() => null)
+
+  const [{ data: rawContracts }, { data: rawCandidates }, { data: rawRoles }, { data: rawPartners }, fxRates] = await Promise.all([
     supabase
       .from('contracts')
       .select(`
@@ -43,6 +50,8 @@ export default async function ContractsPage() {
       .from('partners')
       .select('id, first_name, last_name, name')
       .order('last_name', { ascending: true }),
+
+    fxPromise,
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,13 +134,21 @@ export default async function ContractsPage() {
     }))
     .sort((a, b) => b.revenue - a.revenue)
 
-  // ── Chart data: last 12 months ──────────────────────────────────────────────
+  // ── EUR conversion helper ────────────────────────────────────────────────────
+  // fxRates = { USD: 1.13, GBP: 0.84, RON: 4.98 } (1 EUR = X units)
+  function toEur(amount: number, currency: string): number {
+    if (currency === 'EUR') return amount
+    const rate = (fxRates as Record<string, number> | null)?.[currency]
+    return rate ? amount / rate : amount
+  }
+
+  // ── Chart data: last 12 months + next 3 months ───────────────────────────────
   // For each month: count ALL active contracts + sum their net monthly margins.
   // A contract is active in month M if start_date <= last day of M
   // AND (no end_date OR end_date >= first day of M).
   const now = new Date()
   const chartData: ChartMonth[] = []
-  for (let i = 11; i >= 0; i--) {
+  for (let i = 11; i >= -3; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const firstDay = new Date(d.getFullYear(), d.getMonth(), 1)
     const lastDay  = new Date(d.getFullYear(), d.getMonth() + 1, 0)
@@ -152,7 +169,7 @@ export default async function ContractsPage() {
       const comms =
         (c.partner_commission   && c.partner_commission_type   === 'hourly' ? Number(c.partner_commission)   * 160 : 0) +
         (c.partner_commission_2 && c.partner_commission_2_type === 'hourly' ? Number(c.partner_commission_2) * 160 : 0)
-      profit += gross - comms
+      profit += toEur(gross - comms, c.currency ?? 'EUR')
     }
 
     chartData.push({ label, count, profit: Math.round(profit) })
@@ -200,6 +217,9 @@ export default async function ContractsPage() {
                     {currencySummaries[0].revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
                   </p>
+                  {currencySummaries[0].currency !== 'EUR' && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].revenue, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                  )}
                 </div>
               </div>
               <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
@@ -210,6 +230,9 @@ export default async function ContractsPage() {
                     {currencySummaries[0].cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
                   </p>
+                  {currencySummaries[0].currency !== 'EUR' && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].cost, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                  )}
                 </div>
               </div>
               <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-green-100 bg-green-50/30">
@@ -222,6 +245,9 @@ export default async function ContractsPage() {
                     {currencySummaries[0].margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-green-500 ml-1">{currencySummaries[0].currency}</span>
                   </p>
+                  {currencySummaries[0].currency !== 'EUR' && (
+                    <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].margin, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                  )}
                 </div>
               </div>
             </>
@@ -240,6 +266,9 @@ export default async function ContractsPage() {
                   {s.revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
                 </p>
+                {s.currency !== 'EUR' && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.revenue, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                )}
               </div>
             </div>
             <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
@@ -250,6 +279,9 @@ export default async function ContractsPage() {
                   {s.cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
                 </p>
+                {s.currency !== 'EUR' && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.cost, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                )}
               </div>
             </div>
             <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-green-100 bg-green-50/30">
@@ -262,6 +294,9 @@ export default async function ContractsPage() {
                   {s.margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-green-500 ml-1">{s.currency}</span>
                 </p>
+                {s.currency !== 'EUR' && (
+                  <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(s.margin, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                )}
               </div>
             </div>
           </div>
