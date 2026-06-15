@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
-  const { candidate_id, role_id, note, submission_rate, submission_currency, submission_rate_type } = await request.json()
+  const { candidate_id, role_id, note, submission_rate, submission_currency, submission_rate_type, ai_score, ai_summary } = await request.json()
 
   // Check for existing submission
   const { data: anyExisting } = await supabase
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
       submission_rate: submission_rate ?? null,
       submission_currency: submission_currency ?? 'EUR',
       submission_rate_type: submission_rate_type ?? 'daily',
+      ai_score: ai_score ?? null,
+      ai_summary: ai_summary ?? null,
     })
     .select()
     .single()

@@ -86,6 +86,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
     setAdding(candidateId)
     setError('')
     try {
+      const precomputedScore = scores[candidateId]
       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,6 +97,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
           submission_rate: submissionRate ? parseFloat(submissionRate) : null,
           submission_currency: submissionCurrency,
           submission_rate_type: submissionRateType,
+          ai_score: precomputedScore != null ? precomputedScore : null,
         }),
       })
       const data = await res.json()

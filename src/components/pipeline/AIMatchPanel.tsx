@@ -5,6 +5,12 @@ import { Sparkles, Loader2, ChevronDown, ChevronRight, Plus, Check, User, FileTe
 import { CandidateViewModal } from '@/components/candidates/CandidateViewModal'
 import { CandidateCVModal } from '@/components/candidates/CandidateCVModal'
 
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
+const RATE_TYPE_OPTIONS = [
+  { value: 'daily', label: '/zi' },
+  { value: 'hourly', label: '/oră' },
+]
+
 interface MatchResult {
   candidate_id?: string
   candidate_name: string
@@ -24,9 +30,18 @@ interface MatchData {
   discovered: MatchResult[]
 }
 
+export interface AddCandidateParams {
+  candidateId: string
+  rate?: number | null
+  currency: string
+  rateType: string
+  aiScore: number
+  aiSummary: string
+}
+
 interface Props {
   roleId: string
-  onAddCandidate: (candidateId: string) => Promise<void> | void
+  onAddCandidate: (params: AddCandidateParams) => Promise<void> | void
 }
 
 function ScoreCircle({ score }: { score: number }) {
@@ -183,6 +198,11 @@ export function AIMatchPanel({ roleId, onAddCandidate }: Props) {
   const [viewProfileId, setViewProfileId] = useState<string | null>(null)
   const [viewCV, setViewCV] = useState<{ id: string; name: string } | null>(null)
 
+  // Rate submisie — shared pentru toți candidații din panel
+  const [submissionRate, setSubmissionRate] = useState('')
+  const [submissionCurrency, setSubmissionCurrency] = useState('EUR')
+  const [submissionRateType, setSubmissionRateType] = useState('daily')
+
   async function runMatch() {
     setLoading(true)
     setError('')
@@ -214,6 +234,36 @@ export function AIMatchPanel({ roleId, onAddCandidate }: Props) {
             {loading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
             {loading ? 'Analizez...' : data ? 'Re-analizează' : 'Analizează'}
           </button>
+        </div>
+
+        {/* Rate submisie */}
+        <div className="mb-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Rate submisie</label>
+          <div className="flex gap-1.5">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={submissionRate}
+              onChange={e => setSubmissionRate(e.target.value)}
+              placeholder="0.00"
+              className="flex-1 min-w-0 px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
+            />
+            <select
+              value={submissionCurrency}
+              onChange={e => setSubmissionCurrency(e.target.value)}
+              className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
+            >
+              {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
+              value={submissionRateType}
+              onChange={e => setSubmissionRateType(e.target.value)}
+              className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
+            >
+              {RATE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
         </div>
 
         {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
@@ -249,7 +299,16 @@ export function AIMatchPanel({ roleId, onAddCandidate }: Props) {
                       key={item.candidate_id}
                       item={item}
                       onAdd={item.candidate_id
-                        ? async () => { await onAddCandidate(item.candidate_id!) }
+                        ? async () => {
+                            await onAddCandidate({
+                              candidateId: item.candidate_id!,
+                              rate: submissionRate ? parseFloat(submissionRate) : null,
+                              currency: submissionCurrency,
+                              rateType: submissionRateType,
+                              aiScore: item.score,
+                              aiSummary: item.summary,
+                            })
+                          }
                         : undefined
                       }
                       onViewProfile={item.candidate_id ? () => setViewProfileId(item.candidate_id!) : undefined}

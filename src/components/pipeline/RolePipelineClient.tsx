@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Plus, Sparkles, Lock } from 'lucide-react'
 import { KanbanBoard, type Submission } from './KanbanBoard'
 import { AddCandidateModal } from './AddCandidateModal'
-import { AIMatchPanel } from './AIMatchPanel'
+import { AIMatchPanel, type AddCandidateParams } from './AIMatchPanel'
 import type { PartnerOption } from './ContractModal'
 
 interface Role {
@@ -69,11 +69,19 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
     refresh()
   }
 
-  async function handleAddFromAI(candidateId: string) {
+  async function handleAddFromAI({ candidateId, rate, currency, rateType, aiScore, aiSummary }: AddCandidateParams) {
     const res = await fetch('/api/submissions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ candidate_id: candidateId, role_id: role.id }),
+      body: JSON.stringify({
+        candidate_id: candidateId,
+        role_id: role.id,
+        submission_rate: rate ?? null,
+        submission_currency: currency,
+        submission_rate_type: rateType,
+        ai_score: aiScore,
+        ai_summary: aiSummary,
+      }),
     })
     if (!res.ok) {
       const d = await res.json()
