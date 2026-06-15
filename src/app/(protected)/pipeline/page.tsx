@@ -20,7 +20,7 @@ export default async function PipelinePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const submissions: RadarSubmission[] = (rawSubs ?? []).filter((s: any) => {
     const roleStatus = Array.isArray(s.role) ? s.role[0]?.status : s.role?.status
-    return roleStatus === 'active' || roleStatus === 'on_hold'
+    return roleStatus === 'active'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }).map((s: any) => {
     const role = Array.isArray(s.role) ? s.role[0] : s.role
