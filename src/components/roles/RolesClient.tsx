@@ -321,10 +321,20 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                   <div className={cn('flex-1 h-px', isInactive ? 'bg-gray-100' : 'bg-gray-200')} />
                 </div>
                 <div className={cn('glass rounded-2xl overflow-hidden', isInactive && 'opacity-70')}>
-                  <table className="w-full">
+                  <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                    <colgroup>
+                      <col style={{ width: '3%' }} />
+                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '6%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '13%' }} />
+                    </colgroup>
                     <thead>
                       <tr className="border-b border-white/40 bg-white/30 text-left">
-                        <th className="px-2 py-3 w-8"></th>
+                        <th className="px-2 py-3"></th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
