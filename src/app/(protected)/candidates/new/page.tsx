@@ -1,6 +1,12 @@
+'use client'
+
+import { useState } from 'react'
 import { CandidateForm } from '@/components/candidates/CandidateForm'
+import { Loader2 } from 'lucide-react'
 
 export default function NewCandidatePage() {
+  const [saving, setSaving] = useState(false)
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -11,13 +17,15 @@ export default function NewCandidatePage() {
         <button
           type="submit"
           form="candidate-form"
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+          disabled={saving}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium rounded-xl transition-colors"
         >
-          Salvează candidat
+          {saving && <Loader2 size={14} className="animate-spin" />}
+          {saving ? 'Se salvează...' : 'Salvează candidat'}
         </button>
       </div>
       <div className="glass rounded-2xl p-8">
-        <CandidateForm />
+        <CandidateForm onSavingChange={setSaving} />
       </div>
     </div>
   )
