@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { X, TrendingUp, Search } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { X, TrendingUp, Search, Plus, Trash2 } from 'lucide-react'
 import type { Submission } from './KanbanBoard'
 
 export interface CandidateOption {
@@ -33,6 +33,18 @@ interface Props {
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'RON'] as const
 type CommType = 'hourly' | 'onetime'
+
+interface Commission {
+  key: string
+  amount: string
+  type: CommType
+  partnerId: string
+}
+
+let commKey = 0
+function newComm(): Commission {
+  return { key: String(++commKey), amount: '', type: 'hourly', partnerId: '' }
+}
 
 function SearchableSelect({
   options, value, onSelect, placeholder, displayValue,
@@ -122,12 +134,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
   const [payRate, setPayRate] = useState('')
   const [billRate, setBillRate] = useState('')
   const [currency, setCurrency] = useState<'EUR' | 'USD' | 'GBP' | 'RON'>('EUR')
-  const [comm1, setComm1] = useState('')
-  const [comm1Type, setComm1Type] = useState<CommType>('hourly')
-  const [partner1Id, setPartner1Id] = useState('')
-  const [comm2, setComm2] = useState('')
-  const [comm2Type, setComm2Type] = useState<CommType>('hourly')
-  const [partner2Id, setPartner2Id] = useState('')
+  const [commissions, setCommissions] = useState<Commission[]>([])
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(isEdit)
@@ -145,12 +152,14 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
         setPayRate(String(data.pay_rate ?? ''))
         setBillRate(String(data.bill_rate ?? ''))
         setCurrency(data.currency ?? 'EUR')
-        setComm1(data.partner_commission ? String(data.partner_commission) : '')
-        setComm1Type(data.partner_commission_type ?? 'hourly')
-        setPartner1Id(data.partner_id ?? '')
-        setComm2(data.partner_commission_2 ? String(data.partner_commission_2) : '')
-        setComm2Type(data.partner_commission_2_type ?? 'hourly')
-        setPartner2Id(data.partner_id_2 ?? '')
+        const loaded: Commission[] = []
+        if (data.partner_commission != null) {
+          loaded.push({ key: String(++commKey), amount: String(data.partner_commission), type: data.partner_commission_type ?? 'hourly', partnerId: data.partner_id ?? '' })
+        }
+        if (data.partner_commission_2 != null) {
+          loaded.push({ key: String(++commKey), amount: String(data.partner_commission_2), type: data.partner_commission_2_type ?? 'hourly', partnerId: data.partner_id_2 ?? '' })
+        }
+        setCommissions(loaded)
         setNotes(data.notes ?? '')
       })
       .catch(() => setError('Eroare la încărcarea contractului.'))
@@ -164,14 +173,23 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
   const grossMonthly = grossUnit * units
   const grossPct = bill > 0 ? Math.round((grossUnit / bill) * 100) : 0
 
-  const monthlyComms =
-    (comm1 && comm1Type === 'hourly' ? (parseFloat(comm1) || 0) * 160 : 0) +
-    (comm2 && comm2Type === 'hourly' ? (parseFloat(comm2) || 0) * 160 : 0)
+  const monthlyComms = commissions.reduce((sum, c) => {
+    if (!c.amount || c.type !== 'hourly') return sum
+    return sum + (parseFloat(c.amount) || 0) * 160
+  }, 0)
 
   const netMonthly = grossMonthly - monthlyComms
   const netUnit = units > 0 ? netMonthly / units : 0
   const netPct = bill > 0 ? Math.round((netUnit / bill) * 100) : 0
-  const hasComm = (comm1 && parseFloat(comm1) > 0) || (comm2 && parseFloat(comm2) > 0)
+  const hasComm = commissions.some(c => c.amount && parseFloat(c.amount) > 0)
+
+  const updateComm = useCallback((key: string, patch: Partial<Commission>) => {
+    setCommissions(prev => prev.map(c => c.key === key ? { ...c, ...patch } : c))
+  }, [])
+
+  const removeComm = useCallback((key: string) => {
+    setCommissions(prev => prev.filter(c => c.key !== key))
+  }, [])
 
   const candidateOptions = useMemo(() => (candidates ?? []).map(c => ({ id: c.id, label: c.name, sub: c.profile ?? undefined })), [candidates])
   const roleOptions = useMemo(() => (roles ?? []).map(r => ({ id: r.id, label: r.title, sub: r.clientName || undefined })), [roles])
@@ -201,12 +219,12 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
       bill_rate: bill,
       rate_type: rateType,
       currency,
-      partner_commission: comm1 ? parseFloat(comm1) : null,
-      partner_commission_type: comm1Type,
-      partner_id: partner1Id || null,
-      partner_commission_2: comm2 ? parseFloat(comm2) : null,
-      partner_commission_2_type: comm2Type,
-      partner_id_2: partner2Id || null,
+      partner_commission: commissions[0]?.amount ? parseFloat(commissions[0].amount) : null,
+      partner_commission_type: commissions[0]?.type ?? 'hourly',
+      partner_id: commissions[0]?.partnerId || null,
+      partner_commission_2: commissions[1]?.amount ? parseFloat(commissions[1].amount) : null,
+      partner_commission_2_type: commissions[1]?.type ?? 'hourly',
+      partner_id_2: commissions[1]?.partnerId || null,
       notes: notes.trim() || null,
     }
 
@@ -350,50 +368,46 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
             </div>
 
             {/* Commissions */}
-            <div className="space-y-3">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Comisioane parteneri <span className="text-gray-300 font-normal">(opțional)</span>
-              </label>
-              {/* Commission 1 */}
-              <div className="space-y-1.5 p-3 border border-gray-100 rounded-xl bg-gray-50/50">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Comision 1</p>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input type="number" min="0" step="0.01" value={comm1} onChange={e => setComm1(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 pr-14 bg-white" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">{currency}</span>
-                  </div>
-                  <CommTypeToggle value={comm1Type} onChange={setComm1Type} />
-                </div>
-                {partners && partners.length > 0 && (
-                  <select value={partner1Id} onChange={e => setPartner1Id(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white text-gray-700">
-                    <option value="">— Partener (opțional) —</option>
-                    {partners.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Comisioane parteneri <span className="text-gray-300 font-normal">(opțional)</span>
+                </label>
+                {commissions.length < 2 && (
+                  <button type="button" onClick={() => setCommissions(prev => [...prev, newComm()])}
+                    className="flex items-center gap-1 text-[11px] font-medium text-[#2AA3FF] hover:text-[#2AA3FF]/80 transition-colors">
+                    <Plus size={12} /> Adaugă comision partener
+                  </button>
                 )}
               </div>
-              {/* Commission 2 */}
-              <div className="space-y-1.5 p-3 border border-gray-100 rounded-xl bg-gray-50/50">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Comision 2</p>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input type="number" min="0" step="0.01" value={comm2} onChange={e => setComm2(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 pr-14 bg-white" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">{currency}</span>
+              {commissions.map((comm, idx) => (
+                <div key={comm.key} className="space-y-1.5 p-3 border border-gray-100 rounded-xl bg-gray-50/50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Comision {idx + 1}</p>
+                    <button type="button" onClick={() => removeComm(comm.key)}
+                      className="p-0.5 text-gray-300 hover:text-red-400 transition-colors rounded">
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-                  <CommTypeToggle value={comm2Type} onChange={setComm2Type} />
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input type="number" min="0" step="0.01" value={comm.amount}
+                        onChange={e => updateComm(comm.key, { amount: e.target.value })}
+                        placeholder="0.00"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 pr-14 bg-white" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">{currency}</span>
+                    </div>
+                    <CommTypeToggle value={comm.type} onChange={v => updateComm(comm.key, { type: v })} />
+                  </div>
+                  {partners && partners.length > 0 && (
+                    <select value={comm.partnerId} onChange={e => updateComm(comm.key, { partnerId: e.target.value })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white text-gray-700">
+                      <option value="">— Partener (opțional) —</option>
+                      {partners.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                  )}
                 </div>
-                {partners && partners.length > 0 && (
-                  <select value={partner2Id} onChange={e => setPartner2Id(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white text-gray-700">
-                    <option value="">— Partener (opțional) —</option>
-                    {partners.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
-                )}
-              </div>
+              ))}
             </div>
 
             {/* Margin summary */}
