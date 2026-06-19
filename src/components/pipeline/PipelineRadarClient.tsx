@@ -17,9 +17,10 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
 import { cn } from '@/lib/utils'
-import { Calendar, ExternalLink, Trash2, MessageSquare, User, Phone } from 'lucide-react'
+import { Calendar, ExternalLink, Trash2, MessageSquare, User, Phone, LayoutGrid, CalendarDays } from 'lucide-react'
 import { StatusModal } from './StatusModal'
 import type { Submission as KanbanSubmission } from './KanbanBoard'
+import { RadarCalendarView } from './RadarCalendarView'
 
 export interface RadarSubmission {
   id: string
@@ -312,6 +313,7 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selected, setSelected] = useState<RadarSubmission | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [view, setView] = useState<'kanban' | 'calendar'>('kanban')
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => { setItems(initialSubmissions) }, [initialSubmissions])
@@ -366,42 +368,74 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
 
   return (
     <>
-      <div className="overflow-x-auto pb-4 -mx-1 px-1">
-        {!mounted ? (
-          <div className="flex gap-2.5 min-w-max">
-            {PIPELINE_STATUSES.map(status => (
-              <div
-                key={status.value}
-                className="flex-shrink-0 w-[210px] h-24 rounded-xl bg-gray-50 border border-gray-100 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
+      {/* View toggle */}
+      <div className="flex items-center gap-1 mb-5 bg-gray-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => { setView('kanban'); setSelected(null) }}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+            view === 'kanban'
+              ? 'bg-white text-[#0B1A33] shadow-sm'
+              : 'text-gray-500 hover:text-gray-700',
+          )}
+        >
+          <LayoutGrid size={14} />
+          Kanban
+        </button>
+        <button
+          onClick={() => { setView('calendar'); setSelected(null) }}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+            view === 'calendar'
+              ? 'bg-white text-[#0B1A33] shadow-sm'
+              : 'text-gray-500 hover:text-gray-700',
+          )}
+        >
+          <CalendarDays size={14} />
+          Calendar
+        </button>
+      </div>
+
+      {view === 'kanban' ? (
+        <div className="overflow-x-auto pb-4 -mx-1 px-1">
+          {!mounted ? (
             <div className="flex gap-2.5 min-w-max">
               {PIPELINE_STATUSES.map(status => (
-                <KanbanColumn
+                <div
                   key={status.value}
-                  status={status}
-                  items={items.filter(s => s.status === status.value)}
-                  onCardEdit={setSelected}
-                  onCardDelete={handleDelete}
+                  className="flex-shrink-0 w-[210px] h-24 rounded-xl bg-gray-50 border border-gray-100 animate-pulse"
                 />
               ))}
             </div>
-            <DragOverlay dropAnimation={{ duration: 120, easing: 'ease-out' }}>
-              {activeItem ? <DragOverlayCard submission={activeItem} /> : null}
-            </DragOverlay>
-          </DndContext>
-        )}
-      </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="flex gap-2.5 min-w-max">
+                {PIPELINE_STATUSES.map(status => (
+                  <KanbanColumn
+                    key={status.value}
+                    status={status}
+                    items={items.filter(s => s.status === status.value)}
+                    onCardEdit={setSelected}
+                    onCardDelete={handleDelete}
+                  />
+                ))}
+              </div>
+              <DragOverlay dropAnimation={{ duration: 120, easing: 'ease-out' }}>
+                {activeItem ? <DragOverlayCard submission={activeItem} /> : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+        </div>
+      ) : (
+        <RadarCalendarView submissions={items} onStatusSaved={handleStatusSaved} />
+      )}
 
-      {selected && (
+      {view === 'kanban' && selected && (
         <StatusModal
           submission={selected as unknown as KanbanSubmission}
           onClose={() => setSelected(null)}
