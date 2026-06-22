@@ -9,7 +9,7 @@ export default async function PipelinePage() {
   const { data: rawSubs } = await supabase
     .from('submissions')
     .select(`
-      id, status, ai_score, ai_summary, interviews, updated_at, role_id,
+      id, status, ai_score, ai_summary, rubix_fit, interviews, updated_at, role_id,
       candidate:candidates(id, first_name, last_name, phone, profile:profiles(name)),
       role:roles(id, title, status, client:clients(name))
     `)
@@ -30,6 +30,7 @@ export default async function PipelinePage() {
       status: s.status,
       ai_score: s.ai_score ?? null,
       ai_summary: s.ai_summary ?? null,
+      rubix_fit: s.rubix_fit ?? null,
       interviews: s.interviews ?? [],
       updated_at: s.updated_at,
       role_id: s.role_id,

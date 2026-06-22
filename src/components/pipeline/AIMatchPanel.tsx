@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Loader2, ChevronDown, ChevronRight, Plus, Check, User, FileText } from 'lucide-react'
+import { Sparkles, Loader2, ChevronDown, ChevronRight, Plus, Check, User, FileText, X } from 'lucide-react'
 import { CandidateViewModal } from '@/components/candidates/CandidateViewModal'
 import { CandidateCVModal } from '@/components/candidates/CandidateCVModal'
 
@@ -42,14 +42,15 @@ export interface AddCandidateParams {
 interface Props {
   roleId: string
   onAddCandidate: (params: AddCandidateParams) => Promise<void> | void
+  onClose?: () => void
 }
 
 function ScoreCircle({ score }: { score: number }) {
-  const cls = score >= 85
-    ? 'border-green-400 text-green-600'
-    : score >= 60
-    ? 'border-yellow-400 text-yellow-600'
-    : 'border-red-400 text-red-500'
+  const cls = score >= 75
+    ? 'border-[#2AA3FF] text-[#2AA3FF] bg-blue-50/40'
+    : score >= 55
+    ? 'border-amber-400 text-amber-600 bg-amber-50/40'
+    : 'border-red-400 text-red-500 bg-red-50/40'
   return (
     <div className={`w-11 h-11 rounded-full border-[3px] flex items-center justify-center flex-shrink-0 ${cls}`}>
       <span className="text-xs font-bold leading-none">{score}%</span>
@@ -121,10 +122,10 @@ function MatchCard({
           <RateBadge min={item.rate_min} wish={item.rate_wish} currency={item.currency} />
           <div className="flex flex-wrap gap-1 mt-1.5">
             {item.matched_skills.slice(0, 3).map(s => (
-              <span key={s} className="text-[10px] bg-green-50 text-green-700 border border-green-100 px-1.5 py-0.5 rounded">{s}</span>
+              <span key={s} className="text-[10px] bg-blue-50 text-[#2AA3FF] border border-blue-100 px-1.5 py-0.5 rounded" title="Criteriu acoperit">✓ {s}</span>
             ))}
             {item.missing_skills.slice(0, 2).map(s => (
-              <span key={s} className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded line-through">{s}</span>
+              <span key={s} className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded" title="Criteriu slab">✗ {s}</span>
             ))}
           </div>
         </div>
@@ -191,7 +192,7 @@ function MatchCard({
   )
 }
 
-export function AIMatchPanel({ roleId, onAddCandidate }: Props) {
+export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
   const [data, setData] = useState<MatchData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -220,20 +221,34 @@ export function AIMatchPanel({ roleId, onAddCandidate }: Props) {
 
   return (
     <>
-      <div className="bg-white/60 backdrop-blur rounded-2xl border border-gray-200 p-4 overflow-y-auto max-h-[calc(100vh-140px)]">
+      <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 shadow-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-[#2AA3FF]" />
-            <h3 className="text-sm font-semibold text-gray-900">AI Matching</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">AI Matching</h3>
+              <p className="text-[10px] text-gray-400 leading-tight">bazat pe Rubix Matrix</p>
+            </div>
           </div>
-          <button
-            onClick={runMatch}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2AA3FF] text-white text-xs font-medium rounded-xl hover:bg-[#2AA3FF]/90 transition-colors disabled:opacity-60"
-          >
-            {loading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-            {loading ? 'Analizez...' : data ? 'Re-analizează' : 'Analizează'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={runMatch}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2AA3FF] text-white text-xs font-medium rounded-xl hover:bg-[#2AA3FF]/90 transition-colors disabled:opacity-60"
+            >
+              {loading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              {loading ? 'Analizez...' : data ? 'Re-analizează' : 'Analizează'}
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Închide"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Rate submisie */}

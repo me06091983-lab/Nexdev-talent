@@ -17,7 +17,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
     supabase
       .from('submissions')
       .select(`
-        id, status, ai_score, ai_summary, role_id, interviews,
+        id, status, ai_score, ai_summary, rubix_fit, role_id, interviews,
         submission_rate, submission_currency, submission_rate_type,
         contract:contracts(id),
         candidate:candidates(
@@ -64,6 +64,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
     status: s.status,
     ai_score: s.ai_score,
     ai_summary: s.ai_summary,
+    rubix_fit: s.rubix_fit ?? null,
     role_id: s.role_id,
     candidate: s.candidate
       ? {

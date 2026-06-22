@@ -7,12 +7,19 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: role } = await supabase
-    .from('roles')
-    .select('*, client:clients(id, name), role_skills(skill:skills(id, name, category), skill_type)')
-    .eq('id', id)
-    .is('deleted_at', null)
-    .single()
+  const [{ data: role }, { data: rubixCriteria }] = await Promise.all([
+    supabase
+      .from('roles')
+      .select('*, client:clients(id, name), role_skills(skill:skills(id, name, category), skill_type)')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single(),
+    supabase
+      .from('role_rubix_criteria')
+      .select('*')
+      .eq('role_id', id)
+      .order('order_index'),
+  ])
 
   if (!role) notFound()
 
@@ -33,7 +40,7 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
         )}
       </div>
       <div className="glass rounded-2xl p-8">
-        <RoleForm initial={initial} roleId={id} />
+        <RoleForm initial={initial} roleId={id} initialRubix={rubixCriteria ?? []} />
         <RoleHistory roleId={id} />
       </div>
     </div>

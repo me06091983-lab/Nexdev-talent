@@ -5,6 +5,7 @@ import { Plus, Sparkles, Lock } from 'lucide-react'
 import { KanbanBoard, type Submission } from './KanbanBoard'
 import { AddCandidateModal } from './AddCandidateModal'
 import { AIMatchPanel, type AddCandidateParams } from './AIMatchPanel'
+import { RubixMatrixView } from './RubixMatrixView'
 import type { PartnerOption } from './ContractModal'
 
 interface Role {
@@ -31,14 +32,11 @@ function calcEurEquivalents(
   rateType: string,
   fxRates: FxRates,
 ): { eurDay: number; eurHour: number } | null {
-  // 1 EUR = fxRates[currency] units of that currency
   const fxRate = currency === 'EUR' ? 1 : fxRates[currency]
   if (!fxRate) return null
-
   const rateInEur = rate / fxRate
   const eurDay = rateType === 'daily' ? rateInEur : rateInEur * 8
   const eurHour = rateType === 'hourly' ? rateInEur : rateInEur / 8
-
   return { eurDay: Math.round(eurDay), eurHour: Math.round(eurHour) }
 }
 
@@ -46,6 +44,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [showAdd, setShowAdd] = useState(false)
   const [showAI, setShowAI] = useState(false)
+  const [lastAddedSubmissionId, setLastAddedSubmissionId] = useState<string | null>(null)
   const [fxRates, setFxRates] = useState<FxRates | null>(null)
   const isClosed = role.status === 'closed'
 
@@ -58,14 +57,12 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/submissions?role_id=${role.id}`)
-    if (res.ok) {
-      const data = await res.json()
-      setSubmissions(data)
-    }
+    if (res.ok) setSubmissions(await res.json())
   }, [role.id])
 
-  function handleAdded() {
+  function handleAdded(submissionId?: string) {
     setShowAdd(false)
+    if (submissionId) setLastAddedSubmissionId(submissionId)
     refresh()
   }
 
@@ -87,13 +84,17 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
       const d = await res.json()
       throw new Error(d.error ?? 'Eroare la adăugare')
     }
+    const sub = await res.json()
+    if (sub?.id) setLastAddedSubmissionId(sub.id)
     refresh()
   }
 
   return (
-    <div className="flex gap-5 min-h-0 flex-1">
-      {/* Main column: Kanban */}
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
+    <div className="flex flex-col min-h-0 flex-1 gap-4 relative">
+
+      {/* ── Top section: Kanban (full width) ── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-4 min-h-0">
+
         {/* Banner rol închis */}
         {isClosed && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-600 flex-shrink-0">
@@ -111,17 +112,12 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
               {role.rate && (() => {
                 const currency = role.rate_currency ?? 'EUR'
                 const rateType = role.rate_type ?? 'daily'
-                const isEurDay = currency === 'EUR' && rateType === 'daily'
                 const label = rateType === 'daily' ? 'zi' : 'oră'
                 const base = ` · ${role.rate} ${currency} / ${label}`
-
-                if (isEurDay) return base
-
+                if (currency === 'EUR' && rateType === 'daily') return base
                 if (fxRates === null) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs în curs de încărcare...)</span></>
-
                 const eur = calcEurEquivalents(role.rate, currency, rateType, fxRates)
                 if (!eur) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs indisponibil)</span></>
-
                 return (
                   <>
                     {base}
@@ -171,10 +167,20 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
         </div>
       </div>
 
-      {/* AI Panel sidebar */}
+      {/* ── Bottom section: Rubix Matrix ── */}
+      <div className="flex-shrink-0">
+        <RubixMatrixView
+          roleId={role.id}
+          newSubmissionId={lastAddedSubmissionId}
+        />
+      </div>
+
+      {/* ── AI Match panel — overlay absolut peste tot conținutul ── */}
       {!isClosed && showAI && (
-        <div className="w-80 flex-shrink-0">
-          <AIMatchPanel roleId={role.id} onAddCandidate={handleAddFromAI} />
+        <div className="absolute top-0 right-0 bottom-0 z-30 w-80 flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <AIMatchPanel roleId={role.id} onAddCandidate={handleAddFromAI} onClose={() => setShowAI(false)} />
+          </div>
         </div>
       )}
 

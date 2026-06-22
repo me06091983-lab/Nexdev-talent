@@ -27,6 +27,7 @@ export interface RadarSubmission {
   status: string
   ai_score: number | null
   ai_summary: string | null
+  rubix_fit?: number | null
   interviews: InterviewSlot[]
   updated_at: string
   role_id: string
@@ -71,13 +72,23 @@ function formatInterviewDate(dateStr: string): string {
 
 // ─── Score badge ─────────────────────────────────────────────────────────────
 
-function ScoreBadge({ score }: { score: number }) {
-  const cls =
-    score >= 85 ? 'border-green-400 text-green-600' :
-    score >= 60 ? 'border-yellow-400 text-yellow-600' :
-                  'border-red-400 text-red-500'
+function ScoreBadge({ score, variant = 'ai' }: { score: number; variant?: 'ai' | 'rubix' }) {
+  const cls = variant === 'rubix'
+    ? score >= 75
+      ? 'border-[#2AA3FF] text-[#2AA3FF] bg-blue-50/60'
+      : score >= 55
+      ? 'border-amber-400 text-amber-600 bg-amber-50/60'
+      : 'border-red-400 text-red-500 bg-red-50/60'
+    : score >= 85
+    ? 'border-green-400 text-green-600'
+    : score >= 60
+    ? 'border-yellow-400 text-yellow-600'
+    : 'border-red-400 text-red-500'
   return (
-    <span className={cn('flex-shrink-0 w-8 h-8 rounded-full border-2 text-[10px] font-bold flex items-center justify-center', cls)}>
+    <span
+      title={variant === 'rubix' ? `Rubix Matrix: ${score}%` : `AI Score: ${score}%`}
+      className={cn('flex-shrink-0 w-8 h-8 rounded-full border-2 text-[10px] font-bold flex items-center justify-center', cls)}
+    >
       {score}%
     </span>
   )
@@ -131,9 +142,12 @@ function CandidateCard({
             <p className="text-[10px] text-gray-400 truncate">{c.profile.name}</p>
           )}
         </div>
-        {submission.ai_score != null && (
-          <ScoreBadge score={Math.round(submission.ai_score)} />
-        )}
+        {submission.rubix_fit != null
+          ? <ScoreBadge score={Math.round(submission.rubix_fit)} variant="rubix" />
+          : submission.ai_score != null
+          ? <ScoreBadge score={Math.round(submission.ai_score)} />
+          : null
+        }
       </div>
 
       {/* Phone popup — inline, sub nume */}

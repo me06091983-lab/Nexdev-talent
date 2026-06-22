@@ -15,7 +15,7 @@ interface Candidate {
 interface Props {
   roleId: string
   onClose: () => void
-  onAdded: () => void
+  onAdded: (submissionId?: string) => void
 }
 
 const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
@@ -102,7 +102,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Eroare')
-      onAdded()
+      onAdded(data?.id)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Eroare necunoscută')
     } finally {
