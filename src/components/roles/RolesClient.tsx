@@ -14,6 +14,7 @@ interface Role {
   title: string
   client: Client | null
   client_id: string
+  hiring_manager: string | null
   location: string | null
   seniority: string | null
   collaboration_type: string | null
@@ -327,12 +328,13 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                   <table className="w-full" style={{ tableLayout: 'fixed' }}>
                     <colgroup>
                       <col style={{ width: '3%' }} />
-                      <col style={{ width: '22%' }} />
+                      <col style={{ width: '19%' }} />
+                      <col style={{ width: '10%' }} />
                       <col style={{ width: '12%' }} />
-                      <col style={{ width: '22%' }} />
-                      <col style={{ width: '11%' }} />
-                      <col style={{ width: '6%' }} />
-                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '10%' }} />
                       <col style={{ width: '13%' }} />
                     </colgroup>
                     <thead>
@@ -340,6 +342,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                         <th className="px-2 py-3"></th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiring Manager</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Poziții</th>
@@ -371,6 +374,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-700">{r.client?.name ?? '—'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 truncate">{r.hiring_manager ?? '—'}</td>
                               <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-1">
                                   {r.required_skills.slice(0, 4).map(s => (
@@ -437,7 +441,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                             {isExpanded && (
                               <tr className="bg-gray-50/40 border-b border-gray-200">
                                 <td className="border-l-2 border-blue-200"></td>
-                                <td colSpan={7} className="py-1">
+                                <td colSpan={8} className="py-1">
                                   <CandidatesSubTable roleId={r.id} />
                                 </td>
                               </tr>

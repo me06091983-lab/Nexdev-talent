@@ -69,6 +69,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
   const [form, setForm] = useState({
     title: (initial?.title as string) ?? '',
     client_id: (initial?.client_id as string) ?? '',
+    hiring_manager: (initial?.hiring_manager as string) ?? '',
     description: (initial?.description as string) ?? '',
     location: (initial?.location as string) ?? '',
     seniority: (initial?.seniority as string) ?? '',
@@ -197,6 +198,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
     try {
       const payload = {
         ...form,
+        hiring_manager: form.hiring_manager || null,
         seniority: form.seniority || null,
         collaboration_type: form.collaboration_type || null,
         deadline: form.deadline || null,
@@ -262,6 +264,11 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
                   <option value="">Selectează clientul...</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label>
+                <input type="text" value={form.hiring_manager} onChange={e => set('hiring_manager', e.target.value)}
+                  className={inputCls} placeholder="ex: John Smith" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
