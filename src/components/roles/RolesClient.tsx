@@ -206,8 +206,13 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
   const [search, setSearch] = useState('')
   const [clientFilter, setClientFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [hiringManagerFilter, setHiringManagerFilter] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  const hiringManagers = Array.from(
+    new Set(roles.map(r => r.hiring_manager).filter(Boolean))
+  ).sort() as string[]
 
   const filtered = roles.filter(r => {
     if (search) {
@@ -216,15 +221,17 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
     }
     if (clientFilter && r.client_id !== clientFilter) return false
     if (statusFilter && r.status !== statusFilter) return false
+    if (hiringManagerFilter && r.hiring_manager !== hiringManagerFilter) return false
     return true
   })
 
-  const hasFilters = search || clientFilter || statusFilter
+  const hasFilters = search || clientFilter || statusFilter || hiringManagerFilter
 
   function clearAll() {
     setSearch('')
     setClientFilter('')
     setStatusFilter('')
+    setHiringManagerFilter('')
   }
 
   function toggleExpand(id: string) {
@@ -255,7 +262,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
     <div>
       {/* Filtre */}
       <div className="glass rounded-2xl p-4 mb-6 space-y-3">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -266,6 +273,11 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
             <option value="">Toți clienții</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={hiringManagerFilter} onChange={e => setHiringManagerFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
+            <option value="">Toți hiring managerii</option>
+            {hiringManagers.map(hm => <option key={hm} value={hm}>{hm}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
