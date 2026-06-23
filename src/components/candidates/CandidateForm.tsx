@@ -71,7 +71,7 @@ interface CandidateFormProps {
 }
 
 const SENIORITY_OPTIONS = [
-  { value: '', label: 'Selectează...' },
+  { value: '', label: 'Select...' },
   { value: 'junior', label: 'Junior' },
   { value: 'mid', label: 'Mid' },
   { value: 'senior', label: 'Senior' },
@@ -105,7 +105,7 @@ function SectionHeader({
         {title}
         {count > 0 && (
           <span className="ml-2 text-xs text-gray-400 font-normal">
-            {count} {count === 1 ? 'intrare' : 'intrări'}
+            {count} {count === 1 ? 'entry' : 'entries'}
           </span>
         )}
       </span>
@@ -218,7 +218,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     rate_unit: (initial?.rate_unit as string) ?? 'zi',
     partner_id: (initial?.partner_id as string) ?? '',
     source_type: (initial?.source_type as string) ?? '',
-    candidate_status: (initial?.candidate_status as string) ?? (initial ? 'pasiv' : 'activ'),
+    candidate_status: (initial?.candidate_status as string) ?? (initial ? 'pasiv' : 'activ'), // DB values: activ/pasiv/angajat/blacklist
     successful: (initial?.successful as boolean) ?? false,
     successful_client: (initial?.successful_client as string) ?? '',
     gdpr_consent: (initial?.gdpr_consent as boolean) ?? false,
@@ -310,7 +310,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       if (!res.ok) throw new Error(data.error)
       setLocalCvFilePath(data.path)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la încărcarea fișierului')
+      setError(err instanceof Error ? err.message : 'Error uploading file')
       setCvFile(null)
       setCvFileName('')
     } finally {
@@ -367,7 +367,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
 
       setCvParsed(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la parsarea CV-ului')
+      setError(err instanceof Error ? err.message : 'Error parsing CV')
     } finally {
       setCvParsing(false)
     }
@@ -391,7 +391,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.first_name || !form.last_name) {
-      setError('Prenumele și numele sunt obligatorii')
+      setError('First name and last name are required')
       return
     }
     setSaving(true)
@@ -431,7 +431,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       router.push('/candidates')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la salvare')
+      setError(err instanceof Error ? err.message : 'Save error')
     } finally {
       setSaving(false)
       onSavingChange?.(false)
@@ -453,7 +453,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
         <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4 mb-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-blue-900">CV candidat</p>
+              <p className="text-sm font-medium text-blue-900">Candidate CV</p>
               {(cvFileName || localCvFilePath) ? (
                 <div className="flex items-center gap-2 mt-1">
                   <FileText size={14} className="text-blue-600 flex-shrink-0" />
@@ -470,11 +470,11 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-blue-700 mt-0.5">PDF sau DOCX — acceptat pentru upload și parsare AI</p>
+                <p className="text-xs text-blue-700 mt-0.5">PDF or DOCX — accepted for upload and AI parsing</p>
               )}
               {cvParsed && (
                 <span className="inline-flex items-center gap-1 text-green-700 text-xs font-medium mt-1">
-                  <CheckCircle size={12} /> Câmpurile au fost completate din CV
+                  <CheckCircle size={12} /> Fields auto-filled from CV
                 </span>
               )}
             </div>
@@ -492,7 +492,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                   )}
                 >
                   {cvParsing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  {cvParsing ? 'Se parsează...' : 'Populează automat'}
+                  {cvParsing ? 'Parsing...' : 'Auto-fill'}
                 </button>
               )}
               {isEdit && localCvFilePath && !cvUploading && (
@@ -501,7 +501,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                   onClick={() => setShowCvPreview(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors flex-shrink-0"
                 >
-                  <Eye size={14} /> Vizualizează
+                  <Eye size={14} /> View
                 </button>
               )}
               <label className={cn(
@@ -509,7 +509,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 cvUploading ? 'bg-blue-200 text-blue-500 cursor-not-allowed' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-100'
               )}>
                 {cvUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                {cvUploading ? 'Se încarcă...' : (localCvFilePath ? 'Înlocuiește' : 'Alege fișier')}
+                {cvUploading ? 'Uploading...' : (localCvFilePath ? 'Replace' : 'Choose file')}
                 <input type="file" accept=".pdf,.docx,.doc" onChange={handleFileSelect} disabled={cvUploading || cvParsing} className="hidden" />
               </label>
             </div>
@@ -524,14 +524,14 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
         <div className="space-y-8">
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date personale</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Personal details</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prenume <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First name <span className="text-red-500">*</span></label>
                 <input type="text" value={form.first_name} onChange={e => set('first_name', e.target.value)} className={inputCls} required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nume <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last name <span className="text-red-500">*</span></label>
                 <input type="text" value={form.last_name} onChange={e => set('last_name', e.target.value)} className={inputCls} required />
               </div>
               <div>
@@ -539,7 +539,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 <input type="email" value={form.email} onChange={e => { set('email', e.target.value); setDuplicateWarning(null) }} onBlur={handleEmailBlur} className={inputCls} />
                 {duplicateWarning && (
                   <div className="mt-1.5 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-xs">
-                    <span>⚠️ Există deja un candidat cu acest email:</span>
+                    <span>⚠️ A candidate with this email already exists:</span>
                     <a href={`/candidates/${duplicateWarning.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-amber-900">
                       {duplicateWarning.name}
                     </a>
@@ -547,7 +547,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} />
               </div>
               <div>
@@ -555,23 +555,23 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 <input type="text" value={form.linkedin_url} onChange={e => set('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/..." className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Locație</label>
-                <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="București, România" className={inputCls} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="Bucharest, Romania" className={inputCls} />
               </div>
             </div>
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Profil profesional</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Professional profile</h3>
 
             {/* Status candidat */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status candidat</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Candidate status</label>
               <div className="flex gap-2">
                 {([
-                  { value: 'activ',     label: 'Activ',      cls: 'border-green-300 bg-green-50 text-green-700 ring-green-300' },
-                  { value: 'pasiv',     label: 'Pasiv',      cls: 'border-gray-300 bg-gray-50 text-gray-600 ring-gray-300' },
-                  { value: 'angajat',   label: 'Angajat',    cls: 'border-blue-300 bg-blue-50 text-blue-700 ring-blue-300' },
+                  { value: 'activ',     label: 'Active',     cls: 'border-green-300 bg-green-50 text-green-700 ring-green-300' },
+                  { value: 'pasiv',     label: 'Passive',    cls: 'border-gray-300 bg-gray-50 text-gray-600 ring-gray-300' },
+                  { value: 'angajat',   label: 'Employed',   cls: 'border-blue-300 bg-blue-50 text-blue-700 ring-blue-300' },
                   { value: 'blacklist', label: 'Black List', cls: 'border-red-400 bg-red-50 text-red-700 ring-red-300' },
                 ] as const).map(opt => (
                   <button
@@ -593,17 +593,17 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 ))}
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
-                {form.candidate_status === 'activ'     && 'Contactat activ, implicat într-un proces de recrutare.'}
-                {form.candidate_status === 'pasiv'     && 'În baza de date, fără proces activ de recrutare.'}
-                {form.candidate_status === 'angajat'   && 'Plasat cu succes, ofertă acceptată.'}
-                {form.candidate_status === 'blacklist' && 'Candidat blocat — nu apare în pipeline sau AI matching.'}
+                {form.candidate_status === 'activ'     && 'Actively contacted, involved in a recruitment process.'}
+                {form.candidate_status === 'pasiv'     && 'In the database, no active recruitment process.'}
+                {form.candidate_status === 'angajat'   && 'Successfully placed, offer accepted.'}
+                {form.candidate_status === 'blacklist' && 'Blocked candidate — does not appear in pipeline or AI matching.'}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categorie / Profil <span className="text-xs text-gray-400 font-normal">(selectează sau scrie)</span>
+                  Category / Profile <span className="text-xs text-gray-400 font-normal">(select or type)</span>
                 </label>
                 <input type="text" list="profiles-list" value={profileName} onChange={e => setProfileName(e.target.value)}
                   placeholder="ex: DevOps Engineer" className={inputCls} />
@@ -612,30 +612,30 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Senioritate</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Seniority</label>
                 <select value={form.seniority} onChange={e => set('seniority', e.target.value)} className={inputCls}>
                   {SENIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Skilluri</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
               <SkillSelector selected={selectedSkills} onChange={setSelectedSkills} />
             </div>
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rate & Sursă</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rate & Source</h3>
 
             {/* Rate inputs */}
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rate minim</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum rate</label>
                 <input type="number" min="0" step="0.01" value={form.rate_min} onChange={e => set('rate_min', e.target.value)}
                   placeholder="0" className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rate dorit</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Desired rate</label>
                 <input type="number" min="0" step="0.01" value={form.rate_wish} onChange={e => set('rate_wish', e.target.value)}
                   placeholder="0" className={inputCls} />
               </div>
@@ -644,13 +644,14 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
             {/* Currency + Per unit */}
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monedă</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                 <select value={form.currency} onChange={e => set('currency', e.target.value)} className={inputCls}>
                   {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Per</label>
+
                 <div className="flex gap-2">
                   {(['zi', 'ora'] as const).map(unit => (
                     <button
@@ -664,7 +665,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                       )}
                     >
-                      {unit === 'zi' ? 'Zi' : 'Oră'}
+                      {unit === 'zi' ? 'Day' : 'Hour'}
                     </button>
                   ))}
                 </div>
@@ -674,31 +675,31 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
             {/* RON equivalent — shown only when currency is not RON and a rate is entered */}
             {form.currency !== 'RON' && (form.rate_min || form.rate_wish) && RON_RATES[form.currency] && (
               <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200/70 rounded-lg text-xs text-amber-800">
-                <span className="font-medium">Echivalent indicativ RON:</span>
+                <span className="font-medium">Indicative RON equivalent:</span>
                 {form.rate_min && (
                   <span className="ml-2">
-                    minim ~{Math.round(parseFloat(form.rate_min) * RON_RATES[form.currency]).toLocaleString('ro-RO')} RON/{form.rate_unit}
+                    min ~{Math.round(parseFloat(form.rate_min) * RON_RATES[form.currency]).toLocaleString('en-GB')} RON/{form.rate_unit}
                   </span>
                 )}
                 {form.rate_min && form.rate_wish && <span className="mx-1 text-amber-500">·</span>}
                 {form.rate_wish && (
                   <span>
-                    dorit ~{Math.round(parseFloat(form.rate_wish) * RON_RATES[form.currency]).toLocaleString('ro-RO')} RON/{form.rate_unit}
+                    desired ~{Math.round(parseFloat(form.rate_wish) * RON_RATES[form.currency]).toLocaleString('en-GB')} RON/{form.rate_unit}
                   </span>
                 )}
-                <span className="ml-2 text-amber-600/70">(curs aproximativ)</span>
+                <span className="ml-2 text-amber-600/70">(approximate rate)</span>
               </div>
             )}
 
             {/* Source — partner dropdown */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sursă / Partener</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Source / Partner</label>
               <select
                 value={form.partner_id}
                 onChange={e => set('partner_id', e.target.value)}
                 className={inputCls}
               >
-                <option value="">— Sursă proprie / LinkedIn —</option>
+                <option value="">— Own source / LinkedIn —</option>
                 {partners.map(p => {
                   const label = p.name
                     ? p.name
@@ -710,11 +711,11 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
           </section>
 
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date companie</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Company details</h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nume companie</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company name</label>
                 <input value={form.company_name} onChange={e => set('company_name', e.target.value)} placeholder="Ex: Ion Popescu SRL" className={inputCls} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -724,18 +725,18 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                 </div>
                 <div className="flex items-center gap-3 pt-6">
                   <input type="checkbox" id="company_tva" checked={form.company_tva} onChange={e => set('company_tva', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
-                  <label htmlFor="company_tva" className="text-sm text-gray-700">Plătitor TVA</label>
+                  <label htmlFor="company_tva" className="text-sm text-gray-700">VAT registered</label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cont bancar (IBAN)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bank account (IBAN)</label>
                 <input value={form.company_bank_account} onChange={e => set('company_bank_account', e.target.value)} placeholder="RO49AAAA1B31007593840000" className={cn(inputCls, 'font-mono text-xs')} />
               </div>
             </div>
           </section>
 
           <div className="pt-4 border-t border-gray-200/60">
-            <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Câmpuri obligatorii</p>
+            <p className="text-xs text-gray-400"><span className="text-red-500">*</span> Required fields</p>
           </div>
         </div>
 
@@ -744,14 +745,14 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
 
           {/* Experiență profesională */}
           <div className="glass rounded-xl overflow-hidden">
-            <SectionHeader title="Experiență profesională" count={experiences.length} expanded={expExpanded} onToggle={() => setExpExpanded(v => !v)} />
+            <SectionHeader title="Work experience" count={experiences.length} expanded={expExpanded} onToggle={() => setExpExpanded(v => !v)} />
             {expExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {experiences.map((item) => {
                   const period = (() => {
                     const fmt = (d: string) => { const [y, m] = d.split('-'); return m ? `${m}/${y}` : y }
                     const s = item.start_date ? fmt(item.start_date) : null
-                    const e = item.is_present ? 'prezent' : (item.end_date ? fmt(item.end_date) : null)
+                    const e = item.is_present ? 'present' : (item.end_date ? fmt(item.end_date) : null)
                     if (!s && !e) return null
                     return `${s ?? '?'} – ${e ?? '?'}`
                   })()
@@ -763,7 +764,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                       summary={
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-800 truncate">
-                            {item.role || <span className="text-gray-400 italic">Poziție necompletată</span>}
+                            {item.role || <span className="text-gray-400 italic">Position not filled</span>}
                             {item.company ? <span className="text-gray-400 font-normal"> @ {item.company}</span> : null}
                           </div>
                           {period && <div className="text-xs text-gray-400">{period}</div>}
@@ -771,9 +772,9 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                       }
                     >
                       <input type="text" value={item.company ?? ''} onChange={e => expOps.update(item.id, 'company', e.target.value)}
-                        placeholder="Companie *" className={inputCls} />
+                        placeholder="Company *" className={inputCls} />
                       <input type="text" value={item.role ?? ''} onChange={e => expOps.update(item.id, 'role', e.target.value)}
-                        placeholder="Titlu poziție" className={inputCls} />
+                        placeholder="Position title" className={inputCls} />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Start</label>
@@ -787,23 +788,23 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                       </div>
                       <label className="flex items-center gap-2 text-xs text-gray-600">
                         <input type="checkbox" checked={item.is_present} onChange={e => expOps.update(item.id, 'is_present', e.target.checked)} className="w-3.5 h-3.5" />
-                        Prezent
+                        Present
                       </label>
                       <input type="text" value={item.location ?? ''} onChange={e => expOps.update(item.id, 'location', e.target.value)}
-                        placeholder="Locație (opțional)" className={inputCls} />
+                        placeholder="Location (optional)" className={inputCls} />
                       <textarea rows={4} value={item.description ?? ''} onChange={e => expOps.update(item.id, 'description', e.target.value)}
-                        placeholder="Descriere completă rol, responsabilități, realizări..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
+                        placeholder="Full description of role, responsibilities, achievements..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
                     </ItemCard>
                   )
                 })}
-                <AddButton label="Adaugă experiență" onClick={() => setExperiences(prev => [...prev, newExp()])} />
+                <AddButton label="Add experience" onClick={() => setExperiences(prev => [...prev, newExp()])} />
               </div>
             )}
           </div>
 
           {/* Proiecte */}
           <div className="glass rounded-xl overflow-hidden">
-            <SectionHeader title="Proiecte" count={projects.length} expanded={projExpanded} onToggle={() => setProjExpanded(v => !v)} />
+            <SectionHeader title="Projects" count={projects.length} expanded={projExpanded} onToggle={() => setProjExpanded(v => !v)} />
             {projExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {projects.map((item) => (
@@ -814,7 +815,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     summary={
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-800 truncate">
-                          {item.name || <span className="text-gray-400 italic">Proiect necompletat</span>}
+                          {item.name || <span className="text-gray-400 italic">Project not filled</span>}
                         </div>
                         {item.technologies && (
                           <div className="text-xs text-gray-400 truncate">{item.technologies}</div>
@@ -823,23 +824,23 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     }
                   >
                     <input type="text" value={item.name ?? ''} onChange={e => projOps.update(item.id, 'name', e.target.value)}
-                      placeholder="Nume proiect *" className={inputCls} />
+                      placeholder="Project name *" className={inputCls} />
                     <textarea rows={3} value={item.description ?? ''} onChange={e => projOps.update(item.id, 'description', e.target.value)}
-                      placeholder="Descriere completă proiect..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
+                      placeholder="Full project description..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
                     <input type="text" value={item.technologies ?? ''} onChange={e => projOps.update(item.id, 'technologies', e.target.value)}
-                      placeholder="Tehnologii folosite" className={inputCls} />
+                      placeholder="Technologies used" className={inputCls} />
                     <input type="url" value={item.url ?? ''} onChange={e => projOps.update(item.id, 'url', e.target.value)}
-                      placeholder="URL proiect (opțional)" className={inputCls} />
+                      placeholder="Project URL (optional)" className={inputCls} />
                   </ItemCard>
                 ))}
-                <AddButton label="Adaugă proiect" onClick={() => setProjects(prev => [...prev, newProject()])} />
+                <AddButton label="Add project" onClick={() => setProjects(prev => [...prev, newProject()])} />
               </div>
             )}
           </div>
 
           {/* Certificări */}
           <div className="glass rounded-xl overflow-hidden">
-            <SectionHeader title="Certificări / Traininguri" count={certifications.length} expanded={certExpanded} onToggle={() => setCertExpanded(v => !v)} />
+            <SectionHeader title="Certifications / Training" count={certifications.length} expanded={certExpanded} onToggle={() => setCertExpanded(v => !v)} />
             {certExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {certifications.map((item) => (
@@ -850,7 +851,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     summary={
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-800 truncate">
-                          {item.name || <span className="text-gray-400 italic">Certificare necompletată</span>}
+                          {item.name || <span className="text-gray-400 italic">Certification not filled</span>}
                         </div>
                         {(item.issuer || item.date_obtained) && (
                           <div className="text-xs text-gray-400">
@@ -861,25 +862,25 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     }
                   >
                     <input type="text" value={item.name ?? ''} onChange={e => certOps.update(item.id, 'name', e.target.value)}
-                      placeholder="Nume certificare *" className={inputCls} />
+                      placeholder="Certification name *" className={inputCls} />
                     <div className="grid grid-cols-2 gap-2">
                       <input type="text" value={item.issuer ?? ''} onChange={e => certOps.update(item.id, 'issuer', e.target.value)}
-                        placeholder="Emitent" className={inputCls} />
+                        placeholder="Issuer" className={inputCls} />
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">Data obținerii</label>
+                        <label className="block text-xs text-gray-500 mb-1">Date obtained</label>
                         <input type="month" value={item.date_obtained ?? ''} onChange={e => certOps.update(item.id, 'date_obtained', e.target.value)} className={inputCls} />
                       </div>
                     </div>
                   </ItemCard>
                 ))}
-                <AddButton label="Adaugă certificare" onClick={() => setCertifications(prev => [...prev, newCert()])} />
+                <AddButton label="Add certification" onClick={() => setCertifications(prev => [...prev, newCert()])} />
               </div>
             )}
           </div>
 
           {/* Realizări */}
           <div className="glass rounded-xl overflow-hidden">
-            <SectionHeader title="Realizări / Achievements" count={achievements.length} expanded={achExpanded} onToggle={() => setAchExpanded(v => !v)} />
+            <SectionHeader title="Achievements" count={achievements.length} expanded={achExpanded} onToggle={() => setAchExpanded(v => !v)} />
             {achExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {achievements.map((item) => (
@@ -889,17 +890,17 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     defaultExpanded={!item.title}
                     summary={
                       <div className="text-sm font-medium text-gray-800 truncate">
-                        {item.title || <span className="text-gray-400 italic">Realizare necompletată</span>}
+                        {item.title || <span className="text-gray-400 italic">Achievement not filled</span>}
                       </div>
                     }
                   >
                     <input type="text" value={item.title ?? ''} onChange={e => achOps.update(item.id, 'title', e.target.value)}
-                      placeholder="Titlu realizare / premiu *" className={inputCls} />
+                      placeholder="Achievement title / award *" className={inputCls} />
                     <textarea rows={2} value={item.description ?? ''} onChange={e => achOps.update(item.id, 'description', e.target.value)}
-                      placeholder="Descriere..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
+                      placeholder="Description..." className={cn(inputCls, 'resize-y whitespace-pre-wrap')} />
                   </ItemCard>
                 ))}
-                <AddButton label="Adaugă realizare" onClick={() => setAchievements(prev => [...prev, newAchievement()])} />
+                <AddButton label="Add achievement" onClick={() => setAchievements(prev => [...prev, newAchievement()])} />
               </div>
             )}
           </div>

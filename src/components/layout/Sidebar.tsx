@@ -25,24 +25,24 @@ const mainNavGroups = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/pipeline', label: 'Radar', icon: Radar },
-      { href: '/candidates', label: 'Candidați', icon: Users },
-      { href: '/roles', label: 'Roluri', icon: Briefcase },
+      { href: '/candidates', label: 'Candidates', icon: Users },
+      { href: '/roles', label: 'Roles', icon: Briefcase },
     ],
   },
   {
     label: 'CRM',
     items: [
-      { href: '/clients', label: 'Clienți', icon: Building2 },
-      { href: '/partners', label: 'Parteneri', icon: Handshake },
+      { href: '/clients', label: 'Clients', icon: Building2 },
+      { href: '/partners', label: 'Partners', icon: Handshake },
     ],
   },
   {
-    label: 'Financiar',
+    label: 'Financial',
     items: [
-      { href: '/contracts', label: 'Contracte', icon: ScrollText },
-      { href: '/timesheets', label: 'Timesheeturi', icon: Clock },
-      { href: '/invoices', label: 'Facturi', icon: Receipt },
-      { href: '/facturare', label: 'Facturare', icon: FileText },
+      { href: '/contracts', label: 'Contracts', icon: ScrollText },
+      { href: '/timesheets', label: 'Timesheets', icon: Clock },
+      { href: '/invoices', label: 'Invoices', icon: Receipt },
+      { href: '/facturare', label: 'Billing', icon: FileText },
     ],
   },
 ]
@@ -50,7 +50,7 @@ const mainNavGroups = [
 const adminNavGroup = {
   label: 'Admin',
   items: [
-    { href: '/admin/users', label: 'Utilizatori', icon: Users },
+    { href: '/admin/users', label: 'Users', icon: Users },
   ],
 }
 
@@ -150,6 +150,7 @@ export function Sidebar({ role, email }: { role: string; email: string }) {
             <p className="text-white/30 text-[10px] leading-tight mt-0.5">
               {isAdmin ? 'Administrator' : 'Recruiter'}
             </p>
+
           </div>
         </div>
 
@@ -159,7 +160,7 @@ export function Sidebar({ role, email }: { role: string; email: string }) {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
           >
             <LogOut size={18} />
-            Ieșire
+            Sign out
           </button>
         </form>
       </div>

@@ -35,7 +35,7 @@ export default async function EditClientPage({ params }: { params: Promise<{ id:
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Editează: {client.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Edit: {client.name}</h1>
       </div>
       <div className="glass rounded-2xl p-8">
         <ClientForm initial={client} clientId={id} roles={roles} />

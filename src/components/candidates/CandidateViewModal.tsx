@@ -78,30 +78,30 @@ const SENIORITY_LABELS: Record<string, string> = {
 }
 
 const SUBMISSION_STATUS: Record<string, { label: string; cls: string }> = {
-  pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
-  submitted:   { label: 'Propus client', cls: 'bg-blue-100 text-blue-700' },
-  shortlisted: { label: 'Selectat',      cls: 'bg-purple-100 text-purple-700' },
-  interview:   { label: 'Interviu',      cls: 'bg-amber-100 text-amber-700' },
-  rejected:    { label: 'Respins',       cls: 'bg-red-100 text-red-600' },
-  offer:       { label: 'Ofertă',        cls: 'bg-green-100 text-green-700' },
+  pipeline:    { label: 'In pipeline',  cls: 'bg-slate-100 text-slate-700' },
+  submitted:   { label: 'Submitted',    cls: 'bg-blue-100 text-blue-700' },
+  shortlisted: { label: 'Shortlisted',  cls: 'bg-purple-100 text-purple-700' },
+  interview:   { label: 'Interview',    cls: 'bg-amber-100 text-amber-700' },
+  rejected:    { label: 'Rejected',     cls: 'bg-red-100 text-red-600' },
+  offer:       { label: 'Offer',        cls: 'bg-green-100 text-green-700' },
 }
 
 const ROLE_STATUS: Record<string, { label: string; cls: string }> = {
-  active:  { label: 'Rol activ',  cls: 'bg-green-50 text-green-700 border border-green-200' },
-  filled:  { label: 'Rol ocupat', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
-  on_hold: { label: 'On Hold',    cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
-  draft:   { label: 'Draft',      cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
-  closed:  { label: 'Rol închis', cls: 'bg-red-50 text-red-600 border border-red-200' },
+  active:  { label: 'Active role',  cls: 'bg-green-50 text-green-700 border border-green-200' },
+  filled:  { label: 'Role filled',  cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  on_hold: { label: 'On Hold',      cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  draft:   { label: 'Draft',        cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  closed:  { label: 'Role closed',  cls: 'bg-red-50 text-red-600 border border-red-200' },
 }
 
 const CONTRACT_STATUS: Record<string, { label: string; cls: string }> = {
-  activ:    { label: 'Activ',    cls: 'bg-green-100 text-green-700' },
-  terminat: { label: 'Terminat', cls: 'bg-gray-100 text-gray-500' },
+  activ:    { label: 'Active',     cls: 'bg-green-100 text-green-700' },
+  terminat: { label: 'Terminated', cls: 'bg-gray-100 text-gray-500' },
 }
 
 function formatPeriod(start: string | null, end: string | null, isPresent: boolean) {
   const fmt = (d: string) => { const [y, m] = d.split('-'); return m ? `${m}/${y}` : y }
-  return `${start ? fmt(start) : '?'} – ${isPresent ? 'prezent' : (end ? fmt(end) : '?')}`
+  return `${start ? fmt(start) : '?'} – ${isPresent ? 'present' : (end ? fmt(end) : '?')}`
 }
 
 function CollapsibleRow({ summary, children }: { summary: React.ReactNode; children: React.ReactNode }) {
@@ -137,8 +137,8 @@ function parseNotes(raw: unknown): NoteEntry[] {
 
 function fmtNoteDate(iso: string) {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' + new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -170,23 +170,23 @@ function CvPanel({ candidateId }: { candidateId: string }) {
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
       <Loader2 size={24} className="animate-spin" />
-      <p className="text-sm">Se încarcă CV-ul...</p>
+      <p className="text-sm">Loading CV...</p>
     </div>
   )
 
   if (error || !url) return (
     <div className="flex flex-col items-center justify-center h-full text-center px-6">
       <FileText size={48} className="text-gray-200 mb-3" />
-      <p className="text-sm text-gray-500">{error || 'CV indisponibil'}</p>
+      <p className="text-sm text-gray-500">{error || 'CV unavailable'}</p>
     </div>
   )
 
   if (isPdf) return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 flex-shrink-0 bg-white">
-        <span className="text-xs text-gray-500 font-medium">CV Original</span>
+        <span className="text-xs text-gray-500 font-medium">Original CV</span>
         <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#2AA3FF] hover:underline">
-          Deschide <ExternalLink size={10} />
+          Open <ExternalLink size={10} />
         </a>
       </div>
       <iframe src={url} className="flex-1 w-full" title="CV Preview" />
@@ -196,10 +196,10 @@ function CvPanel({ candidateId }: { candidateId: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3">
       <FileText size={48} className="text-gray-300" />
-      <p className="text-sm text-gray-600">Fișier DOCX — nu poate fi previzualizat în browser.</p>
+      <p className="text-sm text-gray-600">DOCX file — cannot be previewed in browser.</p>
       <a href={url} target="_blank" rel="noopener noreferrer"
         className="flex items-center gap-2 px-4 py-2 bg-[#0B1A33] text-white text-sm rounded-xl hover:bg-[#0B1A33]/90 transition-colors">
-        <ExternalLink size={14} /> Descarcă CV
+        <ExternalLink size={14} /> Download CV
       </a>
     </div>
   )
@@ -208,7 +208,7 @@ function CvPanel({ candidateId }: { candidateId: string }) {
 // ─── History & Contracts panel ───────────────────────────────────────────────
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function HistoryPanel({ candidateId }: { candidateId: string }) {
@@ -223,11 +223,11 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/history`, { cache: 'no-store' })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Eroare server')
+      if (!res.ok) throw new Error(json.error ?? 'Server error')
       setSubmissions(json.submissions ?? [])
       setContracts(json.contracts ?? [])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Eroare la încărcare')
+      setError(e instanceof Error ? e.message : 'Error loading')
     } finally {
       setLoading(false)
     }
@@ -238,7 +238,7 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
   if (loading) return (
     <div className="flex items-center justify-center h-full text-gray-400 gap-2">
       <Loader2 size={18} className="animate-spin" />
-      <span className="text-sm">Se încarcă...</span>
+      <span className="text-sm">Loading...</span>
     </div>
   )
 
@@ -251,8 +251,8 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
   if (!submissions.length && !contracts.length) return (
     <div className="flex flex-col items-center justify-center h-full text-center px-6">
       <History size={40} className="text-gray-200 mb-3" />
-      <p className="text-sm text-gray-400">Nicio activitate înregistrată.</p>
-      <p className="text-xs text-gray-300 mt-1">Va apărea când candidatul este adăugat în pipeline.</p>
+      <p className="text-sm text-gray-400">No activity recorded.</p>
+      <p className="text-xs text-gray-300 mt-1">Will appear when the candidate is added to the pipeline.</p>
     </div>
   )
 
@@ -261,10 +261,10 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
       {/* Panel header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Istoric & Contracte
+          History & Contracts
         </span>
         <button onClick={load} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
-          <RefreshCw size={11} /> Reîncarcă
+          <RefreshCw size={11} /> Refresh
         </button>
       </div>
 
@@ -275,7 +275,7 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <ScrollText size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contracte</span>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contracts</span>
               <div className="flex-1 h-px bg-gray-100" />
             </div>
             <div className="space-y-2">
@@ -293,7 +293,7 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
                           <span>Start: <span className="text-gray-600 font-medium">{fmtDate(c.start_date)}</span></span>
                           {c.end_date
                             ? <span>End: <span className="text-gray-600 font-medium">{fmtDate(c.end_date)}</span></span>
-                            : <span className="text-green-600 font-medium">Nedeterminat</span>
+                            : <span className="text-green-600 font-medium">Open-ended</span>
                           }
                         </div>
                       </div>
@@ -313,11 +313,11 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Clock size={13} className="text-gray-400" />
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Roluri aplicate</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied roles</span>
             <div className="flex-1 h-px bg-gray-100" />
           </div>
           {submissions.length === 0 ? (
-            <p className="text-xs text-gray-400 italic px-1">Niciun rol în istoric.</p>
+            <p className="text-xs text-gray-400 italic px-1">No roles in history.</p>
           ) : (
             <div className="space-y-2">
               {submissions.map(entry => {
@@ -337,7 +337,7 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                           <a href={`/roles/${entry.role?.id}/pipeline`} target="_blank" rel="noopener noreferrer"
                             className="text-sm font-medium text-gray-800 hover:text-[#2AA3FF] transition-colors flex items-center gap-1">
-                            {entry.role?.title ?? 'Rol necunoscut'}
+                            {entry.role?.title ?? 'Unknown role'}
                             <ExternalLink size={10} className="text-gray-300" />
                           </a>
                           {entry.role?.client?.name && (
@@ -352,9 +352,9 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
                           )}
                         </div>
                         <div className="text-[10px] text-gray-400">
-                          Aplicat: <span className="text-gray-600">{fmtDate(entry.created_at)}</span>
+                          Applied: <span className="text-gray-600">{fmtDate(entry.created_at)}</span>
                           {entry.created_at !== entry.updated_at && (
-                            <span className="ml-2">· Actualizat: <span className="text-gray-600">{fmtDate(entry.updated_at)}</span></span>
+                            <span className="ml-2">· Updated: <span className="text-gray-600">{fmtDate(entry.updated_at)}</span></span>
                           )}
                         </div>
                         {feedback && (
@@ -412,15 +412,15 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
       {(candidate.rate_min || candidate.rate_wish) && (
         <Section title="Rate">
           <div className="flex gap-4 text-sm">
-            {candidate.rate_min && <span className="text-gray-600">Minim: <strong>{candidate.rate_min} {candidate.currency}</strong></span>}
-            {candidate.rate_wish && <span className="text-gray-600">Dorit: <strong>{candidate.rate_wish} {candidate.currency}</strong></span>}
-            {candidate.source_type && <span className="text-gray-400">Sursă: {candidate.source_type}</span>}
+            {candidate.rate_min && <span className="text-gray-600">Min: <strong>{candidate.rate_min} {candidate.currency}</strong></span>}
+            {candidate.rate_wish && <span className="text-gray-600">Wished: <strong>{candidate.rate_wish} {candidate.currency}</strong></span>}
+            {candidate.source_type && <span className="text-gray-400">Source: {candidate.source_type}</span>}
           </div>
         </Section>
       )}
 
       {candidate.skills.length > 0 && (
-        <Section title={`Skilluri (${candidate.skills.length})`}>
+        <Section title={`Skills (${candidate.skills.length})`}>
           <div className="flex flex-wrap gap-1.5">
             {candidate.skills.map(s => <Badge key={s.id} variant="blue">{s.name}</Badge>)}
           </div>
@@ -428,7 +428,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
       )}
 
       {candidate.experiences?.length > 0 && (
-        <Section title={`Experiență (${candidate.experiences.length})`}>
+        <Section title={`Experience (${candidate.experiences.length})`}>
           <div className="space-y-1.5">
             {candidate.experiences.map(exp => (
               <CollapsibleRow key={exp.id}
@@ -443,7 +443,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
                     </span>
                   </div>
                 }>
-                {exp.description || <span className="text-gray-400 italic">Fără descriere.</span>}
+                {exp.description || <span className="text-gray-400 italic">No description.</span>}
               </CollapsibleRow>
             ))}
           </div>
@@ -451,7 +451,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
       )}
 
       {candidate.certifications?.length > 0 && (
-        <Section title={`Certificări (${candidate.certifications.length})`}>
+        <Section title={`Certifications (${candidate.certifications.length})`}>
           <div className="space-y-1.5">
             {candidate.certifications.map(cert => (
               <CollapsibleRow key={cert.id}
@@ -464,8 +464,8 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
                   </div>
                 }>
                 <div className="space-y-0.5 text-sm text-gray-600">
-                  {cert.issuer && <div>Emis de: <strong>{cert.issuer}</strong></div>}
-                  {cert.date_obtained && <div>Data: <strong>{cert.date_obtained}</strong></div>}
+                  {cert.issuer && <div>Issued by: <strong>{cert.issuer}</strong></div>}
+                  {cert.date_obtained && <div>Date: <strong>{cert.date_obtained}</strong></div>}
                 </div>
               </CollapsibleRow>
             ))}
@@ -474,7 +474,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
       )}
 
       {candidate.projects?.length > 0 && (
-        <Section title={`Proiecte (${candidate.projects.length})`}>
+        <Section title={`Projects (${candidate.projects.length})`}>
           <div className="space-y-1.5">
             {candidate.projects.map(proj => (
               <CollapsibleRow key={proj.id}
@@ -485,7 +485,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
                   </div>
                 }>
                 {proj.description && <p className="mb-1">{proj.description}</p>}
-                {proj.technologies && <p className="text-xs text-gray-500">Tehnologii: {proj.technologies}</p>}
+                {proj.technologies && <p className="text-xs text-gray-500">Technologies: {proj.technologies}</p>}
                 {proj.url && (
                   <a href={proj.url} target="_blank" rel="noopener noreferrer"
                     className={cn('text-xs text-[#2AA3FF] hover:underline flex items-center gap-1 mt-1')}>
@@ -499,11 +499,11 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
       )}
 
       {candidate.achievements?.length > 0 && (
-        <Section title={`Realizări (${candidate.achievements.length})`}>
+        <Section title={`Achievements (${candidate.achievements.length})`}>
           <div className="space-y-1.5">
             {candidate.achievements.map(ach => (
               <CollapsibleRow key={ach.id} summary={<span className="text-sm font-medium text-gray-800">{ach.title}</span>}>
-                {ach.description || <span className="text-gray-400 italic">Fără descriere.</span>}
+                {ach.description || <span className="text-gray-400 italic">No description.</span>}
               </CollapsibleRow>
             ))}
           </div>
@@ -514,7 +514,7 @@ function ProfileTab({ candidate }: { candidate: CandidateFull }) {
         const notes = parseNotes(candidate.notes)
         if (!notes.length) return null
         return (
-          <Section title={`Notițe interne (${notes.length})`}>
+          <Section title={`Internal notes (${notes.length})`}>
             <div className="space-y-2">
               {notes.map(note => (
                 <div key={note.id} className="bg-gray-50 rounded-xl p-3">
@@ -541,8 +541,8 @@ function CompanyTab({ candidate }: { candidate: CandidateFull }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Building2 size={40} className="text-gray-200 mb-3" />
-        <p className="text-sm text-gray-400">Nu există date de companie înregistrate.</p>
-        <p className="text-xs text-gray-300 mt-1">Completează din ecranul de editare al candidatului.</p>
+        <p className="text-sm text-gray-400">No company data registered.</p>
+        <p className="text-xs text-gray-300 mt-1">Fill in from the candidate edit screen.</p>
       </div>
     )
   }
@@ -551,7 +551,7 @@ function CompanyTab({ candidate }: { candidate: CandidateFull }) {
     <div className="space-y-4">
       {candidate.company_name && (
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Nume companie</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Company name</p>
           <p className="text-sm font-medium text-gray-800">{candidate.company_name}</p>
         </div>
       )}
@@ -570,13 +570,13 @@ function CompanyTab({ candidate }: { candidate: CandidateFull }) {
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-gray-100 text-gray-500 border-gray-200'
           )}>
-            {candidate.company_tva ? 'Da (platitor TVA)' : 'Nu'}
+            {candidate.company_tva ? 'Yes (VAT registered)' : 'No'}
           </span>
         </div>
       </div>
       {candidate.company_bank_account && (
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Cont bancar (IBAN)</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Bank account (IBAN)</p>
           <p className="text-sm text-gray-700 font-mono bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
             {candidate.company_bank_account}
           </p>
@@ -592,9 +592,9 @@ type TabId = 'profil' | 'companie' | 'cv'
 
 function TabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'profil',   label: 'Profil',       icon: <User size={13} /> },
-    { id: 'companie', label: 'Companie',      icon: <Building2 size={13} /> },
-    { id: 'cv',       label: 'CV Original',   icon: <FileText size={13} /> },
+    { id: 'profil',   label: 'Profile',      icon: <User size={13} /> },
+    { id: 'companie', label: 'Company',      icon: <Building2 size={13} /> },
+    { id: 'cv',       label: 'Original CV',  icon: <FileText size={13} /> },
   ]
   return (
     <div className="flex border-b border-gray-100 px-1">
@@ -656,17 +656,17 @@ export function CandidateViewModal({
           {candidate.profile && <span className="text-sm text-gray-500">{candidate.profile.name}</span>}
           {candidate.seniority && <Badge variant="gray">{SENIORITY_LABELS[candidate.seniority] ?? candidate.seniority}</Badge>}
           {candidate.candidate_status === 'activ' && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Activ</span>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Active</span>
           )}
           {candidate.candidate_status === 'angajat' && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Angajat</span>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Employed</span>
           )}
           {candidate.candidate_status === 'blacklist' && (
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">Black List</span>
           )}
           {candidate.successful_client && (
             <span className="text-xs text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
-              Plasat la {candidate.successful_client}
+              Placed at {candidate.successful_client}
             </span>
           )}
         </div>
@@ -681,7 +681,7 @@ export function CandidateViewModal({
         <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-[520px] max-h-[calc(100vh-2rem)]" onClick={e => e.stopPropagation()}>
           <div className="flex items-start justify-between p-5 border-b flex-shrink-0">
             {loading ? (
-              <div className="flex items-center gap-2 text-gray-400"><Loader2 size={16} className="animate-spin" /><span className="text-sm">Se încarcă...</span></div>
+              <div className="flex items-center gap-2 text-gray-400"><Loader2 size={16} className="animate-spin" /><span className="text-sm">Loading...</span></div>
             ) : candidate ? renderHeader(candidate, false) : (
               <p className="text-red-500 text-sm">{error}</p>
             )}
@@ -705,7 +705,7 @@ export function CandidateViewModal({
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b flex-shrink-0">
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400"><Loader2 size={16} className="animate-spin" /><span className="text-sm">Se încarcă...</span></div>
+            <div className="flex items-center gap-2 text-gray-400"><Loader2 size={16} className="animate-spin" /><span className="text-sm">Loading...</span></div>
           ) : candidate ? renderHeader(candidate, true) : (
             <p className="text-red-500 text-sm">{error}</p>
           )}

@@ -20,8 +20,8 @@ interface Props {
 
 const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
 const RATE_TYPE_OPTIONS = [
-  { value: 'daily', label: '/zi' },
-  { value: 'hourly', label: '/oră' },
+  { value: 'daily', label: '/day' },
+  { value: 'hourly', label: '/hour' },
 ]
 
 function ScoreCircle({ score }: { score: number }) {
@@ -101,10 +101,10 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Eroare')
+      if (!res.ok) throw new Error(data.error ?? 'Error')
       onAdded(data?.id)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Eroare necunoscută')
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setAdding(null)
     }
@@ -117,7 +117,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="font-semibold text-gray-900">Adaugă candidat în pipeline</h2>
+          <h2 className="font-semibold text-gray-900">Add candidate to pipeline</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded">
             <X size={18} />
           </button>
@@ -126,7 +126,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
         <div className="p-5 space-y-3">
           {/* Rate submisie */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Rate submisie</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Submission rate</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -160,7 +160,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Caută după nume..."
+              placeholder="Search by name..."
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
               autoFocus
             />
@@ -173,7 +173,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
               </div>
             ) : candidates.length === 0 ? (
               <p className="text-center py-10 text-sm text-gray-400">
-                {query ? 'Niciun candidat găsit' : 'Tastează un nume pentru a căuta'}
+                {query ? 'No candidate found' : 'Type a name to search'}
               </p>
             ) : (
               candidates.map(c => {
@@ -194,7 +194,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0B1A33] text-white text-xs font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors disabled:opacity-50"
                     >
                       {adding === c.id ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
-                      Adaugă
+                      Add
                     </button>
                   </div>
                 )
@@ -205,7 +205,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
           <textarea
             value={note}
             onChange={e => setNote(e.target.value)}
-            placeholder="Notă opțională la adăugare..."
+            placeholder="Optional note on adding..."
             rows={2}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
           />
@@ -218,7 +218,7 @@ export function AddCandidateModal({ roleId, onClose, onAdded }: Props) {
             onClick={onClose}
             className="w-full py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
           >
-            Închide
+            Close
           </button>
         </div>
       </div>

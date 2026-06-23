@@ -68,8 +68,8 @@ function interviewColors(status: string, accepted: boolean) {
 function formatInterviewDate(dateStr: string): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
-  const date = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
-  const time = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   return `${date}, ${time}`
 }
 
@@ -183,7 +183,7 @@ function CandidateCard({
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           {submission.submission_rate != null && (
             <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-semibold">
-              {submission.submission_rate} {submission.submission_currency ?? 'EUR'}/{submission.submission_rate_type === 'hourly' ? 'h' : 'zi'}
+              {submission.submission_rate} {submission.submission_currency ?? 'EUR'}/{submission.submission_rate_type === 'hourly' ? 'h' : 'day'}
             </span>
           )}
           {hasContract && (
@@ -226,7 +226,7 @@ function CandidateCard({
             }`}
           >
             <FileSignature size={11} />
-            {hasContract ? 'Editează oferta' : 'Contractează'}
+            {hasContract ? 'Edit offer' : 'Contract'}
           </button>
         </div>
       )}
@@ -250,7 +250,7 @@ function CandidateCard({
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
             className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
-            title="Profil candidat"
+            title="Candidate profile"
           >
             <User size={13} />
           </Link>
@@ -264,7 +264,7 @@ function CandidateCard({
               'p-1 transition-colors rounded',
               phoneVisible ? 'text-[#2AA3FF]' : 'text-gray-300 hover:text-[#2AA3FF]',
             )}
-            title="Număr de telefon"
+            title="Phone number"
           >
             <Phone size={13} />
           </button>
@@ -275,7 +275,7 @@ function CandidateCard({
             onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onDelete() }}
             className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
-            title="Șterge din pipeline"
+            title="Remove from pipeline"
           >
             <Trash2 size={13} />
           </button>
@@ -406,13 +406,13 @@ export function KanbanBoard({
       if (!res.ok) throw new Error()
     } catch {
       setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: submission.status } : s))
-      setDragError('Mutarea nu a putut fi salvată. Încearcă din nou.')
+      setDragError('Move could not be saved. Try again.')
       setTimeout(() => setDragError(''), 4000)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Ștergi candidatul din pipeline?')) return
+    if (!confirm('Remove candidate from pipeline?')) return
     setItems(prev => prev.filter(s => s.id !== id))
     try {
       await fetch(`/api/submissions/${id}`, { method: 'DELETE' })

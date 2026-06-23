@@ -31,7 +31,7 @@ export function ClientsClient({ clients }: { clients: Client[] }) {
   })
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Ștergi clientul "${name}"?\nAcesta nu poate fi șters dacă are roluri asociate.`)) return
+    if (!confirm(`Delete client "${name}"?\nCannot be deleted if it has associated roles.`)) return
     setDeleting(id)
     setDeleteError('')
     const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
@@ -60,21 +60,21 @@ export function ClientsClient({ clients }: { clients: Client[] }) {
         <div className="relative max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Caută după nume, locație sau contact..."
+            placeholder="Search by name, location or contact..."
             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]" />
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-gray-500">
-          {filtered.length} {filtered.length === 1 ? 'client' : 'clienți'}
-          {search && <span className="text-gray-400"> din {clients.length} total</span>}
+          {filtered.length} {filtered.length === 1 ? 'client' : 'clients'}
+          {search && <span className="text-gray-400"> of {clients.length} total</span>}
         </p>
       </div>
 
       {filtered.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-gray-400">Niciun client găsit{search ? ' pentru căutarea curentă' : ''}.</p>
+          <p className="text-gray-400">No clients found{search ? ' for the current search' : ''}.</p>
         </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden">
@@ -82,9 +82,9 @@ export function ClientsClient({ clients }: { clients: Client[] }) {
             <thead>
               <tr className="border-b border-white/40 bg-white/30 text-left">
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Locație</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Persoană contact</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Început colaborare</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact person</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Collaboration start</th>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fieldglass</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -109,7 +109,7 @@ export function ClientsClient({ clients }: { clients: Client[] }) {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {c.collaboration_start
-                      ? new Date(c.collaboration_start).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+                      ? new Date(c.collaboration_start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
@@ -121,13 +121,13 @@ export function ClientsClient({ clients }: { clients: Client[] }) {
                     <div className="flex items-center gap-1 justify-end">
                       <Link href={`/clients/${c.id}`}
                         className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                        title="Editează">
+                        title="Edit">
                         <Pencil size={15} />
                       </Link>
                       <button onClick={() => handleDelete(c.id, c.name)}
                         disabled={deleting === c.id}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                        title="Șterge">
+                        title="Delete">
                         <Trash2 size={15} />
                       </button>
                     </div>

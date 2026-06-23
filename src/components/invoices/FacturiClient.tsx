@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, FileText, Loader2, ArrowUpRight, ArrowDownLeft, TrendingUp, Handshake } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const TVA_RATE = 0.21
 
 interface ContractRow {
@@ -36,7 +36,7 @@ function isMonthActive(row: ContractRow, year: number, mi: number): boolean {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('ro-RO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return n.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 export function FacturiClient() {
@@ -72,7 +72,7 @@ export function FacturiClient() {
 
   // ── Dashboard: summary for selected month ──────────────────────────────────
   const monthLabel = new Date(year, selectedMonth, 1)
-    .toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })
+    .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
     .replace(/^./, c => c.toUpperCase())
 
   const monthSummary = useMemo(() => {
@@ -155,9 +155,9 @@ export function FacturiClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Facturi</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {isEmit ? 'Facturi emise NexDev → Client' : 'Facturi primite Candidat → NexDev'} · valori lunare estimate
+            {isEmit ? 'Issued invoices NexDev → Client' : 'Received invoices Candidate → NexDev'} · estimated monthly values
           </p>
         </div>
         <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
@@ -182,7 +182,7 @@ export function FacturiClient() {
             )}
           >
             <ArrowUpRight size={14} />
-            Emit către client
+            Issue to client
           </button>
           <button
             onClick={() => setTab('primesc')}
@@ -192,7 +192,7 @@ export function FacturiClient() {
             )}
           >
             <ArrowDownLeft size={14} />
-            Primesc de la candidat
+            Receive from candidate
           </button>
         </div>
 
@@ -235,7 +235,7 @@ export function FacturiClient() {
         <div className="space-y-2">
           {monthSummary.length === 0 ? (
             <div className="glass rounded-xl px-4 py-2.5 text-sm text-gray-400">
-              Nu există ore înregistrate în {monthLabel}.
+              No hours recorded in {monthLabel}.
             </div>
           ) : (
             monthSummary.map(s => (
@@ -246,7 +246,7 @@ export function FacturiClient() {
                     <ArrowUpRight size={13} className="text-indigo-400 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                        Incasări · {monthLabel}{tva && <span className="ml-1 text-indigo-400">+TVA</span>}
+                        Revenue · {monthLabel}{tva && <span className="ml-1 text-indigo-400">+VAT</span>}
                       </p>
                       <p className="text-lg font-bold text-[#0B1A33] leading-none">
                         {fmt(s.revenue)}<span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
@@ -257,7 +257,7 @@ export function FacturiClient() {
                     <ArrowDownLeft size={13} className="text-rose-400 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                        Cheltuieli · {monthLabel}
+                        Costs · {monthLabel}
                       </p>
                       <p className="text-lg font-bold text-[#0B1A33] leading-none">
                         {fmt(s.cost)}<span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
@@ -268,7 +268,7 @@ export function FacturiClient() {
                     <Handshake size={13} className="text-amber-400 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                        Comision parteneri · {monthLabel}
+                        Partner commission · {monthLabel}
                       </p>
                       <p className="text-lg font-bold text-[#0B1A33] leading-none">
                         {fmt(s.comms)}
@@ -283,7 +283,7 @@ export function FacturiClient() {
                     <TrendingUp size={13} className={cn('flex-shrink-0', s.profit >= 0 ? 'text-green-500' : 'text-red-400')} />
                     <div>
                       <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                        Profit net · {monthLabel}
+                        Net profit · {monthLabel}
                         <span className={cn('ml-1.5 font-semibold', s.profit >= 0 ? 'text-green-600' : 'text-red-500')}>
                           {s.profitPct}%
                         </span>
@@ -301,7 +301,7 @@ export function FacturiClient() {
                     <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-indigo-100 bg-indigo-50/30">
                       <ArrowUpRight size={13} className="text-indigo-400 flex-shrink-0" />
                       <div>
-                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">TVA încasat de la client · {monthLabel}</p>
+                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">VAT collected from client · {monthLabel}</p>
                         <p className="text-lg font-bold text-indigo-700 leading-none">
                           {fmt(s.tvaCollected)}<span className="text-xs font-normal text-indigo-400 ml-1">{s.currency}</span>
                         </p>
@@ -310,7 +310,7 @@ export function FacturiClient() {
                     <div className="glass rounded-xl px-3 py-2 flex items-center gap-3 border border-green-100 bg-green-50/30">
                       <ArrowDownLeft size={13} className="text-green-500 flex-shrink-0" />
                       <div>
-                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">TVA deductibil candidați · {monthLabel}</p>
+                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Deductible VAT candidates · {monthLabel}</p>
                         <p className="text-lg font-bold text-green-700 leading-none">
                           {fmt(s.tvaPaid)}<span className="text-xs font-normal text-green-400 ml-1">{s.currency}</span>
                         </p>
@@ -322,7 +322,7 @@ export function FacturiClient() {
                     )}>
                       <TrendingUp size={13} className={cn('flex-shrink-0', s.tvaNet > 0 ? 'text-amber-500' : 'text-gray-400')} />
                       <div>
-                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">TVA de plătit la stat · {monthLabel}</p>
+                        <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">VAT payable to state · {monthLabel}</p>
                         <p className={cn('text-lg font-bold leading-none', s.tvaNet > 0 ? 'text-amber-700' : 'text-gray-500')}>
                           {fmt(s.tvaNet)}<span className="text-xs font-normal ml-1">{s.currency}</span>
                         </p>
@@ -340,7 +340,7 @@ export function FacturiClient() {
       {loading ? (
         <div className="flex items-center justify-center h-72 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
-          <span className="text-sm">Se încarcă...</span>
+          <span className="text-sm">Loading...</span>
         </div>
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-72 gap-4 bg-white rounded-2xl border border-gray-100">
@@ -348,8 +348,8 @@ export function FacturiClient() {
             <FileText size={26} className="text-gray-400" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-gray-700">Niciun contract activ în {year}</p>
-            <p className="text-sm text-gray-400 mt-1">Navighează la un alt an sau creează contracte active.</p>
+            <p className="font-medium text-gray-700">No active contracts in {year}</p>
+            <p className="text-sm text-gray-400 mt-1">Navigate to another year or create active contracts.</p>
           </div>
         </div>
       ) : (
@@ -359,7 +359,7 @@ export function FacturiClient() {
               <thead>
                 <tr>
                   <th className="sticky left-0 z-10 bg-gray-50 border-b border-r border-gray-100 text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">
-                    Candidat
+                    Candidate
                   </th>
                   {MONTHS.map((m, mi) => (
                     <th
@@ -378,7 +378,7 @@ export function FacturiClient() {
                     </th>
                   ))}
                   <th className="border-b border-l border-gray-100 text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[110px] bg-gray-50">
-                    Total an
+                    Year total
                   </th>
                 </tr>
               </thead>
@@ -389,7 +389,7 @@ export function FacturiClient() {
                   const mult = tvaMultiplier(row)
                   const hasTva = mult > 1
                   const baseRate = getBaseRate(row)
-                  const rateLabel = `${isEmit ? 'Bill' : 'Pay'}: ${baseRate} ${row.currency}/${row.rate_type === 'daily' ? 'zi' : 'h'}`
+                  const rateLabel = `${isEmit ? 'Bill' : 'Pay'}: ${baseRate} ${row.currency}/${row.rate_type === 'daily' ? 'day' : 'h'}`
 
                   return (
                     <tr key={row.contract_id} className="group border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
@@ -482,7 +482,7 @@ export function FacturiClient() {
               <tfoot>
                 <tr className="border-t-2 border-gray-100 bg-gray-50/80">
                   <td className="sticky left-0 z-10 bg-gray-50 border-r border-gray-100 px-5 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Total lunar
+                    Monthly total
                   </td>
                   {MONTHS.map((_, mi) => {
                     const isSelectedCol = mi === selectedMonth

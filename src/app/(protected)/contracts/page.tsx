@@ -152,7 +152,7 @@ export default async function ContractsPage() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const firstDay = new Date(d.getFullYear(), d.getMonth(), 1)
     const lastDay  = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-    const label = d.toLocaleDateString('ro-RO', { month: 'short', year: '2-digit' })
+    const label = d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
 
     let count = 0
     let profit = 0
@@ -179,8 +179,8 @@ export default async function ContractsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#0B1A33]">Contracte</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{contracts.length} contracte totale · {active.length} active</p>
+          <h1 className="text-2xl font-bold text-[#0B1A33]">Contracts</h1>
+          <p className="text-gray-400 text-sm mt-0.5">{contracts.length} total contracts · {active.length} active</p>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export default async function ContractsPage() {
           <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
             <Users size={13} className="text-[#2AA3FF] flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-[10px] font-medium text-gray-400 leading-none mb-1">Contracte active</p>
+              <p className="text-[10px] font-medium text-gray-400 leading-none mb-1">Active contracts</p>
               {currencySummaries.length === 0 ? (
                 <p className="text-lg font-bold text-[#0B1A33] leading-none">0</p>
               ) : (
@@ -212,26 +212,26 @@ export default async function ContractsPage() {
               <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
                 <DollarSign size={13} className="text-indigo-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Revenue lunar est.</p>
+                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Monthly revenue est.</p>
                   <p className="text-lg font-bold text-[#0B1A33] leading-none">
-                    {currencySummaries[0].revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    {currencySummaries[0].revenue.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
                   </p>
                   {currencySummaries[0].currency !== 'EUR' && (
-                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].revenue, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].revenue, currencySummaries[0].currency)).toLocaleString('en-GB')} EUR</p>
                   )}
                 </div>
               </div>
               <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
                 <DollarSign size={13} className="text-gray-300 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Cost lunar est.</p>
+                  <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Monthly cost est.</p>
                   <p className="text-lg font-bold text-[#0B1A33] leading-none">
-                    {currencySummaries[0].cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    {currencySummaries[0].cost.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-gray-400 ml-1">{currencySummaries[0].currency}</span>
                   </p>
                   {currencySummaries[0].currency !== 'EUR' && (
-                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].cost, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].cost, currencySummaries[0].currency)).toLocaleString('en-GB')} EUR</p>
                   )}
                 </div>
               </div>
@@ -239,14 +239,14 @@ export default async function ContractsPage() {
                 <TrendingUp size={13} className="text-green-500 flex-shrink-0" />
                 <div>
                   <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                    Marjă lunară est. <span className="text-green-500">{currencySummaries[0].marginPct}%</span>
+                    Monthly margin est. <span className="text-green-500">{currencySummaries[0].marginPct}%</span>
                   </p>
                   <p className="text-lg font-bold text-green-700 leading-none">
-                    {currencySummaries[0].margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                    {currencySummaries[0].margin.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                     <span className="text-xs font-normal text-green-500 ml-1">{currencySummaries[0].currency}</span>
                   </p>
                   {currencySummaries[0].currency !== 'EUR' && (
-                    <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].margin, currencySummaries[0].currency)).toLocaleString('ro-RO')} EUR</p>
+                    <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(currencySummaries[0].margin, currencySummaries[0].currency)).toLocaleString('en-GB')} EUR</p>
                   )}
                 </div>
               </div>
@@ -261,26 +261,26 @@ export default async function ContractsPage() {
             <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
               <DollarSign size={13} className="text-indigo-400 flex-shrink-0" />
               <div>
-                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Revenue lunar est.</p>
+                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Monthly revenue est.</p>
                 <p className="text-lg font-bold text-[#0B1A33] leading-none">
-                  {s.revenue.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  {s.revenue.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
                 </p>
                 {s.currency !== 'EUR' && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.revenue, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.revenue, s.currency)).toLocaleString('en-GB')} EUR</p>
                 )}
               </div>
             </div>
             <div className="glass rounded-xl px-3 py-2 flex items-center gap-3">
               <DollarSign size={13} className="text-gray-300 flex-shrink-0" />
               <div>
-                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Cost lunar est.</p>
+                <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">Monthly cost est.</p>
                 <p className="text-lg font-bold text-[#0B1A33] leading-none">
-                  {s.cost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  {s.cost.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-gray-400 ml-1">{s.currency}</span>
                 </p>
                 {s.currency !== 'EUR' && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.cost, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">≈ {Math.round(toEur(s.cost, s.currency)).toLocaleString('en-GB')} EUR</p>
                 )}
               </div>
             </div>
@@ -288,14 +288,14 @@ export default async function ContractsPage() {
               <TrendingUp size={13} className="text-green-500 flex-shrink-0" />
               <div>
                 <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                  Marjă lunară est. <span className="text-green-500">{s.marginPct}%</span>
+                  Monthly margin est. <span className="text-green-500">{s.marginPct}%</span>
                 </p>
                 <p className="text-lg font-bold text-green-700 leading-none">
-                  {s.margin.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}
+                  {s.margin.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
                   <span className="text-xs font-normal text-green-500 ml-1">{s.currency}</span>
                 </p>
                 {s.currency !== 'EUR' && (
-                  <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(s.margin, s.currency)).toLocaleString('ro-RO')} EUR</p>
+                  <p className="text-[10px] text-green-500 mt-0.5">≈ {Math.round(toEur(s.margin, s.currency)).toLocaleString('en-GB')} EUR</p>
                 )}
               </div>
             </div>

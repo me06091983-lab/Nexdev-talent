@@ -17,7 +17,7 @@ interface RoleFormProps {
 }
 
 const SENIORITY_OPTIONS = [
-  { value: '', label: 'Selectează...' },
+  { value: '', label: 'Select...' },
   { value: 'junior', label: 'Junior' },
   { value: 'mid', label: 'Mid' },
   { value: 'senior', label: 'Senior' },
@@ -26,7 +26,7 @@ const SENIORITY_OPTIONS = [
 ]
 
 const COLLAB_OPTIONS = [
-  { value: '', label: 'Selectează...' },
+  { value: '', label: 'Select...' },
   { value: 'full_time', label: 'Full-time' },
   { value: 'part_time', label: 'Part-time' },
   { value: 'contract', label: 'Contract' },
@@ -35,15 +35,15 @@ const COLLAB_OPTIONS = [
 
 const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
 const RATE_TYPE_OPTIONS = [
-  { value: 'daily', label: 'Per zi' },
-  { value: 'hourly', label: 'Per oră' },
+  { value: 'daily', label: 'Per day' },
+  { value: 'hourly', label: 'Per hour' },
 ]
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
-  { value: 'active', label: 'Activ' },
+  { value: 'active', label: 'Active' },
   { value: 'on_hold', label: 'On Hold' },
-  { value: 'closed', label: 'Închis' },
-  { value: 'filled', label: 'Ocupat' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'filled', label: 'Filled' },
 ]
 
 export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
@@ -102,7 +102,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
       setRubixSaveStatus('saved')
       setTimeout(() => setRubixSaveStatus('idle'), 2500)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Eroare necunoscută'
+      const msg = e instanceof Error ? e.message : 'Unknown error'
       setRubixSaveError(msg)
       setRubixSaveStatus('error')
       setTimeout(() => { setRubixSaveStatus('idle'); setRubixSaveError('') }, 5000)
@@ -124,7 +124,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
 
   async function handleExtractSkills() {
     if (!form.description.trim()) {
-      setExtractMsg({ type: 'error', text: 'Completează mai întâi Job Description-ul.' })
+      setExtractMsg({ type: 'error', text: 'Fill in the Job Description first.' })
       setTimeout(() => setExtractMsg(null), 4000)
       return
     }
@@ -146,11 +146,11 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
       setPreferredSkills(mergeSkills(preferredSkills, data.preferred ?? []))
       setExtractMsg({
         type: 'success',
-        text: `AI a identificat ${data.required?.length ?? 0} skilluri obligatorii și ${data.preferred?.length ?? 0} preferate din JD.`,
+        text: `AI identified ${data.required?.length ?? 0} required skills and ${data.preferred?.length ?? 0} preferred from JD.`,
       })
       setTimeout(() => setExtractMsg(null), 6000)
     } catch (err) {
-      setExtractMsg({ type: 'error', text: err instanceof Error ? err.message : 'Eroare la extragerea skillurilor.' })
+      setExtractMsg({ type: 'error', text: err instanceof Error ? err.message : 'Error extracting skills.' })
       setTimeout(() => setExtractMsg(null), 5000)
     } finally {
       setExtracting(false)
@@ -159,7 +159,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
 
   async function handleGenerateRubix() {
     if (!form.description.trim()) {
-      setExtractMsg({ type: 'error', text: 'Completează mai întâi Job Description-ul pentru a genera Rubix Matrix.' })
+      setExtractMsg({ type: 'error', text: 'Fill in the Job Description first to generate the Rubix Matrix.' })
       setTimeout(() => setExtractMsg(null), 4000)
       return
     }
@@ -181,7 +181,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
         await saveRubix(newCriteria, roleId)
       }
     } catch (err) {
-      setExtractMsg({ type: 'error', text: err instanceof Error ? err.message : 'Eroare la generarea Rubix Matrix.' })
+      setExtractMsg({ type: 'error', text: err instanceof Error ? err.message : 'Error generating Rubix Matrix.' })
       setTimeout(() => setExtractMsg(null), 5000)
     } finally {
       setGeneratingRubix(false)
@@ -190,8 +190,8 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.title.trim()) { setError('Titlul rolului este obligatoriu'); return }
-    if (!form.client_id) { setError('Clientul este obligatoriu'); return }
+    if (!form.title.trim()) { setError('Role title is required'); return }
+    if (!form.client_id) { setError('Client is required'); return }
 
     setSaving(true)
     setError('')
@@ -231,7 +231,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
       router.push('/roles')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la salvare')
+      setError(err instanceof Error ? err.message : 'Save error')
     } finally {
       setSaving(false)
     }
@@ -251,17 +251,17 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
         {/* ── LEFT ── */}
         <div className="space-y-6">
           <section>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Informații de bază</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Basic information</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Titlu rol <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role title <span className="text-red-500">*</span></label>
                 <input type="text" value={form.title} onChange={e => set('title', e.target.value)}
                   className={inputCls} placeholder="ex: Senior Java Developer" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Client <span className="text-red-500">*</span></label>
                 <select value={form.client_id} onChange={e => set('client_id', e.target.value)} className={inputCls} required>
-                  <option value="">Selectează clientul...</option>
+                  <option value="">Select client...</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -272,13 +272,13 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Senioritate</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seniority</label>
                   <select value={form.seniority} onChange={e => set('seniority', e.target.value)} className={inputCls}>
                     {SENIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tip colaborare</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Collaboration type</label>
                   <select value={form.collaboration_type} onChange={e => set('collaboration_type', e.target.value)} className={inputCls}>
                     {COLLAB_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -286,9 +286,9 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Locație</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                   <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
-                    placeholder="ex: Londra, Remote" className={inputCls} />
+                    placeholder="ex: London, Remote" className={inputCls} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -304,17 +304,17 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
                     placeholder="ex: RFTJP0001234" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline submisii</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Submission deadline</label>
                   <input type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Număr roluri</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number of positions</label>
                   <input type="number" min="1" step="1" value={form.positions_count}
                     onChange={e => set('positions_count', e.target.value)} placeholder="1" className={inputCls} />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rate rol</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role rate</label>
                 <div className="grid grid-cols-3 gap-2">
                   <input type="number" min="0" step="0.01" value={form.rate}
                     onChange={e => set('rate', e.target.value)} placeholder="0.00"
@@ -332,11 +332,11 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
 
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Skilluri</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Skills</h3>
               <button type="button" onClick={handleExtractSkills} disabled={extracting}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#2AA3FF]/10 hover:bg-[#2AA3FF]/20 text-[#2AA3FF] border border-[#2AA3FF]/30 rounded-lg transition-colors disabled:opacity-60">
                 {extracting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                {extracting ? 'Analizează JD...' : 'Populează din JD (AI)'}
+                {extracting ? 'Analysing JD...' : 'Populate from JD (AI)'}
               </button>
             </div>
             {extractMsg && (
@@ -347,27 +347,27 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
             )}
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Obligatorii</label>
-                <SkillSelector selected={requiredSkills} onChange={setRequiredSkills} placeholder="Caută skilluri obligatorii..." />
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Required</label>
+                <SkillSelector selected={requiredSkills} onChange={setRequiredSkills} placeholder="Search required skills..." />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Preferate (nice-to-have)</label>
-                <SkillSelector selected={preferredSkills} onChange={setPreferredSkills} placeholder="Caută skilluri preferate..." />
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Preferred (nice-to-have)</label>
+                <SkillSelector selected={preferredSkills} onChange={setPreferredSkills} placeholder="Search preferred skills..." />
               </div>
             </div>
           </section>
 
           <div className="pt-4 border-t border-gray-200/60">
-            <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Câmpuri obligatorii</p>
+            <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Required fields</p>
             <div className="flex items-center gap-3">
               <button type="submit" disabled={saving}
                 className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/20">
                 {saving && <Loader2 size={16} className="animate-spin" />}
-                {isEdit ? 'Salvează modificările' : 'Creează rol'}
+                {isEdit ? 'Save changes' : 'Create role'}
               </button>
               <button type="button" onClick={() => router.back()}
                 className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-white/40 rounded-xl transition-colors">
-                Anulează
+                Cancel
               </button>
             </div>
           </div>
@@ -376,16 +376,16 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
         {/* ── RIGHT: JD ── */}
         <div>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Job Description complet
-            <span className="ml-2 text-gray-300 normal-case font-normal">(lipești textul din Fieldglass)</span>
+            Full Job Description
+            <span className="ml-2 text-gray-300 normal-case font-normal">(paste the text from Fieldglass)</span>
           </h3>
           <textarea
             value={form.description}
             onChange={e => set('description', e.target.value)}
             className={cn(inputCls, 'min-h-[560px] resize-y font-mono text-xs leading-relaxed whitespace-pre-wrap')}
-            placeholder="Lipește aici textul complet al JD-ului: cerințe, responsabilități, context rol, Required Knowledge..."
+            placeholder="Paste the full JD text here: requirements, responsibilities, role context, Required Knowledge..."
           />
-          <p className="text-xs text-gray-400 mt-2">Textul JD va fi folosit de AI pentru scoring automat.</p>
+          <p className="text-xs text-gray-400 mt-2">The JD text will be used by AI for automatic scoring.</p>
         </div>
       </div>
 

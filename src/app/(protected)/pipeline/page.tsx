@@ -66,23 +66,23 @@ export default async function PipelinePage() {
         <div>
           <h1 className="text-2xl font-bold text-[#0B1A33]">Radar</h1>
           <p className="text-gray-400 text-sm mt-0.5">
-            {activeCount} candidați activi în {roleCount} {roleCount === 1 ? 'rol' : 'roluri'} deschise
+            {activeCount} active candidates in {roleCount} open {roleCount === 1 ? 'role' : 'roles'}
           </p>
         </div>
         <Link
           href="/roles"
           className="text-sm text-gray-400 hover:text-[#2AA3FF] transition-colors"
         >
-          Vezi toate rolurile →
+          View all roles →
         </Link>
       </div>
 
       {submissions.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
-          <p className="text-gray-400 mb-2">Nu există candidați în pipeline momentan.</p>
+          <p className="text-gray-400 mb-2">No candidates in the pipeline at the moment.</p>
           <p className="text-sm text-gray-300">
-            Adaugă candidați la un rol activ din secțiunea{' '}
-            <Link href="/roles" className="text-[#2AA3FF] hover:underline">Roluri</Link>.
+            Add candidates to an active role from the{' '}
+            <Link href="/roles" className="text-[#2AA3FF] hover:underline">Roles</Link> section.
           </p>
         </div>
       ) : (

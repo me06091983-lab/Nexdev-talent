@@ -37,7 +37,7 @@ function emptyForm(): FormState {
 
 function fmtDate(d: string | null) {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('ro-RO', {
+  return new Date(d).toLocaleDateString('en-GB', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
@@ -110,15 +110,15 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
     setFormError('')
 
     if (!editingId) {
-      if (!form.email.trim())    { setFormError('Emailul este obligatoriu.'); return }
-      if (!form.password)        { setFormError('Parola este obligatorie.'); return }
+      if (!form.email.trim())    { setFormError('Email is required.'); return }
+      if (!form.password)        { setFormError('Password is required.'); return }
     }
     if (form.password && form.password.length < 6) {
-      setFormError('Parola trebuie să aibă cel puțin 6 caractere.')
+      setFormError('Password must be at least 6 characters.')
       return
     }
     if (form.password !== form.confirm_password) {
-      setFormError('Parolele nu coincid.')
+      setFormError('Passwords do not match.')
       return
     }
 
@@ -139,7 +139,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
-        if (!res.ok) { setFormError((await res.json()).error ?? 'Eroare la actualizare.'); return }
+        if (!res.ok) { setFormError((await res.json()).error ?? 'Update error.'); return }
       } else {
         const res = await fetch('/api/admin/users', {
           method: 'POST',
@@ -154,7 +154,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
             enabled:    form.enabled,
           }),
         })
-        if (!res.ok) { setFormError((await res.json()).error ?? 'Eroare la creare.'); return }
+        if (!res.ok) { setFormError((await res.json()).error ?? 'Create error.'); return }
       }
       closeForm()
       fetchUsers()
@@ -171,7 +171,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !u.enabled }),
       })
-      if (!res.ok) alert((await res.json()).error ?? 'Eroare.')
+      if (!res.ok) alert((await res.json()).error ?? 'Error.')
       else fetchUsers()
     } finally {
       setTogglingId(null)
@@ -179,11 +179,11 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Ștergi utilizatorul "${name}"? Acțiunea este ireversibilă.`)) return
+    if (!confirm(`Delete user "${name}"? This action is irreversible.`)) return
     setDeletingId(id)
     try {
       const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
-      if (!res.ok) { alert((await res.json()).error ?? 'Eroare la ștergere.'); return }
+      if (!res.ok) { alert((await res.json()).error ?? 'Delete error.'); return }
       fetchUsers()
     } finally {
       setDeletingId(null)
@@ -197,15 +197,15 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Utilizatori</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Conturi de acces la platforma NexDev Talent</p>
+          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Access accounts for the NexDev Talent platform</p>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-[#0B1A33] hover:bg-[#0B1A33]/90 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
         >
           <Plus size={16} />
-          Utilizator nou
+          New user
         </button>
       </div>
 
@@ -214,7 +214,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4 max-w-lg">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-800 text-sm">
-              {editingId ? `Editează: ${displayName(editingUser!)}` : 'Utilizator nou'}
+              {editingId ? `Edit: ${displayName(editingUser!)}` : 'New user'}
             </h3>
             <button onClick={closeForm} className="p-1 text-gray-400 hover:text-gray-600 rounded">
               <X size={16} />
@@ -224,22 +224,22 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           {/* Name row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Prenume</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">First name</label>
               <input
                 type="text"
                 value={form.first_name}
                 onChange={e => set('first_name', e.target.value)}
-                placeholder="Ion"
+                placeholder="John"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Nume</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Last name</label>
               <input
                 type="text"
                 value={form.last_name}
                 onChange={e => set('last_name', e.target.value)}
-                placeholder="Popescu"
+                placeholder="Smith"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30"
               />
             </div>
@@ -248,7 +248,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           {/* Phone */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              <span className="inline-flex items-center gap-1"><Phone size={11} /> Telefon</span>
+              <span className="inline-flex items-center gap-1"><Phone size={11} /> Phone</span>
             </label>
             <input
               type="tel"
@@ -283,14 +283,14 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           {/* Password */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {editingId ? 'Parolă nouă (gol = neschimbată)' : 'Parolă *'}
+              {editingId ? 'New password (blank = unchanged)' : 'Password *'}
             </label>
             <div className="relative">
               <input
                 type={showPass ? 'text' : 'password'}
                 value={form.password}
                 onChange={e => set('password', e.target.value)}
-                placeholder="Minim 6 caractere"
+                placeholder="At least 6 characters"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30"
               />
               <button
@@ -306,14 +306,14 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           {/* Confirm password */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {editingId ? 'Confirmare parolă nouă' : 'Repetare parolă *'}
+              {editingId ? 'Confirm new password' : 'Repeat password *'}
             </label>
             <div className="relative">
               <input
                 type={showConfirm ? 'text' : 'password'}
                 value={form.confirm_password}
                 onChange={e => set('confirm_password', e.target.value)}
-                placeholder="Repetă parola"
+                placeholder="Repeat password"
                 className={cn(
                   'w-full border rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2',
                   form.confirm_password && form.password !== form.confirm_password
@@ -331,14 +331,14 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
             </div>
             {form.confirm_password && form.password !== form.confirm_password && (
               <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
-                <AlertCircle size={10} /> Parolele nu coincid.
+                <AlertCircle size={10} /> Passwords do not match.
               </p>
             )}
           </div>
 
           {/* Role */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Rol *</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Role *</label>
             <div className="flex gap-2">
               {(['admin', 'recruiter'] as const).map(r => (
                 <button
@@ -364,9 +364,9 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           {/* Enable / Disable */}
           <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-gray-700">Cont activ</p>
+              <p className="text-sm font-medium text-gray-700">Active account</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {form.enabled ? 'Utilizatorul se poate loga.' : 'Utilizatorul nu se poate loga.'}
+                {form.enabled ? 'User can log in.' : 'User cannot log in.'}
               </p>
             </div>
             <button
@@ -396,7 +396,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
               onClick={closeForm}
               className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              Anulează
+              Cancel
             </button>
             <button
               onClick={handleSubmit}
@@ -404,8 +404,8 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
               className="flex-1 py-2.5 text-sm bg-[#0B1A33] hover:bg-[#0B1A33]/90 text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving
-                ? <><Loader2 size={13} className="animate-spin" /> Salvez...</>
-                : editingId ? 'Salvează modificările' : 'Creează cont'}
+                ? <><Loader2 size={13} className="animate-spin" /> Saving...</>
+                : editingId ? 'Save changes' : 'Create account'}
             </button>
           </div>
         </div>
@@ -415,17 +415,17 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
       {loading ? (
         <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
-          <span className="text-sm">Se încarcă...</span>
+          <span className="text-sm">Loading...</span>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilizator</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ultima autentificare</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last sign in</th>
                 <th className="px-4 py-3 w-24" />
               </tr>
             </thead>
@@ -440,7 +440,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                       {displayName(u)}
                       {u.id === currentUserId && (
                         <span className="text-[10px] font-semibold bg-blue-50 text-blue-500 border border-blue-100 rounded-full px-1.5 py-0.5">
-                          tu
+                          you
                         </span>
                       )}
                     </div>
@@ -472,7 +472,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                     <button
                       onClick={() => handleToggleEnabled(u)}
                       disabled={togglingId === u.id || u.id === currentUserId}
-                      title={u.id === currentUserId ? 'Nu poți dezactiva propriul cont' : u.enabled ? 'Dezactivează' : 'Activează'}
+                      title={u.id === currentUserId ? 'Cannot disable your own account' : u.enabled ? 'Disable' : 'Enable'}
                       className={cn(
                         'relative inline-flex w-10 h-5 rounded-full transition-colors focus:outline-none disabled:cursor-not-allowed',
                         u.enabled ? 'bg-green-500' : 'bg-gray-300',
@@ -493,7 +493,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                       <button
                         onClick={() => openEdit(u)}
                         className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Editează"
+                        title="Edit"
                       >
                         <Pencil size={14} />
                       </button>
@@ -502,7 +502,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                           onClick={() => handleDelete(u.id, displayName(u))}
                           disabled={deletingId === u.id}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
-                          title="Șterge"
+                          title="Delete"
                         >
                           {deletingId === u.id
                             ? <Loader2 size={14} className="animate-spin" />

@@ -15,7 +15,7 @@ interface SkillSelectorProps {
   placeholder?: string
 }
 
-export function SkillSelector({ selected, onChange, placeholder = 'Caută sau adaugă skilluri...' }: SkillSelectorProps) {
+export function SkillSelector({ selected, onChange, placeholder = 'Search or add skills...' }: SkillSelectorProps) {
   const [allSkills, setAllSkills] = useState<Skill[]>([])
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -107,7 +107,7 @@ export function SkillSelector({ selected, onChange, placeholder = 'Caută sau ad
       {open && query.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {Object.keys(grouped).length === 0 && !showAddOption ? (
-            <div className="px-4 py-3 text-sm text-gray-400">Niciun skill găsit</div>
+            <div className="px-4 py-3 text-sm text-gray-400">No skills found</div>
           ) : (
             <>
               {Object.entries(grouped).map(([category, skills]) => (
@@ -135,7 +135,7 @@ export function SkillSelector({ selected, onChange, placeholder = 'Caută sau ad
                   className="w-full text-left px-4 py-2.5 text-sm text-[#2AA3FF] hover:bg-blue-50 font-medium border-t border-gray-100 flex items-center gap-2"
                 >
                   <Plus size={14} />
-                  {adding ? 'Se adaugă...' : `Adaugă "${query.trim()}" în nomenclator`}
+                  {adding ? 'Adding...' : `Add "${query.trim()}" to directory`}
                 </button>
               )}
             </>

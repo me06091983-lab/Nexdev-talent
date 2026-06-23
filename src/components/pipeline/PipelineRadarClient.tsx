@@ -65,8 +65,8 @@ function interviewColors(status: string, accepted: boolean) {
 function formatInterviewDate(dateStr: string): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
-  const date = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
-  const time = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   return `${date}, ${time}`
 }
 
@@ -136,7 +136,7 @@ function CandidateCard({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate leading-tight">
-            {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
+            {c ? `${c.first_name} ${c.last_name}` : 'Candidate'}
           </p>
           {c?.profile && (
             <p className="text-[10px] text-gray-400 truncate">{c.profile.name}</p>
@@ -213,7 +213,7 @@ function CandidateCard({
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
             className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
-            title="Profil candidat"
+            title="Candidate profile"
           >
             <User size={12} />
           </Link>
@@ -227,7 +227,7 @@ function CandidateCard({
               'p-1 transition-colors rounded',
               phoneVisible ? 'text-[#2AA3FF]' : 'text-gray-300 hover:text-[#2AA3FF]',
             )}
-            title="Număr de telefon"
+            title="Phone number"
           >
             <Phone size={12} />
           </button>
@@ -237,7 +237,7 @@ function CandidateCard({
           onPointerDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
           className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
-          title="Deschide pipeline-ul rolului"
+          title="Open role pipeline"
         >
           <ExternalLink size={12} />
         </Link>
@@ -246,7 +246,7 @@ function CandidateCard({
           onPointerDown={e => e.stopPropagation()}
           onClick={e => { e.stopPropagation(); onDelete() }}
           className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
-          title="Șterge din pipeline"
+          title="Remove from pipeline"
         >
           <Trash2 size={12} />
         </button>
@@ -264,7 +264,7 @@ function DragOverlayCard({ submission }: { submission: RadarSubmission }) {
           {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
         </div>
         <p className="text-sm font-medium text-gray-900 truncate">
-          {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
+          {c ? `${c.first_name} ${c.last_name}` : 'Candidate'}
         </p>
       </div>
     </div>
@@ -364,7 +364,7 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Ștergi candidatul din pipeline?')) return
+    if (!confirm('Remove candidate from pipeline?')) return
     setItems(prev => prev.filter(s => s.id !== id))
     try {
       const res = await fetch(`/api/submissions/${id}`, { method: 'DELETE' })

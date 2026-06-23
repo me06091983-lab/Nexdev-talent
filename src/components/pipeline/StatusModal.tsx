@@ -78,7 +78,7 @@ function DateTimePicker({
         type="button"
         onClick={openDatePicker}
         className="text-gray-400 hover:text-[#2AA3FF] transition-colors flex-shrink-0"
-        title="Selectează data"
+        title="Select date"
       >
         <CalendarDays size={13} />
       </button>
@@ -147,11 +147,11 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
       })
       if (!res.ok) {
         const d = await res.json()
-        throw new Error(d.error ?? 'Eroare la salvare')
+        throw new Error(d.error ?? 'Save error')
       }
       onSaved(submission.id, status)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Eroare necunoscută')
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setSaving(false)
     }
@@ -191,7 +191,7 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
 
           {/* Status pipeline */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Status pipeline</label>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Pipeline status</label>
             <div className="relative">
               <select
                 value={status}
@@ -209,20 +209,20 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
           {/* Interview slots — dynamic */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Interviuri</label>
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Interviews</label>
               <button
                 type="button"
                 onClick={addSlot}
                 className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[#2AA3FF] border border-[#2AA3FF]/30 rounded-lg hover:bg-[#2AA3FF]/5 transition-colors"
               >
                 <Plus size={12} />
-                Adaugă interviu
+                Add interview
               </button>
             </div>
 
             {slots.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-3 border border-dashed border-gray-200 rounded-xl">
-                Niciun interviu adăugat. Apasă &quot;Adaugă interviu&quot; pentru a programa unul.
+                No interviews added. Click &quot;Add interview&quot; to schedule one.
               </p>
             ) : (
               <div className="space-y-3">
@@ -234,14 +234,14 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
                         type="text"
                         value={slot.label}
                         onChange={e => updateSlot(idx, 'label', e.target.value)}
-                        placeholder="Tip interviu (ex: Interviu tehnic)"
+                        placeholder="Interview type (e.g. Technical interview)"
                         className="flex-1 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 focus:border-[#2AA3FF] bg-white placeholder:text-gray-300"
                       />
                       <button
                         type="button"
                         onClick={() => removeSlot(idx)}
                         className="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50"
-                        title="Șterge interviu"
+                        title="Delete interview"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -273,7 +273,7 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
                         className="w-3.5 h-3.5 rounded border-gray-300 accent-green-500 cursor-pointer"
                       />
                       <span className={`text-xs font-medium ${slot.candidate_accepted ? 'text-green-600' : 'text-gray-500'}`}>
-                        Candidat a acceptat interviul
+                        Candidate accepted the interview
                       </span>
                     </label>
                   </div>
@@ -284,11 +284,11 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
 
           {/* Final note */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Notă / feedback</label>
+            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Note / feedback</label>
             <textarea
               value={feedback}
               onChange={e => setFeedback(e.target.value)}
-              placeholder="Adaugă un comentariu sau feedback general..."
+              placeholder="Add a comment or general feedback..."
               rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50"
             />
@@ -302,14 +302,14 @@ export function StatusModal({ submission, onClose, onSaved }: Props) {
             onClick={onClose}
             className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
           >
-            Anulează
+            Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex-1 py-2.5 text-sm bg-[#0B1A33] text-white rounded-xl font-medium hover:bg-[#0B1A33]/90 transition-colors disabled:opacity-50"
           >
-            {saving ? 'Salvez...' : 'Salvează'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>

@@ -98,7 +98,7 @@ function SearchableSelect({
       )}
       {open && query.length > 1 && filtered.length === 0 && (
         <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg px-3 py-2.5 text-sm text-gray-400">
-          Niciun rezultat pentru „{query}"
+          No results for &ldquo;{query}&rdquo;
         </div>
       )}
     </div>
@@ -111,7 +111,7 @@ function CommTypeToggle({ value, onChange }: { value: CommType; onChange: (v: Co
       {(['hourly', 'onetime'] as CommType[]).map(t => (
         <button key={t} type="button" onClick={() => onChange(t)}
           className={`px-2.5 py-2 text-[11px] font-medium whitespace-nowrap transition-colors ${value === t ? 'bg-[#0B1A33] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
-          {t === 'hourly' ? 'Pe oră' : 'O dată'}
+          {t === 'hourly' ? 'Per hour' : 'One-time'}
         </button>
       ))}
     </div>
@@ -162,7 +162,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
         setCommissions(loaded)
         setNotes(data.notes ?? '')
       })
-      .catch(() => setError('Eroare la încărcarea contractului.'))
+      .catch(() => setError('Error loading contract.'))
       .finally(() => setLoading(false))
   }, [contractId])
 
@@ -196,14 +196,14 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
 
   const selectedCandidateName = candidates?.find(c => c.id === selectedCandidateId)?.name ?? ''
   const selectedRoleTitle = roles?.find(r => r.id === selectedRoleId)?.title ?? ''
-  const unitLabel = rateType === 'daily' ? 'zi' : 'oră'
+  const unitLabel = rateType === 'daily' ? 'day' : 'hour'
 
   async function handleSave() {
-    if (!startDate) { setError('Data de început este obligatorie.'); return }
-    if (!payRate || pay <= 0) { setError('Pay rate invalid.'); return }
-    if (!billRate || bill <= 0) { setError('Bill rate invalid.'); return }
-    if (bill < pay) { setError('Bill rate trebuie să fie mai mare sau egal cu pay rate.'); return }
-    if (isManual && !selectedCandidateId) { setError('Selectează un candidat.'); return }
+    if (!startDate) { setError('Start date is required.'); return }
+    if (!payRate || pay <= 0) { setError('Invalid pay rate.'); return }
+    if (!billRate || bill <= 0) { setError('Invalid bill rate.'); return }
+    if (bill < pay) { setError('Bill rate must be greater than or equal to pay rate.'); return }
+    if (isManual && !selectedCandidateId) { setError('Select a candidate.'); return }
 
     setSaving(true)
     setError('')
@@ -232,10 +232,10 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
       const url = isEdit ? `/api/contracts/${contractId}` : '/api/contracts'
       const method = isEdit ? 'PUT' : 'POST'
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Eroare la salvare') }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Save error') }
       onSaved()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Eroare necunoscută')
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setSaving(false)
     }
@@ -254,7 +254,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
               </div>
             )}
             <div>
-              <h2 className="font-semibold text-gray-900 text-sm">{isEdit ? 'Editează contract' : 'Contract nou'}</h2>
+              <h2 className="font-semibold text-gray-900 text-sm">{isEdit ? 'Edit contract' : 'New contract'}</h2>
               {!isManual && (
                 <p className="text-xs text-gray-500">
                   {c ? `${c.first_name} ${c.last_name}` : ''}
@@ -273,7 +273,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
         </div>
 
         {loading ? (
-          <div className="p-10 text-center text-sm text-gray-400">Se încarcă...</div>
+          <div className="p-10 text-center text-sm text-gray-400">Loading...</div>
         ) : (
           <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
 
@@ -282,17 +282,17 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                    Candidat <span className="text-red-400">*</span>
+                    Candidate <span className="text-red-400">*</span>
                   </label>
                   <SearchableSelect options={candidateOptions} value={selectedCandidateId}
-                    onSelect={setSelectedCandidateId} placeholder="Caută după nume..." displayValue={selectedCandidateName} />
+                    onSelect={setSelectedCandidateId} placeholder="Search by name..." displayValue={selectedCandidateName} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                    Rol <span className="text-gray-300 font-normal">(opțional)</span>
+                    Role <span className="text-gray-300 font-normal">(optional)</span>
                   </label>
                   <SearchableSelect options={roleOptions} value={selectedRoleId}
-                    onSelect={setSelectedRoleId} placeholder="Caută după titlu sau client..." displayValue={selectedRoleTitle} />
+                    onSelect={setSelectedRoleId} placeholder="Search by title or client..." displayValue={selectedRoleTitle} />
                 </div>
               </div>
             )}
@@ -301,14 +301,14 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                  Data început <span className="text-red-400">*</span>
+                  Start date <span className="text-red-400">*</span>
                 </label>
                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                  Data sfârșit <span className="text-gray-300 font-normal">(opțional)</span>
+                  End date <span className="text-gray-300 font-normal">(optional)</span>
                 </label>
                 <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50" />
@@ -318,18 +318,18 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
             {/* Rate type + Currency */}
             <div className="flex items-center gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Tip rate</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Rate type</label>
                 <div className="flex rounded-xl border border-gray-200 overflow-hidden">
                   {(['daily', 'hourly'] as const).map(t => (
                     <button key={t} type="button" onClick={() => setRateType(t)}
                       className={`px-4 py-2 text-sm font-medium transition-colors ${rateType === t ? 'bg-[#0B1A33] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
-                      {t === 'daily' ? 'Zi' : 'Oră'}
+                      {t === 'daily' ? 'Day' : 'Hour'}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Monedă</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Currency</label>
                 <div className="flex rounded-xl border border-gray-200 overflow-hidden">
                   {CURRENCIES.map(cur => (
                     <button key={cur} type="button" onClick={() => setCurrency(cur)}
@@ -371,19 +371,19 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Comisioane parteneri <span className="text-gray-300 font-normal">(opțional)</span>
+                  Partner commissions <span className="text-gray-300 font-normal">(optional)</span>
                 </label>
                 {commissions.length < 2 && (
                   <button type="button" onClick={() => setCommissions(prev => [...prev, newComm()])}
                     className="flex items-center gap-1 text-[11px] font-medium text-[#2AA3FF] hover:text-[#2AA3FF]/80 transition-colors">
-                    <Plus size={12} /> Adaugă comision partener
+                    <Plus size={12} /> Add partner commission
                   </button>
                 )}
               </div>
               {commissions.map((comm, idx) => (
                 <div key={comm.key} className="space-y-1.5 p-3 border border-gray-100 rounded-xl bg-gray-50/50">
                   <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Comision {idx + 1}</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Commission {idx + 1}</p>
                     <button type="button" onClick={() => removeComm(comm.key)}
                       className="p-0.5 text-gray-300 hover:text-red-400 transition-colors rounded">
                       <Trash2 size={12} />
@@ -402,7 +402,7 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
                   {partners && partners.length > 0 && (
                     <select value={comm.partnerId} onChange={e => updateComm(comm.key, { partnerId: e.target.value })}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 bg-white text-gray-700">
-                      <option value="">— Partener (opțional) —</option>
+                      <option value="">— Partner (optional) —</option>
                       {partners.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                   )}
@@ -416,25 +416,25 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
                 <div className="flex items-center gap-2">
                   <TrendingUp size={14} className={netMonthly >= 0 ? 'text-green-500' : 'text-red-400'} />
                   <p className="text-xs font-semibold text-gray-700">
-                    Marjă brută: {grossUnit >= 0 ? '+' : ''}{grossUnit.toFixed(2)} {currency}/{unitLabel}
+                    Gross margin: {grossUnit >= 0 ? '+' : ''}{grossUnit.toFixed(2)} {currency}/{unitLabel}
                     <span className="ml-1.5 text-gray-400 font-normal">({grossPct}%)</span>
                   </p>
                 </div>
                 {hasComm && monthlyComms > 0 && (
                   <p className="text-[11px] text-gray-500 pl-5">
-                    Comisioane parteneri: <span className="text-red-500 font-medium">−{monthlyComms.toFixed(2)} {currency}/lună (est.)</span>
+                    Partner commissions: <span className="text-red-500 font-medium">−{monthlyComms.toFixed(2)} {currency}/month (est.)</span>
                   </p>
                 )}
                 <div className="pl-5 pt-0.5 border-t border-gray-200/60">
                   <p className="text-xs font-bold">
-                    <span className="text-gray-500 font-semibold">Marjă netă: </span>
+                    <span className="text-gray-500 font-semibold">Net margin: </span>
                     <span className={netUnit >= 0 ? 'text-green-700' : 'text-red-600'}>
                       {netUnit >= 0 ? '+' : ''}{netUnit.toFixed(2)} {currency}/{unitLabel}
                     </span>
                     <span className={`ml-1.5 text-[11px] ${netPct >= 0 ? 'text-green-600' : 'text-red-500'}`}>({netPct}%)</span>
                   </p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    Lunar ({rateType === 'daily' ? '20 zile' : '160 ore'}):
+                    Monthly ({rateType === 'daily' ? '20 days' : '160 hours'}):
                     <span className={`ml-1 font-semibold ${netMonthly >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                       {netMonthly >= 0 ? '+' : ''}{netMonthly.toFixed(0)} {currency}
                     </span>
@@ -446,10 +446,10 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
             {/* Notes */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                Note <span className="text-gray-300 font-normal">(opțional)</span>
+                Notes <span className="text-gray-300 font-normal">(optional)</span>
               </label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="Detalii contract, condiții speciale..." rows={2}
+                placeholder="Contract details, special conditions..." rows={2}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50" />
             </div>
 
@@ -460,11 +460,11 @@ export function ContractModal({ submission, contractId, onClose, onSaved, candid
         <div className="flex gap-2 px-5 pb-5 pt-2">
           <button onClick={onClose}
             className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
-            Anulează
+            Cancel
           </button>
           <button onClick={handleSave} disabled={saving || loading || (isManual && !selectedCandidateId)}
             className={`flex-1 py-2.5 text-sm text-white rounded-xl font-medium transition-colors disabled:opacity-50 ${isEdit ? 'bg-[#0B1A33] hover:bg-[#0B1A33]/90' : 'bg-green-600 hover:bg-green-700'}`}>
-            {saving ? 'Salvez...' : isEdit ? 'Salvează modificări' : 'Creează contract'}
+            {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create contract'}
           </button>
         </div>
       </div>

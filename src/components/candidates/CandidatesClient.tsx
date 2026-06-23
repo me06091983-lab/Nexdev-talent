@@ -48,14 +48,14 @@ function getNotesPreview(raw: string | null): string {
 }
 
 const PIPELINE_STATUS_LABELS: Record<string, string> = {
-  pipeline: 'Pipeline', submitted: 'Trimis', shortlisted: 'Shortlist',
-  interview: 'Interviu', rejected: 'Respins', offer: 'Ofertă',
+  pipeline: 'Pipeline', submitted: 'Submitted', shortlisted: 'Shortlist',
+  interview: 'Interview', rejected: 'Rejected', offer: 'Offer',
 }
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
-  own: 'Propriu',
+  own: 'Own',
   recruiter: 'Recruiter',
-  partner: 'Partener',
+  partner: 'Partner',
 }
 
 const PIPELINE_STATUS_COLORS: Record<string, string> = {
@@ -81,7 +81,7 @@ function AiScoreBadge({ score }: { score: number }) {
 }
 
 function exportCsv(candidates: Candidate[], aiScores: CandidateAiScoreMap) {
-  const headers = ['Prenume', 'Nume', 'Email', 'Telefon', 'Profil', 'Senioritate', 'Locație', 'Rate minim', 'Rate dorit', 'Monedă', 'Status', 'Sursă', 'Scor AI', 'Adăugat la']
+  const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Profile', 'Seniority', 'Location', 'Min Rate', 'Desired Rate', 'Currency', 'Status', 'Source', 'AI Score', 'Added At']
   const rows = candidates.map(c => [
     c.first_name,
     c.last_name,
@@ -94,9 +94,9 @@ function exportCsv(candidates: Candidate[], aiScores: CandidateAiScoreMap) {
     c.rate_wish ?? '',
     c.currency ?? 'EUR',
     c.candidate_status ?? '',
-    c.source_type === 'partner' ? (c.partner_name ?? 'Partener') : (SOURCE_TYPE_LABELS[c.source_type ?? ''] ?? c.source_type ?? ''),
+    c.source_type === 'partner' ? (c.partner_name ?? 'Partner') : (SOURCE_TYPE_LABELS[c.source_type ?? ''] ?? c.source_type ?? ''),
     aiScores[c.id] ?? '',
-    new Date(c.created_at).toLocaleDateString('ro-RO'),
+    new Date(c.created_at).toLocaleDateString('en-GB'),
   ])
   const csv = [headers, ...rows]
     .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
@@ -211,13 +211,13 @@ export function CandidatesClient({
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Ștergi candidatul "${name}"?`)) return
+    if (!confirm(`Delete candidate "${name}"?`)) return
     setDeleting(id)
     try {
       const res = await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        alert(d.error ?? 'Eroare la ștergerea candidatului.')
+        alert(d.error ?? 'Error deleting candidate.')
         return
       }
       router.refresh()
@@ -227,9 +227,9 @@ export function CandidatesClient({
   }
 
   const groups = [
-    { key: 'activ',     label: 'Activi',      headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
-    { key: 'angajat',   label: 'Angajați',    headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
-    { key: 'pasiv',     label: 'Pasivi',      headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
+    { key: 'activ',     label: 'Active',      headerCls: 'bg-green-50 border-green-200',  countCls: 'bg-green-100 text-green-700',  chevronCls: 'text-green-500' },
+    { key: 'angajat',   label: 'Employed',    headerCls: 'bg-blue-50 border-blue-200',    countCls: 'bg-blue-100 text-blue-700',    chevronCls: 'text-blue-500' },
+    { key: 'pasiv',     label: 'Passive',     headerCls: 'bg-gray-50 border-gray-200',    countCls: 'bg-gray-200 text-gray-600',    chevronCls: 'text-gray-400' },
     { key: 'blacklist', label: 'Black List',  headerCls: 'bg-red-50 border-red-200',      countCls: 'bg-red-100 text-red-700',      chevronCls: 'text-red-400' },
   ] as const
 
@@ -242,7 +242,7 @@ export function CandidatesClient({
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text" value={nameSearch} onChange={e => setNameSearch(e.target.value)}
-              placeholder="Caută după nume sau email..."
+              placeholder="Search by name or email..."
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
           </div>
@@ -250,7 +250,7 @@ export function CandidatesClient({
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text" list="profile-search-list" value={profileSearch} onChange={e => setProfileSearch(e.target.value)}
-              placeholder="Caută după profil (ex: Java, DevOps...)"
+              placeholder="Search by profile (e.g. Java, DevOps...)"
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
             <datalist id="profile-search-list">
@@ -271,13 +271,13 @@ export function CandidatesClient({
           <div>
             <input
               type="text" value={locationSearch} onChange={e => setLocationSearch(e.target.value)}
-              placeholder="Filtrează după locație..."
+              placeholder="Filter by location..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]"
             />
           </div>
           <select value={seniorityFilter} onChange={e => setSeniorityFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
-            <option value="">Toate nivelurile</option>
+            <option value="">All levels</option>
             {Object.entries(SENIORITY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
@@ -285,18 +285,18 @@ export function CandidatesClient({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Info size={12} />
-            <span>Skilluri: folosește <strong>and</strong> între termeni (ex: <em>aws and java</em>)</span>
+            <span>Skills: use <strong>and</strong> between terms (e.g. <em>aws and java</em>)</span>
           </div>
           <div className="flex items-center gap-2">
             {hasFilters && (
               <button onClick={clearAll} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-                <X size={12} /> Resetează
+                <X size={12} /> Reset
               </button>
             )}
             <button
               onClick={() => exportCsv(filtered, candidateAiScores)}
               className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-2.5 py-1 rounded-lg transition-colors"
-              title="Exportă lista curentă în CSV"
+              title="Export current list as CSV"
             >
               <Download size={12} /> Export CSV
             </button>
@@ -316,16 +316,16 @@ export function CandidatesClient({
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-gray-500">
-          {filtered.length} {filtered.length === 1 ? 'candidat' : 'candidați'}
-          {hasFilters && <span className="text-gray-400"> din {candidates.length} total</span>}
+          {filtered.length} {filtered.length === 1 ? 'candidate' : 'candidates'}
+          {hasFilters && <span className="text-gray-400"> of {candidates.length} total</span>}
         </p>
       </div>
 
       {filtered.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-gray-400">Niciun candidat găsit pentru filtrele aplicate.</p>
+          <p className="text-gray-400">No candidates found for the applied filters.</p>
           {hasFilters && (
-            <button onClick={clearAll} className="mt-3 text-sm text-[#2AA3FF] hover:underline">Resetează filtrele</button>
+            <button onClick={clearAll} className="mt-3 text-sm text-[#2AA3FF] hover:underline">Reset filters</button>
           )}
         </div>
       ) : (
@@ -344,13 +344,13 @@ export function CandidatesClient({
               </colgroup>
               <thead>
                 <tr className="border-b border-white/40 bg-white/30 text-left">
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Profil / Nivel</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rol curent</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Notițe</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Profile / Level</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Current Role</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
                   <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Scor AI</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sursă</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">AI Score</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Source</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -391,7 +391,7 @@ export function CandidatesClient({
                         groupCandidates.length === 0 ? (
                           <tr>
                             <td colSpan={8} className="px-5 py-5 text-sm text-gray-400 text-center italic border-b border-gray-50">
-                              Niciun candidat în această categorie.
+                              No candidates in this category.
                             </td>
                           </tr>
                         ) : groupCandidates.map(c => {
@@ -449,7 +449,7 @@ export function CandidatesClient({
                                 {c.rate_min || c.rate_wish ? (
                                   <div className="space-y-0.5">
                                     {c.rate_min && <div className="text-xs text-gray-500">Min: {c.rate_min} {c.currency}</div>}
-                                    {c.rate_wish && <div className="text-xs font-medium text-gray-700">Dorit: {c.rate_wish} {c.currency}</div>}
+                                    {c.rate_wish && <div className="text-xs font-medium text-gray-700">Desired: {c.rate_wish} {c.currency}</div>}
                                   </div>
                                 ) : <span className="text-xs text-gray-300">—</span>}
                               </td>
@@ -463,23 +463,23 @@ export function CandidatesClient({
 
                               <td className="px-4 py-3 text-sm text-gray-500 truncate">
                                 {c.source_type === 'partner'
-                                  ? (c.partner_name ?? 'Partener')
+                                  ? (c.partner_name ?? 'Partner')
                                   : (SOURCE_TYPE_LABELS[c.source_type ?? ''] ?? c.source_type ?? '—')}
                               </td>
 
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1 justify-end">
                                   <button onClick={() => setViewId(c.id)}
-                                    className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors" title="Vizualizează">
+                                    className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded transition-colors" title="View">
                                     <Eye size={15} />
                                   </button>
                                   <Link href={`/candidates/${c.id}`}
-                                    className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors" title="Editează">
+                                    className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors" title="Edit">
                                     <Pencil size={15} />
                                   </Link>
                                   <button onClick={() => handleDelete(c.id, `${c.first_name} ${c.last_name}`)}
                                     disabled={deleting === c.id}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Șterge">
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete">
                                     <Trash2 size={15} />
                                   </button>
                                 </div>

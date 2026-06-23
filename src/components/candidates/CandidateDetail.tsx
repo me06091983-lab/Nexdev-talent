@@ -13,31 +13,31 @@ import { CandidateCVModal } from './CandidateCVModal'
 import type { ParsedCvData } from './CandidateForm'
 
 const SUBMISSION_STATUS: Record<string, { label: string; cls: string }> = {
-  pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-700' },
-  submitted:   { label: 'Propus client', cls: 'bg-blue-100 text-blue-700' },
-  shortlisted: { label: 'Selectat',      cls: 'bg-purple-100 text-purple-700' },
-  interview:   { label: 'Interviu',      cls: 'bg-amber-100 text-amber-700' },
-  rejected:    { label: 'Respins',       cls: 'bg-red-100 text-red-600' },
-  offer:       { label: 'Ofertă',        cls: 'bg-green-100 text-green-700' },
+  pipeline:    { label: 'In pipeline',   cls: 'bg-slate-100 text-slate-700' },
+  submitted:   { label: 'Submitted',     cls: 'bg-blue-100 text-blue-700' },
+  shortlisted: { label: 'Shortlisted',   cls: 'bg-purple-100 text-purple-700' },
+  interview:   { label: 'Interview',     cls: 'bg-amber-100 text-amber-700' },
+  rejected:    { label: 'Rejected',      cls: 'bg-red-100 text-red-600' },
+  offer:       { label: 'Offer',         cls: 'bg-green-100 text-green-700' },
 }
 
 const ROLE_STATUS: Record<string, { label: string; cls: string }> = {
-  active:  { label: 'Rol activ',   cls: 'bg-green-50 text-green-700 border border-green-200' },
-  filled:  { label: 'Rol ocupat',  cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
-  on_hold: { label: 'On Hold',     cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
-  draft:   { label: 'Draft',       cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
-  closed:  { label: 'Rol închis',  cls: 'bg-red-50 text-red-600 border border-red-200' },
+  active:  { label: 'Active role',  cls: 'bg-green-50 text-green-700 border border-green-200' },
+  filled:  { label: 'Role filled',  cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
+  on_hold: { label: 'On Hold',      cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  draft:   { label: 'Draft',        cls: 'bg-gray-50 text-gray-500 border border-gray-200' },
+  closed:  { label: 'Role closed',  cls: 'bg-red-50 text-red-600 border border-red-200' },
 }
 
 const CONTRACT_STATUS: Record<string, { label: string; cls: string }> = {
-  activ:    { label: 'Activ',    cls: 'bg-green-100 text-green-700' },
-  terminat: { label: 'Terminat', cls: 'bg-gray-100 text-gray-500' },
+  activ:    { label: 'Active',     cls: 'bg-green-100 text-green-700' },
+  terminat: { label: 'Terminated', cls: 'bg-gray-100 text-gray-500' },
 }
 
 const CANDIDATE_STATUS_INFO: Record<string, { label: string; cls: string }> = {
-  activ:     { label: 'Activ',      cls: 'bg-green-100 text-green-700 border border-green-200' },
-  pasiv:     { label: 'Pasiv',      cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
-  angajat:   { label: 'Angajat',    cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  activ:     { label: 'Active',     cls: 'bg-green-100 text-green-700 border border-green-200' },
+  pasiv:     { label: 'Passive',    cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
+  angajat:   { label: 'Employed',   cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
   blacklist: { label: 'Black List', cls: 'bg-red-100 text-red-600 border border-red-200' },
 }
 
@@ -82,7 +82,7 @@ interface CandidateDetailProps {
 }
 
 function fmtDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function fmtRate(n: number): string {
@@ -102,10 +102,10 @@ function calcEurEquivalents(
 }
 
 function fmtDateTime(iso: string) {
-  if (!iso) return 'dată necunoscută'
+  if (!iso) return 'unknown date'
   const d = new Date(iso)
-  return d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' + d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function parseNotes(raw: unknown): NoteEntry[] {
@@ -165,7 +165,7 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote() }}
-          placeholder="Notă internă... (Ctrl+Enter)"
+          placeholder="Internal note... (Ctrl+Enter)"
           className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300 resize-none bg-gray-50/50"
         />
         <div className="flex justify-end mt-1.5">
@@ -174,13 +174,13 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
             disabled={saving || !text.trim()}
             className="px-3 py-1.5 bg-[#0B1A33] text-white text-xs font-medium rounded-lg hover:bg-[#162540] transition-colors disabled:opacity-50"
           >
-            {saving ? 'Salvez...' : 'Adaugă'}
+            {saving ? 'Saving...' : 'Add'}
           </button>
         </div>
       </div>
 
       {notes.length === 0 ? (
-        <p className="text-xs text-gray-400 text-center py-2">Nicio notă adăugată.</p>
+        <p className="text-xs text-gray-400 text-center py-2">No notes added.</p>
       ) : (
         <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
           {notes.map(note => (
@@ -195,7 +195,7 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
                 <button
                   onClick={() => deleteNote(note.id)}
                   className="flex-shrink-0 p-0.5 text-gray-300 hover:text-red-400 transition-colors rounded mt-0.5"
-                  title="Șterge nota"
+                  title="Delete note"
                 >
                   <Trash2 size={11} />
                 </button>
@@ -247,7 +247,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
       if (!res.ok) throw new Error(data.error)
       setCvFilePath(data.path)
     } catch (err) {
-      setCvError(err instanceof Error ? err.message : 'Eroare la încărcarea fișierului')
+      setCvError(err instanceof Error ? err.message : 'Error uploading file')
       setCvFile(null)
       setCvFileName('')
     } finally {
@@ -286,7 +286,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
       setParsedCvData({ ...data, _ts: Date.now() } as ParsedCvData)
       setCvParsed(true)
     } catch (err) {
-      setCvError(err instanceof Error ? err.message : 'Eroare la parsarea CV-ului')
+      setCvError(err instanceof Error ? err.message : 'Error parsing CV')
     } finally {
       setCvParsing(false)
     }
@@ -296,7 +296,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
     setGeneratingCV(true)
     try {
       const res = await fetch(`/api/candidates/${candidateId}/generate-cv`, { method: 'POST' })
-      if (!res.ok) throw new Error('Eroare la generare')
+      if (!res.ok) throw new Error('Generation error')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -305,7 +305,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      alert('Eroare la generarea CV-ului. Încearcă din nou.')
+      alert('Error generating CV. Please try again.')
     } finally {
       setGeneratingCV(false)
     }
@@ -317,10 +317,10 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
     try {
       const res = await fetch(`/api/candidates/${candidateId}/history`, { cache: 'no-store' })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Eroare server')
+      if (!res.ok) throw new Error(json.error ?? 'Server error')
       setData({ submissions: json.submissions ?? [], contracts: json.contracts ?? [] })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la încărcarea datelor')
+      setError(err instanceof Error ? err.message : 'Error loading data')
     } finally {
       setLoading(false)
     }
@@ -364,7 +364,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
             onClick={() => router.back()}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
-            ← Candidați
+            ← Candidates
           </button>
           <span className="text-gray-300 flex-shrink-0">/</span>
           <h1 className="text-base font-semibold text-gray-900 truncate">{candidateName}</h1>
@@ -372,7 +372,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
         <div className="flex items-center gap-2 flex-shrink-0">
           <button type="button" onClick={() => router.back()}
             className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
-            Anulează
+            Cancel
           </button>
           <button
             type="submit"
@@ -381,7 +381,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
             className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors shadow-sm"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? 'Se salvează...' : 'Salvează modificările'}
+            {saving ? 'Saving...' : 'Save changes'}
           </button>
         </div>
       </div>
@@ -434,7 +434,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                 tab === 'profil' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               )}
             >
-              <User size={14} /> Editează profil
+              <User size={14} /> Edit profile
             </button>
             <button
               onClick={() => setTab('istoric')}
@@ -443,7 +443,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                 tab === 'istoric' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               )}
             >
-              <Clock size={14} /> Istoric & Contracte
+              <Clock size={14} /> History & Contracts
               {totalCount > 0 && (
                 <span className="ml-0.5 text-xs bg-[#2AA3FF]/10 text-[#2AA3FF] px-1.5 py-0.5 rounded-full">
                   {totalCount}
@@ -470,7 +470,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  {!loading && `${data.submissions.length} roluri · ${data.contracts.length} contracte`}
+                  {!loading && `${data.submissions.length} role(s) · ${data.contracts.length} contract(s)`}
                 </p>
                 <button
                   onClick={fetchHistory}
@@ -478,13 +478,13 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-                  Reîncarcă
+                  Refresh
                 </button>
               </div>
 
               {loading && data.submissions.length === 0 && (
                 <div className="bg-white rounded-2xl p-8 text-center text-sm text-gray-400 border border-gray-100">
-                  Se încarcă...
+                  Loading...
                 </div>
               )}
 
@@ -499,14 +499,14 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                 <div>
                   <div className="flex items-center gap-3 mb-3 px-1">
                     <ScrollText size={14} className="text-gray-400" />
-                    <h2 className="text-sm font-semibold text-gray-700">Contracte</h2>
+                    <h2 className="text-sm font-semibold text-gray-700">Contracts</h2>
                     <div className="flex-1 h-px bg-gray-200" />
                   </div>
                   <div className="space-y-2">
                     {data.contracts.map(c => {
                       const cs = CONTRACT_STATUS[c.contract_status] ?? { label: c.contract_status, cls: 'bg-gray-100 text-gray-600' }
                       const isActive = c.contract_status === 'activ'
-                      const rateLabel = c.rate_type === 'hourly' ? '/oră' : '/zi'
+                      const rateLabel = c.rate_type === 'hourly' ? '/hour' : '/day'
                       const billEur = calcEurEquivalents(c.bill_rate, c.rate_type, c.currency, exchangeRates)
                       const payEur = c.pay_rate != null
                         ? calcEurEquivalents(c.pay_rate, c.rate_type, c.currency, exchangeRates)
@@ -526,7 +526,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                               <div className="flex items-center gap-3 text-[11px] text-gray-500">
                                 <span>Start: <span className="font-medium text-gray-700">{fmtDate(c.start_date)}</span></span>
                                 {c.end_date && <span>End: <span className="font-medium text-gray-700">{fmtDate(c.end_date)}</span></span>}
-                                {!c.end_date && <span className="text-green-600 font-medium">Nedeterminat</span>}
+                                {!c.end_date && <span className="text-green-600 font-medium">Open-ended</span>}
                               </div>
                             </div>
                             <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0 font-medium">
@@ -544,11 +544,11 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                               </p>
                               <div className="mt-1.5 space-y-0.5 border-t border-blue-100 pt-1.5">
                                 <p className="text-[10px] text-gray-500">
-                                  <span className="text-gray-400">EUR/oră: </span>
+                                  <span className="text-gray-400">EUR/hour: </span>
                                   <span className="font-semibold text-gray-700">{fmtRate(billEur.perHour)}</span>
                                 </p>
                                 <p className="text-[10px] text-gray-500">
-                                  <span className="text-gray-400">EUR/zi: </span>
+                                  <span className="text-gray-400">EUR/day: </span>
                                   <span className="font-semibold text-gray-700">{fmtRate(billEur.perDay)}</span>
                                 </p>
                               </div>
@@ -563,11 +563,11 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                                 </p>
                                 <div className="mt-1.5 space-y-0.5 border-t border-green-100 pt-1.5">
                                   <p className="text-[10px] text-gray-500">
-                                    <span className="text-gray-400">EUR/oră: </span>
+                                    <span className="text-gray-400">EUR/hour: </span>
                                     <span className="font-semibold text-gray-700">{fmtRate(payEur.perHour)}</span>
                                   </p>
                                   <p className="text-[10px] text-gray-500">
-                                    <span className="text-gray-400">EUR/zi: </span>
+                                    <span className="text-gray-400">EUR/day: </span>
                                     <span className="font-semibold text-gray-700">{fmtRate(payEur.perDay)}</span>
                                   </p>
                                 </div>
@@ -585,13 +585,13 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
               <div>
                 <div className="flex items-center gap-3 mb-3 px-1">
                   <Clock size={14} className="text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-700">Roluri aplicate</h2>
+                  <h2 className="text-sm font-semibold text-gray-700">Applied roles</h2>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
                 {!loading && !error && data.submissions.length === 0 && (
                   <div className="bg-white rounded-2xl p-8 text-center text-sm text-gray-400 border border-gray-100">
-                    Candidatul nu a fost propus pentru niciun rol încă.
+                    Candidate has not been submitted to any role yet.
                   </div>
                 )}
 
@@ -616,7 +616,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                                 href={`/roles/${entry.role?.id}/pipeline`}
                                 className="font-medium text-gray-900 hover:text-[#2AA3FF] transition-colors text-sm"
                               >
-                                {entry.role?.title ?? 'Rol necunoscut'}
+                                {entry.role?.title ?? 'Unknown role'}
                               </a>
                               {entry.role?.client?.name && (
                                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
@@ -630,9 +630,9 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                               )}
                             </div>
                             <div className="flex items-center gap-3 text-[11px] text-gray-400 mb-1">
-                              <span>Aplicat: <span className="text-gray-600 font-medium">{fmtDate(entry.created_at)}</span></span>
+                              <span>Applied: <span className="text-gray-600 font-medium">{fmtDate(entry.created_at)}</span></span>
                               {entry.created_at !== entry.updated_at && (
-                                <span>Actualizat: <span className="text-gray-600 font-medium">{fmtDate(entry.updated_at)}</span></span>
+                                <span>Updated: <span className="text-gray-600 font-medium">{fmtDate(entry.updated_at)}</span></span>
                               )}
                             </div>
                             {feedbackToShow && (
@@ -663,15 +663,15 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
 
           {/* Status card */}
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Status candidat</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Candidate status</h3>
             <span className={cn('inline-flex text-sm font-semibold px-3 py-1.5 rounded-xl border', statusInfo.cls)}>
               {statusInfo.label}
             </span>
             <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
-              {candidateStatus === 'activ'     && 'Candidat activ în proces de recrutare.'}
-              {candidateStatus === 'pasiv'     && 'În baza de date, fără proces activ.'}
-              {candidateStatus === 'angajat'   && 'Candidat plasat cu succes.'}
-              {candidateStatus === 'blacklist' && 'Candidat blocat — nu apare în pipeline.'}
+              {candidateStatus === 'activ'     && 'Active candidate in recruitment process.'}
+              {candidateStatus === 'pasiv'     && 'In the database, no active process.'}
+              {candidateStatus === 'angajat'   && 'Candidate successfully placed.'}
+              {candidateStatus === 'blacklist' && 'Blocked candidate — does not appear in pipeline.'}
             </p>
           </div>
 
@@ -695,7 +695,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
 
           {/* CV & Documente — toate opțiunile CV într-un singur card */}
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">CV & Documente</h3>
+            <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">CV & Documents</h3>
 
             {/* Fișier curent */}
             {(cvFileName || cvFilePath) ? (
@@ -714,12 +714,12 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                 )}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 mb-2">Niciun CV client încărcat.</p>
+              <p className="text-xs text-gray-400 mb-2">No client CV uploaded.</p>
             )}
 
             {cvParsed && (
               <div className="flex items-center gap-1.5 text-green-700 text-xs font-medium mb-2 px-1">
-                <CheckCircle size={11} /> Câmpurile au fost completate din CV
+                <CheckCircle size={11} /> Fields populated from CV
               </div>
             )}
 
@@ -737,7 +737,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   : 'bg-white border-gray-200 text-gray-700 hover:border-[#2AA3FF] hover:text-[#2AA3FF]'
               )}>
                 {cvUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                {cvUploading ? 'Se încarcă...' : (cvFilePath ? 'Înlocuiește CV client' : 'Încarcă CV client')}
+                {cvUploading ? 'Uploading...' : (cvFilePath ? 'Replace client CV' : 'Upload client CV')}
                 <input
                   type="file"
                   accept=".pdf,.docx,.doc"
@@ -761,7 +761,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   )}
                 >
                   {cvParsing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {cvParsing ? 'Se parsează...' : 'Populează automat din CV'}
+                  {cvParsing ? 'Parsing...' : 'Auto-populate from CV'}
                 </button>
               )}
 
@@ -772,7 +772,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                   onClick={() => setShowCvPreview(true)}
                   className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors"
                 >
-                  <Eye size={12} /> Vizualizează CV client
+                  <Eye size={12} /> View client CV
                 </button>
               )}
 
@@ -786,7 +786,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#0B1A33] text-white text-xs font-medium rounded-xl hover:bg-[#162540] transition-colors disabled:opacity-60"
               >
                 {generatingCV ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
-                {generatingCV ? 'Se generează...' : 'Generează CV NexDev'}
+                {generatingCV ? 'Generating...' : 'Generate NexDev CV'}
               </button>
             </div>
           </div>
@@ -795,7 +795,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <StickyNote size={13} className="text-amber-400" />
-              <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Notițe interne</h3>
+              <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Internal notes</h3>
             </div>
             <NotesPanel candidateId={candidateId} initialNotesRaw={initial.notes} />
           </div>
@@ -806,13 +806,13 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Clock size={13} className="text-gray-400" />
-                  <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Activitate</h3>
+                  <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Activity</h3>
                 </div>
                 <button
                   onClick={() => setTab('istoric')}
                   className="text-[11px] text-[#2AA3FF] hover:underline"
                 >
-                  Vezi tot →
+                  See all →
                 </button>
               </div>
 
@@ -827,7 +827,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                     <div key={entry.id} className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-800 truncate">
-                          {entry.role?.title ?? 'Rol necunoscut'}
+                          {entry.role?.title ?? 'Unknown role'}
                         </p>
                         {entry.role?.client?.name && (
                           <p className="text-[10px] text-gray-400 truncate">{entry.role.client.name}</p>
@@ -844,7 +844,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
               {data.contracts.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <p className="text-[11px] font-semibold text-gray-500">
-                    {data.contracts.length} contract{data.contracts.length !== 1 ? 'e' : ''} active
+                    {data.contracts.length} active contract{data.contracts.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               )}

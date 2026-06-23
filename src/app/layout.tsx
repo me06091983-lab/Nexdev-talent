@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'NexDev Talent',
-  description: 'Platformă internă de recrutare asistată de AI',
+  description: 'Internal AI-assisted recruitment platform',
 }
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ro" className="h-full">
+    <html lang="en" className="h-full">
       <body className="h-full antialiased">{children}</body>
     </html>
   )

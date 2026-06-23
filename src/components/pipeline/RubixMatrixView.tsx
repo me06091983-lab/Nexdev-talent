@@ -111,7 +111,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-xs text-gray-400 py-3 px-4 bg-white/60 border border-gray-200 rounded-xl">
-        <Loader2 size={13} className="animate-spin" /> Se încarcă Rubix Matrix...
+        <Loader2 size={13} className="animate-spin" /> Loading Rubix Matrix...
       </div>
     )
   }
@@ -119,7 +119,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
   if (!data?.hasCriteria) {
     return (
       <div className="px-4 py-3 text-xs text-gray-400 bg-gray-50/60 border border-dashed border-gray-200 rounded-xl">
-        Nicio Rubix Matrix definită pentru acest rol. Adaugă una din <strong>editare rol</strong>.
+        No Rubix Matrix defined for this role. Add one from <strong>role edit</strong>.
       </div>
     )
   }
@@ -134,10 +134,10 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
       <div className="flex items-center justify-between px-4 py-2.5 bg-[#0B1A33] text-white">
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold uppercase tracking-widest">Rubix Matrix</span>
-          <span className="text-xs text-white/40">{criteria.length} criterii · {candidates.length} candidați</span>
+          <span className="text-xs text-white/40">{criteria.length} criteria · {candidates.length} candidates</span>
           {anyAssessing && (
             <span className="inline-flex items-center gap-1 text-[10px] text-[#2AA3FF]">
-              <Loader2 size={10} className="animate-spin" /> Evaluare în curs...
+              <Loader2 size={10} className="animate-spin" /> Assessing...
             </span>
           )}
         </div>
@@ -145,7 +145,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
           <button
             onClick={() => { setLoading(true); load() }}
             className="p-1 text-white/40 hover:text-white transition-colors rounded"
-            title="Actualizează"
+            title="Refresh"
           >
             <RefreshCw size={13} />
           </button>
@@ -161,12 +161,12 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
       {/* Legend */}
       {!collapsed && (
         <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] text-gray-400 flex items-center gap-1">
-          <span className="font-medium text-gray-500">Scală:</span>
-          5 = îndeplinit complet · 4 = puternic · 3 = parțial · 2 = limitat · 1 = minimal · 0 = absent
+          <span className="font-medium text-gray-500">Scale:</span>
+          5 = fully met · 4 = strong · 3 = partial · 2 = limited · 1 = minimal · 0 = absent
           <span className="ml-2 text-gray-300">|</span>
-          <span className="ml-1">celula = scor / weighted%</span>
+          <span className="ml-1">cell = score / weighted%</span>
           <span className="text-gray-300 mx-1">·</span>
-          <span>hover = evidență</span>
+          <span>hover = evidence</span>
         </div>
       )}
 
@@ -177,10 +177,10 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="w-7 px-2 py-2 text-center text-[10px] font-semibold text-gray-400 sticky left-0 bg-gray-50">#</th>
                 <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 min-w-[280px] sticky left-7 bg-gray-50 border-r border-gray-200">
-                  Criteriu (din JD)
+                  Criterion (from JD)
                 </th>
                 <th className="w-16 px-3 py-2 text-center text-[10px] font-semibold text-gray-500 border-r border-gray-200">
-                  Pondere
+                  Weight
                 </th>
                 {candidates.map(c => (
                   <th key={c.submission_id} className="px-2 py-2 text-center min-w-[100px] max-w-[120px] border-l border-gray-100">
@@ -190,7 +190,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
                     <div className="mt-0.5">
                       {assessing.has(c.submission_id) ? (
                         <span className="inline-flex items-center gap-0.5 text-[9px] text-[#2AA3FF]">
-                          <Loader2 size={9} className="animate-spin" /> analizează...
+                          <Loader2 size={9} className="animate-spin" /> assessing...
                         </span>
                       ) : c.has_scores ? (
                         <FitBadge fit={c.overall_fit} />
@@ -199,7 +199,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
                           onClick={() => triggerAssess(c.submission_id)}
                           className="inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded bg-[#2AA3FF]/10 text-[#2AA3FF] hover:bg-[#2AA3FF]/20 border border-[#2AA3FF]/20 transition-colors"
                         >
-                          <Sparkles size={8} /> Analizează
+                          <Sparkles size={8} /> Assess
                         </button>
                       )}
                     </div>
@@ -245,7 +245,7 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
 
           {candidates.length === 0 && (
             <div className="text-center py-6 text-xs text-gray-400">
-              Adaugă candidați în pipeline pentru a vedea scorurile Rubix.
+              Add candidates to the pipeline to see Rubix scores.
             </div>
           )}
         </div>

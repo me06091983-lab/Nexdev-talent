@@ -11,8 +11,8 @@ export default async function PartnersPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#0B1A33]">Parteneri</h1>
-        <p className="text-gray-400 text-sm mt-0.5">{(partners ?? []).length} parteneri înregistrați</p>
+        <h1 className="text-2xl font-bold text-[#0B1A33]">Partners</h1>
+        <p className="text-gray-400 text-sm mt-0.5">{(partners ?? []).length} registered partners</p>
       </div>
       <PartnersClient partners={partners ?? []} />
     </div>

@@ -82,7 +82,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
     })
     if (!res.ok) {
       const d = await res.json()
-      throw new Error(d.error ?? 'Eroare la adăugare')
+      throw new Error(d.error ?? 'Error adding candidate')
     }
     const sub = await res.json()
     if (sub?.id) setLastAddedSubmissionId(sub.id)
@@ -99,7 +99,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
         {isClosed && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-600 flex-shrink-0">
             <Lock size={14} className="text-gray-400 flex-shrink-0" />
-            <span>Rol <strong>închis</strong> — vizualizare read-only. Nu se pot adăuga candidați sau modifica statusuri.</span>
+            <span>Role <strong>closed</strong> — read-only view. Candidates cannot be added or statuses changed.</span>
           </div>
         )}
 
@@ -112,24 +112,24 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
               {role.rate && (() => {
                 const currency = role.rate_currency ?? 'EUR'
                 const rateType = role.rate_type ?? 'daily'
-                const label = rateType === 'daily' ? 'zi' : 'oră'
+                const label = rateType === 'daily' ? 'day' : 'hour'
                 const base = ` · ${role.rate} ${currency} / ${label}`
                 if (currency === 'EUR' && rateType === 'daily') return base
-                if (fxRates === null) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs în curs de încărcare...)</span></>
+                if (fxRates === null) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (loading rates...)</span></>
                 const eur = calcEurEquivalents(role.rate, currency, rateType, fxRates)
-                if (!eur) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (curs indisponibil)</span></>
+                if (!eur) return <>{base}<span className="text-gray-300 mx-1 text-xs"> (rate unavailable)</span></>
                 return (
                   <>
                     {base}
                     <span className="text-gray-300 mx-1">·</span>
-                    <span className="text-indigo-500 font-medium">≈ {eur.eurDay} EUR/zi</span>
+                    <span className="text-indigo-500 font-medium">≈ {eur.eurDay} EUR/day</span>
                     <span className="text-gray-300 mx-1">·</span>
-                    <span className="text-indigo-400">≈ {eur.eurHour} EUR/oră</span>
+                    <span className="text-indigo-400">≈ {eur.eurHour} EUR/hour</span>
                   </>
                 )
               })()}
               {' · '}
-              <span className="text-gray-500">{submissions.length} candidați</span>
+              <span className="text-gray-500">{submissions.length} candidate{submissions.length !== 1 ? 's' : ''}</span>
             </p>
           </div>
           {!isClosed && (
@@ -150,7 +150,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
                 className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
               >
                 <Plus size={14} />
-                Adaugă candidat
+                Add candidate
               </button>
             </div>
           )}

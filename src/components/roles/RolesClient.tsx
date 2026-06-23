@@ -54,35 +54,35 @@ interface Submission {
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'gray' | 'blue' | 'green' | 'yellow' | 'red' }> = {
   draft:   { label: 'Draft',    variant: 'gray' },
-  active:  { label: 'Activ',   variant: 'green' },
+  active:  { label: 'Active',   variant: 'green' },
   on_hold: { label: 'On Hold', variant: 'yellow' },
-  closed:  { label: 'Închis',  variant: 'red' },
-  filled:  { label: 'Ocupat',  variant: 'blue' },
+  closed:  { label: 'Closed',  variant: 'red' },
+  filled:  { label: 'Filled',  variant: 'blue' },
 }
 
 const PIPELINE_LABELS: Record<string, { label: string; cls: string }> = {
-  pipeline:    { label: 'În recrutare',  cls: 'bg-slate-100 text-slate-600' },
-  submitted:   { label: 'Propus client', cls: 'bg-blue-50 text-blue-600' },
-  shortlisted: { label: 'Selectat',      cls: 'bg-purple-50 text-purple-600' },
-  interview:   { label: 'Interviu',      cls: 'bg-amber-50 text-amber-600' },
-  rejected:    { label: 'Respins',       cls: 'bg-red-50 text-red-500' },
-  offer:       { label: 'Ofertă',        cls: 'bg-green-50 text-green-600' },
+  pipeline:    { label: 'In recruitment', cls: 'bg-slate-100 text-slate-600' },
+  submitted:   { label: 'Submitted',      cls: 'bg-blue-50 text-blue-600' },
+  shortlisted: { label: 'Shortlisted',    cls: 'bg-purple-50 text-purple-600' },
+  interview:   { label: 'Interview',      cls: 'bg-amber-50 text-amber-600' },
+  rejected:    { label: 'Rejected',       cls: 'bg-red-50 text-red-500' },
+  offer:       { label: 'Offer',          cls: 'bg-green-50 text-green-600' },
 }
 
 const STATUS_GROUP_ORDER = ['active', 'filled', 'on_hold', 'draft', 'closed']
 const STATUS_GROUP_LABELS: Record<string, string> = {
-  active:  'Roluri active',
-  filled:  'Roluri ocupate',
+  active:  'Active roles',
+  filled:  'Filled roles',
   on_hold: 'On Hold',
   draft:   'Draft',
-  closed:  'Închise',
+  closed:  'Closed',
 }
 
 const INTERVIEW_STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  waiting_customer: { label: 'Așteptare',  cls: 'bg-gray-100 text-gray-500' },
-  set:              { label: 'Programat',  cls: 'bg-blue-50 text-blue-600' },
-  passed:           { label: 'Trecut',     cls: 'bg-green-50 text-green-600' },
-  rejected:         { label: 'Respins',    cls: 'bg-red-50 text-red-500' },
+  waiting_customer: { label: 'Waiting',   cls: 'bg-gray-100 text-gray-500' },
+  set:              { label: 'Scheduled', cls: 'bg-blue-50 text-blue-600' },
+  passed:           { label: 'Passed',    cls: 'bg-green-50 text-green-600' },
+  rejected:         { label: 'Rejected',  cls: 'bg-red-50 text-red-500' },
 }
 
 const SENIORITY_LABELS: Record<string, string> = {
@@ -117,17 +117,17 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-3 px-4 text-gray-400 text-sm">
-        <Loader2 size={14} className="animate-spin" /> Se încarcă candidații...
+        <Loader2 size={14} className="animate-spin" /> Loading candidates...
       </div>
     )
   }
 
   if (loadError) {
-    return <p className="py-3 px-4 text-sm text-red-400 italic">Eroare la încărcarea candidaților. Reîncarcă pagina.</p>
+    return <p className="py-3 px-4 text-sm text-red-400 italic">Error loading candidates. Reload the page.</p>
   }
 
   if (!subs?.length) {
-    return <p className="py-3 px-4 text-sm text-gray-400 italic">Niciun candidat adăugat în pipeline.</p>
+    return <p className="py-3 px-4 text-sm text-gray-400 italic">No candidates added to pipeline.</p>
   }
 
   return (
@@ -141,11 +141,11 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
       </colgroup>
       <thead>
         <tr className="bg-gray-50/80 text-left">
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidat</th>
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Rate propus</th>
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stagiu</th>
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interviu</th>
-          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Status interviu</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidate</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Proposed rate</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stage</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interview</th>
+          <th className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Interview status</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -153,7 +153,7 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
           const c = s.candidate
           const rate = s.submission_rate
           const currency = s.submission_currency ?? 'EUR'
-          const rateType = s.submission_rate_type === 'daily' ? '/zi' : '/oră'
+          const rateType = s.submission_rate_type === 'daily' ? '/day' : '/h'
           const pipeline = PIPELINE_LABELS[s.status] ?? { label: s.status, cls: 'bg-gray-100 text-gray-500' }
           const checkedSlots = (s.interviews ?? []).filter(i => i.enabled)
           const latestSlot = checkedSlots.length ? checkedSlots[checkedSlots.length - 1] : null
@@ -243,13 +243,13 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
   }
 
   async function handleDelete(id: string, title: string) {
-    if (!confirm(`Ștergi rolul "${title}"?`)) return
+    if (!confirm(`Delete role "${title}"?`)) return
     setDeleting(id)
     try {
       const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        alert(d.error ?? 'Eroare la ștergerea rolului.')
+        alert(d.error ?? 'Error deleting role.')
         return
       }
       router.refresh()
@@ -266,22 +266,22 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Titlu sau Fieldglass ID..."
+              placeholder="Title or Fieldglass ID..."
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]" />
           </div>
           <select value={clientFilter} onChange={e => setClientFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
-            <option value="">Toți clienții</option>
+            <option value="">All clients</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select value={hiringManagerFilter} onChange={e => setHiringManagerFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
-            <option value="">Toți hiring managerii</option>
+            <option value="">All hiring managers</option>
             {hiringManagers.map(hm => <option key={hm} value={hm}>{hm}</option>)}
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]">
-            <option value="">Toate statusurile</option>
+            <option value="">All statuses</option>
             {Object.entries(STATUS_LABELS).map(([v, { label }]) => (
               <option key={v} value={v}>{label}</option>
             ))}
@@ -291,7 +291,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
           <div className="flex justify-end">
             <button onClick={clearAll}
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-              <X size={12} /> Resetează filtrele
+              <X size={12} /> Reset filters
             </button>
           </div>
         )}
@@ -299,17 +299,17 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
 
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-gray-500">
-          {filtered.length} {filtered.length === 1 ? 'rol' : 'roluri'}
-          {hasFilters && <span className="text-gray-400"> din {roles.length} total</span>}
+          {filtered.length} {filtered.length === 1 ? 'role' : 'roles'}
+          {hasFilters && <span className="text-gray-400"> of {roles.length} total</span>}
         </p>
       </div>
 
       {filtered.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-gray-400">Niciun rol găsit{hasFilters ? ' pentru filtrele aplicate' : ''}.</p>
+          <p className="text-gray-400">No roles found{hasFilters ? ' for the applied filters' : ''}.</p>
           {hasFilters && (
             <button onClick={clearAll} className="mt-3 text-sm text-[#2AA3FF] hover:underline">
-              Resetează filtrele
+              Reset filters
             </button>
           )}
         </div>
@@ -352,12 +352,12 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                     <thead>
                       <tr className="border-b border-white/40 bg-white/30 text-left">
                         <th className="px-2 py-3"></th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiring Manager</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Skilluri cheie</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Key skills</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Poziții</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Positions</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
                         <th className="px-4 py-3"></th>
                       </tr>
@@ -372,7 +372,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                 <button
                                   onClick={() => toggleExpand(r.id)}
                                   className="p-1 rounded text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
-                                  title={isExpanded ? 'Restrânge' : 'Extinde candidați'}
+                                  title={isExpanded ? 'Collapse' : 'Expand candidates'}
                                 >
                                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                 </button>
@@ -402,7 +402,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
                                 {r.rate ? (
-                                  <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'zi' : 'oră'}</span></span>
+                                  <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'day' : 'hour'}</span></span>
                                 ) : '—'}
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -416,7 +416,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-500">
                                 {r.deadline
-                                  ? new Date(r.deadline).toLocaleDateString('ro-RO', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  ? new Date(r.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                                   : '—'}
                               </td>
                               <td className="px-4 py-3">
@@ -429,20 +429,20 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                   {r.status === 'closed' ? (
                                     <Link href={`/roles/${r.id}`}
                                       className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                                      title="Vizualizează">
+                                      title="View">
                                       <Eye size={15} />
                                     </Link>
                                   ) : (
                                     <>
                                       <Link href={`/roles/${r.id}`}
                                         className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                                        title="Editează">
+                                        title="Edit">
                                         <Pencil size={15} />
                                       </Link>
                                       <button onClick={() => handleDelete(r.id, r.title)}
                                         disabled={deleting === r.id}
                                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                        title="Șterge">
+                                        title="Delete">
                                         <Trash2 size={15} />
                                       </button>
                                     </>

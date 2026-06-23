@@ -33,7 +33,7 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Editează: {role.title}
+          Edit: {role.title}
         </h1>
         {role.fieldglass_id && (
           <p className="text-gray-500 mt-1 font-mono text-sm">{role.fieldglass_id}</p>

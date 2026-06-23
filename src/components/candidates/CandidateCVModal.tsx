@@ -46,7 +46,7 @@ export function CandidateCVModal({ candidateId, candidateName, onClose }: Props)
               {url && (
                 <a href={url} target="_blank" rel="noopener noreferrer"
                   className="text-xs text-[#2AA3FF] hover:underline flex items-center gap-1">
-                  Deschide în tab nou <ExternalLink size={10} />
+                  Open in new tab <ExternalLink size={10} />
                 </a>
               )}
             </div>
@@ -61,13 +61,13 @@ export function CandidateCVModal({ candidateId, candidateName, onClose }: Props)
           {loading ? (
             <div className="flex flex-col items-center gap-2 text-gray-400">
               <Loader2 size={24} className="animate-spin" />
-              <p className="text-sm">Se încarcă CV-ul...</p>
+              <p className="text-sm">Loading CV...</p>
             </div>
           ) : error ? (
             <div className="text-center">
               <FileText size={40} className="text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-500">{error}</p>
-              <p className="text-xs text-gray-400 mt-1">CV-ul trebuie încărcat din profilul candidatului.</p>
+              <p className="text-xs text-gray-400 mt-1">CV must be uploaded from the candidate profile.</p>
             </div>
           ) : url && isPdf ? (
             <iframe
@@ -78,14 +78,14 @@ export function CandidateCVModal({ candidateId, candidateName, onClose }: Props)
           ) : url ? (
             <div className="flex flex-col items-center justify-center p-8 gap-3">
               <FileText size={40} className="text-gray-300" />
-              <p className="text-sm text-gray-600">Fișier DOCX — nu poate fi previzualizat direct.</p>
+              <p className="text-sm text-gray-600">DOCX file — cannot be previewed directly.</p>
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 bg-[#0B1A33] text-white text-sm rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
               >
-                <ExternalLink size={14} /> Descarcă CV
+                <ExternalLink size={14} /> Download CV
               </a>
             </div>
           ) : null}

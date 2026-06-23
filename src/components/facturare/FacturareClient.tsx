@@ -70,17 +70,17 @@ interface ExpectedAmt {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MONTHS_SHORT = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
-const MONTHS_FULL  = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie']
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTHS_FULL  = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const CURRENCIES   = ['EUR', 'USD', 'GBP', 'RON']
 const TVA          = 0.21
 
 function fmt(n: number, currency: string) {
-  return `${n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+  return `${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
 }
 
 function fmtDate(d: string) {
-  return new Date(d + 'T12:00:00').toLocaleDateString('ro-RO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function isOverdue(d: string | null, settled: boolean): boolean {
@@ -268,15 +268,15 @@ export function FacturareClient() {
 
   async function handleSubmit() {
     if (!form.valoare || !form.data_emitere) {
-      setFormError('Valoare și data emitere sunt obligatorii.')
+      setFormError('Amount and issue date are required.')
       return
     }
     if (form.type === 'emisa' && !form.client_id) {
-      setFormError('Selectează un client.')
+      setFormError('Please select a client.')
       return
     }
     if (form.type === 'primita' && !form.contract_id) {
-      setFormError('Selectează un candidat.')
+      setFormError('Please select a candidate.')
       return
     }
 
@@ -336,10 +336,10 @@ export function FacturareClient() {
         fetchData(year, month, showAll)
       } else {
         const d = await res.json()
-        setFormError(d.error ?? 'Eroare la salvare')
+        setFormError(d.error ?? 'Save error')
       }
     } catch {
-      setFormError('Eroare de rețea. Verifică conexiunea și încearcă din nou.')
+      setFormError('Network error. Check your connection and try again.')
     } finally {
       setSaving(false)
     }
@@ -364,13 +364,13 @@ export function FacturareClient() {
   }
 
   async function deleteFactura(id: string) {
-    if (!confirm('Ștergi această factură?')) return
+    if (!confirm('Delete this invoice?')) return
     setDeletingId(id)
     try {
       const res = await fetch(`/api/facturi/${id}`, { method: 'DELETE' })
-      if (!res.ok) { alert('Eroare la ștergerea facturii.'); return }
+      if (!res.ok) { alert('Error deleting invoice.'); return }
     } catch {
-      alert('Eroare de rețea la ștergerea facturii.')
+      alert('Network error deleting invoice.')
       return
     } finally {
       setDeletingId(null)
@@ -413,9 +413,9 @@ export function FacturareClient() {
   )
 
   const periodLabel = showAll
-    ? 'toate facturile'
+    ? 'all invoices'
     : new Date(year, month - 1, 1)
-        .toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })
+        .toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
         .replace(/^./, c => c.toUpperCase())
 
   // ── Form JSX ─────────────────────────────────────────────────────────────────
@@ -425,8 +425,8 @@ export function FacturareClient() {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-800 text-sm">
           {isEditing
-            ? `Editează factură ${isEmit ? 'emisă' : 'primită'}`
-            : isEmit ? 'Factură nouă emisă' : 'Factură nouă primită'}
+            ? `Edit ${isEmit ? 'issued' : 'received'} invoice`
+            : isEmit ? 'New issued invoice' : 'New received invoice'}
         </h3>
         <button onClick={closeForm} className="p-1 text-gray-400 hover:text-gray-600 rounded">
           <X size={16} />
@@ -444,19 +444,19 @@ export function FacturareClient() {
                 onChange={e => handleClientChange(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
               >
-                <option value="">Selectează client...</option>
+                <option value="">Select client...</option>
                 {data?.clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             {form.client_id && (
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Candidat (contract activ)</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Candidate (active contract)</label>
                 <select
                   value={form.contract_id}
                   onChange={e => handleContractChange(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
                 >
-                  <option value="">— Fără candidat specific —</option>
+                  <option value="">— No specific candidate —</option>
                   {(data?.activeContracts ?? [])
                     .filter(c => c.client_id === form.client_id)
                     .map(c => <option key={c.id} value={c.id}>{c.candidate_name}</option>)}
@@ -466,14 +466,14 @@ export function FacturareClient() {
           </>
         ) : (
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Candidat (contract activ) *</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Candidate (active contract) *</label>
             <select
               value={form.contract_id}
               onChange={e => handleContractChange(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
             >
-              <option value="">Selectează candidat...</option>
-              {data?.activeContracts.length === 0 && <option disabled>Niciun contract activ</option>}
+              <option value="">Select candidate...</option>
+              {data?.activeContracts.length === 0 && <option disabled>No active contracts</option>}
               {data?.activeContracts.map(c => (
                 <option key={c.id} value={c.id}>{c.candidate_name}</option>
               ))}
@@ -483,7 +483,7 @@ export function FacturareClient() {
 
         {/* Nr factură */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Nr. factură</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Invoice no.</label>
           <input
             type="text"
             placeholder="ex: NX-2025-001"
@@ -495,13 +495,13 @@ export function FacturareClient() {
 
         {/* Luna efectivă */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Luna efectivă</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Effective month</label>
           <select
             value={form.luna_efectiva}
             onChange={e => setForm(p => ({ ...p, luna_efectiva: e.target.value }))}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
           >
-            <option value="">— Neselectat —</option>
+            <option value="">— Not selected —</option>
             {MONTHS_FULL.map((m, i) => (
               <option key={i + 1} value={String(i + 1)}>{m}</option>
             ))}
@@ -510,7 +510,7 @@ export function FacturareClient() {
 
         {/* Data emitere */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Data emitere *</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Issue date *</label>
           <input
             type="date"
             value={form.data_emitere}
@@ -533,7 +533,7 @@ export function FacturareClient() {
         {/* Valoare NETĂ */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">
-            Valoare NETĂ *
+            NET amount *
             {loadingExpected && (
               <Loader2 size={10} className="inline ml-1 animate-spin text-gray-400" />
             )}
@@ -561,15 +561,15 @@ export function FacturareClient() {
                 ? <AlertCircle size={11} className="flex-shrink-0" />
                 : <Check size={11} className="flex-shrink-0 text-green-500" />}
               {amountMismatch
-                ? <>Valoare netă așteptată: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></>
-                : <>Valoare netă din timesheet: {fmt(expectedAmt.netValue, expectedAmt.currency)}{expectedAmt.hasTva ? ' (TVA separat)' : ''}</>
+                ? <>Expected net amount: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></>
+                : <>Net amount from timesheet: {fmt(expectedAmt.netValue, expectedAmt.currency)}{expectedAmt.hasTva ? ' (VAT separate)' : ''}</>
               }
             </p>
           )}
           {expectedAmt !== null && expectedAmt.netValue === 0 && !loadingExpected && (
             <p className="text-[11px] mt-1 text-amber-500 flex items-center gap-1">
               <AlertCircle size={11} />
-              Nicio oră înregistrată în timesheet pentru luna selectată.
+              No hours recorded in timesheet for the selected month.
             </p>
           )}
         </div>
@@ -594,14 +594,14 @@ export function FacturareClient() {
           {tvaMismatch && form.valuta === 'RON' && (
             <p className="text-[11px] mt-1 flex items-center gap-1 text-red-500 font-medium">
               <AlertCircle size={11} className="flex-shrink-0" />
-              TVA așteptat (21%): <strong>{(Math.round(parseFloat(form.valoare || '0') * 0.21 * 100) / 100).toFixed(2)}</strong>
+              Expected VAT (21%): <strong>{(Math.round(parseFloat(form.valoare || '0') * 0.21 * 100) / 100).toFixed(2)}</strong>
             </p>
           )}
         </div>
 
         {/* Valoare totală (auto-calculată) */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Valoare totală</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Total amount</label>
           <div className="w-full border border-gray-100 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700 font-semibold tabular-nums">
             {((parseFloat(form.valoare || '0') + parseFloat(form.tva_valoare || '0')) || 0).toFixed(2)}
             <span className="ml-1.5 text-xs font-normal text-gray-400">{form.valuta}</span>
@@ -610,7 +610,7 @@ export function FacturareClient() {
 
         {/* Valută */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Valută</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
           <select
             value={form.valuta}
             onChange={e => setForm(p => ({ ...p, valuta: e.target.value }))}
@@ -637,13 +637,13 @@ export function FacturareClient() {
               className="w-4 h-4 rounded accent-green-500"
             />
             <label htmlFor="incasata_platita" className="text-sm text-gray-600 cursor-pointer">
-              {form.type === 'emisa' ? 'Factură deja încasată' : 'Factură deja plătită'}
+              {form.type === 'emisa' ? 'Invoice already collected' : 'Invoice already paid'}
             </label>
           </div>
           {form.incasata_platita && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-gray-500 whitespace-nowrap">
-                {form.type === 'emisa' ? 'Data încasării' : 'Data plății'}
+                {form.type === 'emisa' ? 'Collection date' : 'Payment date'}
               </label>
               <input
                 type="date"
@@ -657,10 +657,10 @@ export function FacturareClient() {
 
         {/* Notițe */}
         <div className="col-span-2">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Notițe</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
           <textarea
             rows={2}
-            placeholder="Observații, detalii suplimentare..."
+            placeholder="Observations, additional details..."
             value={form.notes}
             onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30"
@@ -673,7 +673,7 @@ export function FacturareClient() {
         <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-red-700 leading-relaxed space-y-0.5">
-            <p className="font-semibold">Valoare NETĂ sau valută diferită față de timesheet.</p>
+            <p className="font-semibold">NET amount or currency differs from timesheet.</p>
             {(() => {
               const entered    = parseFloat(form.valoare || '0')
               const amtDiffers = Math.abs(entered - expectedAmt.netValue) > 0.01
@@ -681,12 +681,12 @@ export function FacturareClient() {
               return (
                 <>
                   {amtDiffers && (
-                    <p>Suma introdusă: <strong>{fmt(entered, form.valuta)}</strong> · Așteptat: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></p>
+                    <p>Entered amount: <strong>{fmt(entered, form.valuta)}</strong> · Expected: <strong>{fmt(expectedAmt.netValue, expectedAmt.currency)}</strong></p>
                   )}
                   {curDiffers && (
-                    <p>Valuta introdusă: <strong>{form.valuta}</strong> · Valuta din contract: <strong>{expectedAmt.currency}</strong></p>
+                    <p>Entered currency: <strong>{form.valuta}</strong> · Currency from contract: <strong>{expectedAmt.currency}</strong></p>
                   )}
-                  <p className="opacity-70">Apasă din nou <strong>Salvează</strong> dacă valorile sunt intenționat diferite.</p>
+                  <p className="opacity-70">Press <strong>Save</strong> again if the values are intentionally different.</p>
                 </>
               )
             })()}
@@ -697,10 +697,10 @@ export function FacturareClient() {
         <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-red-700 leading-relaxed">
-            <span className="font-semibold">TVA diferit de 21%.</span>{' '}
-            Valoarea așteptată este{' '}
+            <span className="font-semibold">VAT differs from 21%.</span>{' '}
+            Expected value is{' '}
             <strong>{(Math.round(parseFloat(form.valoare || '0') * 0.21 * 100) / 100).toFixed(2)} RON</strong>.
-            {' '}Apasă din nou <strong>Salvează</strong> dacă suma este corectă.
+            {' '}Press <strong>Save</strong> again if the amount is correct.
           </div>
         </div>
       )}
@@ -713,7 +713,7 @@ export function FacturareClient() {
 
       <div className="flex gap-2 pt-1">
         <button onClick={closeForm} className="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
-          Anulează
+          Cancel
         </button>
         <button
           onClick={handleSubmit}
@@ -726,10 +726,10 @@ export function FacturareClient() {
           )}
         >
           {saving
-            ? <><Loader2 size={14} className="animate-spin" /> Salvez...</>
+            ? <><Loader2 size={14} className="animate-spin" /> Saving...</>
             : (amountMismatch || tvaMismatch)
-            ? 'Confirmă și salvează'
-            : isEditing ? 'Salvează modificările' : 'Adaugă factură'}
+            ? 'Confirm and save'
+            : isEditing ? 'Save changes' : 'Add invoice'}
         </button>
       </div>
     </div>
@@ -743,8 +743,8 @@ export function FacturareClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Facturare</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Înregistrare manuală facturi emise și primite</p>
+          <h1 className="text-2xl font-bold text-gray-900">Invoicing</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manual recording of issued and received invoices</p>
         </div>
         <div className="flex items-center gap-0.5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
           <button onClick={() => setYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors">
@@ -768,7 +768,7 @@ export function FacturareClient() {
               : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 border border-dashed border-gray-200'
           )}
         >
-          Toate
+          All
         </button>
         <span className="w-px h-4 bg-gray-200 mx-0.5" />
         {MONTHS_SHORT.map((m, mi) => {
@@ -803,7 +803,7 @@ export function FacturareClient() {
             )}
           >
             <ArrowUpRight size={14} />
-            Facturi emise
+            Issued invoices
           </button>
           <button
             onClick={() => handleTabChange('primita')}
@@ -813,7 +813,7 @@ export function FacturareClient() {
             )}
           >
             <ArrowDownLeft size={14} />
-            Facturi primite
+            Received invoices
           </button>
         </div>
         <button
@@ -821,7 +821,7 @@ export function FacturareClient() {
           className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
         >
           <Plus size={14} />
-          Adaugă factură
+          Add invoice
         </button>
       </div>
 
@@ -834,7 +834,7 @@ export function FacturareClient() {
               : <ArrowDownLeft size={13} className="text-green-500 flex-shrink-0" />}
             <div>
               <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                {isEmit ? 'Total facturat' : 'Total primit'} · {periodLabel}
+                {isEmit ? 'Total invoiced' : 'Total received'} · {periodLabel}
               </p>
               <p className="text-lg font-bold text-[#0B1A33] leading-none">{fmt(s.total, cur)}</p>
             </div>
@@ -843,7 +843,7 @@ export function FacturareClient() {
             <Check size={13} className="text-green-500 flex-shrink-0" />
             <div>
               <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                {isEmit ? 'Încasat' : 'Plătit'} · {periodLabel}
+                {isEmit ? 'Collected' : 'Paid'} · {periodLabel}
               </p>
               <p className="text-lg font-bold text-green-700 leading-none">{fmt(s.settled, cur)}</p>
             </div>
@@ -852,7 +852,7 @@ export function FacturareClient() {
             <AlertCircle size={13} className={cn('flex-shrink-0', s.pending > 0 ? 'text-amber-500' : 'text-gray-300')} />
             <div>
               <p className="text-[10px] font-medium text-gray-400 leading-none mb-0.5">
-                {isEmit ? 'Neîncasat' : 'Neplătit'} · {periodLabel}
+                {isEmit ? 'Uncollected' : 'Unpaid'} · {periodLabel}
               </p>
               <p className={cn('text-lg font-bold leading-none', s.pending > 0 ? 'text-amber-700' : 'text-gray-400')}>
                 {fmt(s.pending, cur)}
@@ -870,7 +870,7 @@ export function FacturareClient() {
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
           type="text"
-          placeholder={isEmit ? 'Caută după client, nr. factură sau valoare...' : 'Caută după candidat, nr. factură sau valoare...'}
+          placeholder={isEmit ? 'Search by client, invoice no. or amount...' : 'Search by candidate, invoice no. or amount...'}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 focus:border-[#2AA3FF] bg-white"
@@ -889,7 +889,7 @@ export function FacturareClient() {
       {loading ? (
         <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
-          <span className="text-sm">Se încarcă...</span>
+          <span className="text-sm">Loading...</span>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white rounded-2xl border border-gray-100">
@@ -899,11 +899,11 @@ export function FacturareClient() {
           <div className="text-center">
             <p className="font-medium text-gray-600 text-sm">
               {search
-                ? `Niciun rezultat pentru „${search}"`
-                : `Nicio factură ${isEmit ? 'emisă' : 'primită'}${showAll ? '' : ` în ${periodLabel}`}`}
+                ? `No results for "${search}"`
+                : `No ${isEmit ? 'issued' : 'received'} invoices${showAll ? '' : ` in ${periodLabel}`}`}
             </p>
             {!search && (
-              <p className="text-xs text-gray-400 mt-0.5">Apasă &quot;Adaugă factură&quot; pentru a înregistra una.</p>
+              <p className="text-xs text-gray-400 mt-0.5">Click &quot;Add invoice&quot; to record one.</p>
             )}
           </div>
         </div>
@@ -916,16 +916,16 @@ export function FacturareClient() {
                   {isEmit ? 'Client' : 'Candidat'}
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nr.</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Luna ef.</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Emitere</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Scadență</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notițe</th>
-                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Val. NETĂ</th>
-                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">TVA</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Eff. month</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Issue date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Due date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">NET amount</th>
+                <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">VAT</th>
                 <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {isEmit ? 'Încasată' : 'Plătită'}<br />
-                  <span className="font-normal normal-case tracking-normal opacity-60">dată ef.</span>
+                  {isEmit ? 'Collected' : 'Paid'}<br />
+                  <span className="font-normal normal-case tracking-normal opacity-60">eff. date</span>
                 </th>
                 <th className="px-3 py-3 w-20" />
               </tr>
@@ -990,8 +990,8 @@ export function FacturareClient() {
                           onClick={() => toggleStatus(f)}
                           disabled={togglingId === f.id}
                           title={f.incasata_platita
-                            ? (isEmit ? 'Marchează ca neîncasată' : 'Marchează ca neplătită')
-                            : (isEmit ? 'Marchează ca încasată' : 'Marchează ca plătită')}
+                            ? (isEmit ? 'Mark as uncollected' : 'Mark as unpaid')
+                            : (isEmit ? 'Mark as collected' : 'Mark as paid')}
                           className={cn(
                             'w-6 h-6 rounded-full border-2 flex items-center justify-center mx-auto transition-all',
                             f.incasata_platita
@@ -1009,7 +1009,7 @@ export function FacturareClient() {
                             {fmtDate(f.data_incasare_plata)}
                           </span>
                         ) : f.incasata_platita ? (
-                          <span className="text-[10px] text-gray-300 whitespace-nowrap">dată lipsă</span>
+                          <span className="text-[10px] text-gray-300 whitespace-nowrap">date missing</span>
                         ) : null}
                       </div>
                     </td>
@@ -1018,7 +1018,7 @@ export function FacturareClient() {
                         <button
                           onClick={() => openEditForm(f)}
                           className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
-                          title="Editează factură"
+                          title="Edit invoice"
                         >
                           <Pencil size={13} />
                         </button>
@@ -1026,7 +1026,7 @@ export function FacturareClient() {
                           onClick={() => deleteFactura(f.id)}
                           disabled={deletingId === f.id}
                           className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
-                          title="Șterge factură"
+                          title="Delete invoice"
                         >
                           {deletingId === f.id
                             ? <Loader2 size={13} className="animate-spin" />

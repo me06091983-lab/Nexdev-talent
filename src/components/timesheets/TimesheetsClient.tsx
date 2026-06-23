@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Clock, Loader2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 interface ContractRow {
   contract_id: string
@@ -133,7 +133,7 @@ export function TimesheetsClient() {
       {loading ? (
         <div className="flex items-center justify-center h-72 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
-          <span className="text-sm">Se încarcă...</span>
+          <span className="text-sm">Loading...</span>
         </div>
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-72 gap-4 bg-white rounded-2xl border border-gray-100">
@@ -141,8 +141,8 @@ export function TimesheetsClient() {
             <Clock size={26} className="text-gray-400" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-gray-700">Niciun contract activ în {year}</p>
-            <p className="text-sm text-gray-400 mt-1">Navighează la un alt an sau creează contracte active.</p>
+            <p className="font-medium text-gray-700">No active contracts in {year}</p>
+            <p className="text-sm text-gray-400 mt-1">Navigate to another year or create active contracts.</p>
           </div>
         </div>
       ) : (

@@ -20,10 +20,10 @@ interface ClientRole {
 }
 
 const ROLE_STATUS_LABELS: Record<string, string> = {
-  open: 'Deschis',
-  closed: 'Închis',
-  on_hold: 'În așteptare',
-  filled: 'Ocupat',
+  open: 'Open',
+  closed: 'Closed',
+  on_hold: 'On hold',
+  filled: 'Filled',
 }
 
 const ROLE_STATUS_CLS: Record<string, string> = {
@@ -66,7 +66,7 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) { setError('Numele clientului este obligatoriu'); return }
+    if (!form.name.trim()) { setError('Client name is required'); return }
 
     setSaving(true)
     setError('')
@@ -92,7 +92,7 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
       router.push('/clients')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la salvare')
+      setError(err instanceof Error ? err.message : 'Save error')
     } finally {
       setSaving(false)
     }
@@ -102,8 +102,8 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
 
   const tabs: TabDef[] = [
     { id: 'general', label: 'General', icon: <User size={14} /> },
-    { id: 'companie', label: 'Companie', icon: <Building2 size={14} /> },
-    ...(isEdit ? [{ id: 'istoric' as TabId, label: 'Istoric roluri', icon: <History size={14} /> }] : []),
+    { id: 'companie', label: 'Company', icon: <Building2 size={14} /> },
+    ...(isEdit ? [{ id: 'istoric' as TabId, label: 'Role history', icon: <History size={14} /> }] : []),
   ]
 
   return (
@@ -139,42 +139,42 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
         {activeTab === 'general' && (
           <div className="max-w-xl space-y-6">
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Informații client</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Client information</h3>
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nume client <span className="text-red-500">*</span>
+                    Client name <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
                     className={inputCls} placeholder="ex: London Stock Exchange Group" required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data început colaborare</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Collaboration start date</label>
                     <input type="date" value={form.collaboration_start} onChange={e => set('collaboration_start', e.target.value)}
                       className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Locație</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                     <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
-                      placeholder="ex: Londra, UK" className={inputCls} />
+                      placeholder="ex: London, UK" className={inputCls} />
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pt-1">
                   <input type="checkbox" id="fieldglass_enabled" checked={form.fieldglass_enabled}
                     onChange={e => set('fieldglass_enabled', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
                   <label htmlFor="fieldglass_enabled" className="text-sm text-gray-700">
-                    Client cu Fieldglass (LSEG)
+                    Client with Fieldglass (LSEG)
                   </label>
                 </div>
               </div>
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Persoană de contact</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Contact person</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nume persoană de contact</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact person name</label>
                   <input type="text" value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
                     placeholder="ex: John Smith" className={inputCls} />
                 </div>
@@ -185,7 +185,7 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
                       placeholder="john.smith@lseg.com" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                     <input type="tel" value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)}
                       placeholder="+44 7..." className={inputCls} />
                   </div>
@@ -201,11 +201,11 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
         {activeTab === 'companie' && (
           <div className="max-w-xl space-y-6">
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Date fiscale și bancare</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tax and banking details</h3>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CUI / Cod fiscal</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tax ID / Fiscal code</label>
                     <input type="text" value={form.cui} onChange={e => set('cui', e.target.value)}
                       placeholder="ex: GB123456789" className={inputCls} />
                   </div>
@@ -213,12 +213,12 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
                     <div className="flex items-center gap-3">
                       <input type="checkbox" id="vat_registered" checked={form.vat_registered}
                         onChange={e => set('vat_registered', e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
-                      <label htmlFor="vat_registered" className="text-sm text-gray-700">Înregistrat TVA</label>
+                      <label htmlFor="vat_registered" className="text-sm text-gray-700">VAT registered</label>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cont bancar / IBAN</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank account / IBAN</label>
                   <input type="text" value={form.bank_account} onChange={e => set('bank_account', e.target.value)}
                     placeholder="ex: GB82 WEST 1234 5698 7654 32" className={inputCls} />
                 </div>
@@ -231,9 +231,9 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Note interne</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Internal notes</h3>
               <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-                rows={4} placeholder="Informații relevante despre client, condiții speciale, observații..."
+                rows={4} placeholder="Relevant client information, special conditions, observations..."
                 className={inputCls + ' resize-none'} />
             </section>
 
@@ -247,11 +247,11 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
             {roles.length === 0 ? (
               <div className="text-center py-16">
                 <Building2 size={36} className="mx-auto text-gray-200 mb-3" />
-                <p className="text-gray-400 text-sm">Niciun rol creat pentru acest client încă.</p>
+                <p className="text-gray-400 text-sm">No roles created for this client yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs text-gray-400 mb-4">{roles.length} {roles.length === 1 ? 'rol' : 'roluri'} în total</p>
+                <p className="text-xs text-gray-400 mb-4">{roles.length} {roles.length === 1 ? 'role' : 'roles'} total</p>
                 {roles.map(r => {
                   const statusLabel = ROLE_STATUS_LABELS[r.status ?? ''] ?? r.status ?? '—'
                   const statusCls = ROLE_STATUS_CLS[r.status ?? ''] ?? 'bg-gray-100 text-gray-500 border-gray-200'
@@ -268,10 +268,10 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
                               <span className="text-[11px] text-gray-400 font-mono">{r.fieldglass_id}</span>
                             )}
                             <span className="text-[11px] text-gray-400">
-                              {new Date(r.created_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                             {r.submissions_count !== undefined && r.submissions_count > 0 && (
-                              <span className="text-[11px] text-gray-400">{r.submissions_count} candidați</span>
+                              <span className="text-[11px] text-gray-400">{r.submissions_count} candidates</span>
                             )}
                           </div>
                         </div>
@@ -279,7 +279,7 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
                       <a
                         href={`/roles/${r.id}/pipeline`}
                         className="flex-shrink-0 ml-3 p-1.5 text-gray-300 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                        title="Deschide pipeline"
+                        title="Open pipeline"
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -299,16 +299,16 @@ export function ClientForm({ initial, clientId, roles = [] }: ClientFormProps) {
 function SaveRow({ saving, isEdit, onCancel }: { saving: boolean; isEdit: boolean; onCancel: () => void }) {
   return (
     <div className="pt-4 border-t border-gray-200/60">
-      <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Câmp obligatoriu</p>
+      <p className="text-xs text-gray-400 mb-3"><span className="text-red-500">*</span> Required field</p>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={saving}
           className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-blue-500/20">
           {saving && <Loader2 size={16} className="animate-spin" />}
-          {isEdit ? 'Salvează modificările' : 'Adaugă client'}
+          {isEdit ? 'Save changes' : 'Add client'}
         </button>
         <button type="button" onClick={onCancel}
           className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-white/40 rounded-xl transition-colors">
-          Anulează
+          Cancel
         </button>
       </div>
     </div>

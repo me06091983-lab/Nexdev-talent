@@ -43,7 +43,7 @@ interface HistoryEntry {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatRate(rate: number, currency: string, rateType: string) {
-  return `${rate.toLocaleString('ro-RO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency}/${rateType === 'daily' ? 'zi' : 'oră'}`
+  return `${rate.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency}/${rateType === 'daily' ? 'day' : 'hour'}`
 }
 
 function calcMargin(c: Contract) {
@@ -59,20 +59,20 @@ function calcMargin(c: Contract) {
 }
 
 function daysLeftBadge(endDate: string | null) {
-  if (!endDate) return { label: 'Activ', cls: 'bg-green-50 text-green-700 border-green-200' }
+  if (!endDate) return { label: 'Active', cls: 'bg-green-50 text-green-700 border-green-200' }
   const end = new Date(endDate)
   const now = new Date()
   now.setHours(0, 0, 0, 0)
-  if (end < now) return { label: 'Expirat', cls: 'bg-red-50 text-red-700 border-red-200' }
+  if (end < now) return { label: 'Expired', cls: 'bg-red-50 text-red-700 border-red-200' }
   const daysLeft = Math.ceil((end.getTime() - now.getTime()) / 86_400_000)
-  if (daysLeft <= 30) return { label: `${daysLeft} zile`, cls: 'bg-red-50 text-red-700 border-red-200' }
-  if (daysLeft <= 60) return { label: `${daysLeft} zile`, cls: 'bg-amber-50 text-amber-700 border-amber-200' }
-  return { label: 'Activ', cls: 'bg-green-50 text-green-700 border-green-200' }
+  if (daysLeft <= 30) return { label: `${daysLeft} days`, cls: 'bg-red-50 text-red-700 border-red-200' }
+  if (daysLeft <= 60) return { label: `${daysLeft} days`, cls: 'bg-amber-50 text-amber-700 border-amber-200' }
+  return { label: 'Active', cls: 'bg-green-50 text-green-700 border-green-200' }
 }
 
 function formatDate(d: string | null) {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 // ─── History cell components ───────────────────────────────────────────────────
@@ -125,7 +125,7 @@ function HistoryRateCell({ value, change, currency, rateType }: {
         <span className="text-[10px] font-bold">({up ? '+' : ''}{change.pct}%)</span>
       </div>
       <div className="text-[10px] text-gray-300 pl-3.5 mt-0.5">
-        era: {change.from.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}
+        was: {change.from.toLocaleString('en-GB', { maximumFractionDigits: 2 })}
       </div>
     </div>
   )
@@ -149,7 +149,7 @@ function HistoryMarginCell({ entry, c }: { entry: HistoryEntry; c: Contract }) {
     return (
       <div>
         <p className={cn('text-[11px] font-bold', newNet >= 0 ? 'text-green-600/70' : 'text-red-600/70')}>
-          {newNet >= 0 ? '+' : ''}{newNet.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} {c.currency}
+          {newNet >= 0 ? '+' : ''}{newNet.toLocaleString('en-GB', { maximumFractionDigits: 0 })} {c.currency}
         </p>
         <p className="text-[10px] text-gray-300">{newNetPct}%</p>
       </div>
@@ -168,11 +168,11 @@ function HistoryMarginCell({ entry, c }: { entry: HistoryEntry; c: Contract }) {
     <div>
       <div className={cn('flex items-center gap-1 text-[11px] font-bold', up ? 'text-green-700' : 'text-red-700')}>
         {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-        <span>{newNet >= 0 ? '+' : ''}{newNet.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} {c.currency}</span>
+        <span>{newNet >= 0 ? '+' : ''}{newNet.toLocaleString('en-GB', { maximumFractionDigits: 0 })} {c.currency}</span>
         <span className="text-[10px]">({up ? '+' : ''}{pct}%)</span>
       </div>
       <div className="text-[10px] text-gray-300 mt-0.5 pl-3.5">
-        era: {oldNet >= 0 ? '+' : ''}{oldNet.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} · {oldNetPct}%
+        was: {oldNet >= 0 ? '+' : ''}{oldNet.toLocaleString('en-GB', { maximumFractionDigits: 0 })} · {oldNetPct}%
       </div>
     </div>
   )
@@ -187,24 +187,24 @@ function TerminateModal({ onConfirm, onClose, loading }: {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-        <h3 className="font-bold text-gray-900 text-lg mb-1">Termină contractul</h3>
+        <h3 className="font-bold text-gray-900 text-lg mb-1">Terminate contract</h3>
         <p className="text-sm text-gray-500 mb-5">
-          Contractul va fi marcat ca terminat și data terminării va fi setată la ziua de azi.
+          The contract will be marked as terminated and the termination date set to today.
         </p>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Motivul terminării <span className="text-gray-400 font-normal">(opțional)</span>
+          Termination reason <span className="text-gray-400 font-normal">(optional)</span>
         </label>
         <textarea
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="ex: Proiect finalizat, contract neînnoit, candidat a plecat..."
+          placeholder="e.g. Project completed, contract not renewed, candidate left..."
           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
           rows={3}
           autoFocus
         />
         <div className="flex items-center justify-end gap-2 mt-5">
           <button onClick={onClose} disabled={loading} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-40">
-            Anulare
+            Cancel
           </button>
           <button
             onClick={() => onConfirm(reason)}
@@ -212,7 +212,7 @@ function TerminateModal({ onConfirm, onClose, loading }: {
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
           >
             {loading && <Loader2 size={14} className="animate-spin" />}
-            Termină contractul
+            Terminate contract
           </button>
         </div>
       </div>
@@ -317,13 +317,13 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Ștergi acest contract? Acțiunea nu poate fi anulată.')) return
+    if (!confirm('Delete this contract? This action cannot be undone.')) return
     setDeletingId(id)
     try {
       await fetch(`/api/contracts/${id}`, { method: 'DELETE' })
       router.refresh()
     } catch {
-      alert('Eroare la ștergerea contractului.')
+      alert('Error deleting contract.')
     } finally {
       setDeletingId(null)
     }
@@ -342,7 +342,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
               tab === 'activ' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            Contracte active
+            Active contracts
             <span className={cn('ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full',
               tab === 'activ' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'
             )}>
@@ -355,7 +355,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
               tab === 'terminat' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
             )}
           >
-            Contracte terminate
+            Terminated contracts
             <span className={cn('ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full',
               tab === 'terminat' ? 'bg-gray-200 text-gray-600' : 'bg-gray-200 text-gray-500'
             )}>
@@ -367,14 +367,14 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
           onClick={() => setShowNew(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
         >
-          <Plus size={14} /> Contract nou
+          <Plus size={14} /> New contract
         </button>
       </div>
 
       {displayed.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <p className="text-gray-400">
-            {tab === 'activ' ? 'Nu există contracte active.' : 'Nu există contracte terminate.'}
+            {tab === 'activ' ? 'No active contracts.' : 'No terminated contracts.'}
           </p>
         </div>
       ) : (
@@ -384,15 +384,15 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
               <tr className="border-b border-white/40 bg-white/30 text-left">
                 {/* Chevron column — first */}
                 <th className="w-10 px-3 py-3" />
-                <th className={thCls}>Candidat</th>
-                <th className={thCls}>Rol · Client</th>
-                <th className={thCls}>Perioadă</th>
+                <th className={thCls}>Candidate</th>
+                <th className={thCls}>Role · Client</th>
+                <th className={thCls}>Period</th>
                 <th className={thCls}>Pay rate</th>
                 <th className={thCls}>Bill rate</th>
-                <th className={thCls} title="Estimat: 20 zile/lună (rate zilnic) sau 160 ore/lună (rate orar)">Marjă/lună <span className="text-gray-300 font-normal text-[10px]">est.</span></th>
+                <th className={thCls} title="Estimated: 20 days/month (daily rate) or 160 hours/month (hourly rate)">Margin/month <span className="text-gray-300 font-normal text-[10px]">est.</span></th>
                 {tab === 'activ'
                   ? <th className={thCls}>Status</th>
-                  : <th className={thCls}>Motiv terminare</th>
+                  : <th className={thCls}>Termination reason</th>
                 }
                 <th className={thCls}></th>
               </tr>
@@ -400,7 +400,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
             <tbody>
               {displayed.map(c => {
                 const m = calcMargin(c)
-                const unitLabel = c.rate_type === 'daily' ? 'zi' : 'oră'
+                const unitLabel = c.rate_type === 'daily' ? 'day' : 'hour'
                 const expanded = expandedIds.has(c.id)
                 const historyEntries = historyMap[c.id]
                 return (
@@ -414,7 +414,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                       <td className="px-3 py-3">
                         <button
                           onClick={() => toggleExpand(c.id)}
-                          title="Istoric modificări"
+                          title="Change history"
                           className={cn(
                             'p-1.5 rounded-lg transition-all',
                             expanded
@@ -445,11 +445,11 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 text-xs text-gray-600">
                           <Calendar size={11} className="text-gray-300 flex-shrink-0" />
-                          <span>{new Date(c.start_date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          <span>{new Date(c.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
                         {c.end_date && (
                           <p className="text-[11px] text-gray-400 mt-0.5 pl-4">
-                            → {new Date(c.end_date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            → {new Date(c.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         )}
                       </td>
@@ -459,7 +459,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
 
                       <td className="px-4 py-3">
                         <p className={`text-sm font-bold ${m.netMonthly >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {m.netMonthly >= 0 ? '+' : ''}{m.netMonthly.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} {c.currency}
+                          {m.netMonthly >= 0 ? '+' : ''}{m.netMonthly.toLocaleString('en-GB', { maximumFractionDigits: 0 })} {c.currency}
                         </p>
                         <p className="text-[11px] text-gray-400">
                           {m.netPct}% · {m.netUnit >= 0 ? '+' : ''}{m.netUnit.toFixed(2)}/{unitLabel}
@@ -489,7 +489,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                               onClick={() => setEditContractId(c.id)}
                               className="text-xs text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 px-2 py-1 rounded transition-colors"
                             >
-                              Editează
+                              Edit
                             </button>
                           )}
                           {tab === 'activ' && (
@@ -497,14 +497,14 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                               onClick={() => setTerminateId(c.id)}
                               className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 px-2 py-1 rounded transition-colors"
                             >
-                              <XCircle size={12} /> Termină
+                              <XCircle size={12} /> Terminate
                             </button>
                           )}
                           <button
                             onClick={() => handleDelete(c.id)}
                             disabled={deletingId === c.id}
                             className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-40"
-                            title="Șterge contract"
+                            title="Delete contract"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -519,7 +519,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                           <tr key={`${c.id}-hist-loading`}>
                             <td colSpan={colSpanAll} className="px-6 py-3 text-center text-xs text-gray-400">
                               <Loader2 size={12} className="animate-spin inline mr-1.5" />
-                              Se încarcă istoricul...
+                              Loading history...
                             </td>
                           </tr>
                         )
@@ -527,7 +527,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                         ? (
                           <tr key={`${c.id}-hist-empty`} className="bg-gray-50/30">
                             <td colSpan={colSpanAll} className="px-6 py-2.5 text-xs text-gray-400 italic border-t border-gray-100">
-                              Fără modificări înregistrate.
+                              No changes recorded.
                             </td>
                           </tr>
                         )
@@ -547,10 +547,10 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                             {/* Timestamp (replaces candidat) */}
                             <td className="px-4 py-2">
                               <span className="text-[11px] text-[#2AA3FF]/80 font-medium">
-                                ↳ {new Date(entry.changed_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                ↳ {new Date(entry.changed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </span>
                               <span className="ml-1.5 text-[11px] text-gray-300">
-                                {new Date(entry.changed_at).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(entry.changed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </td>
 

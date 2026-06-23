@@ -7,8 +7,8 @@ import { CandidateCVModal } from '@/components/candidates/CandidateCVModal'
 
 const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'RON']
 const RATE_TYPE_OPTIONS = [
-  { value: 'daily', label: '/zi' },
-  { value: 'hourly', label: '/oră' },
+  { value: 'daily', label: '/day' },
+  { value: 'hourly', label: '/hour' },
 ]
 
 interface MatchResult {
@@ -70,7 +70,7 @@ function RateBadge({ min, wish, currency }: { min?: number | null; wish?: number
       )}
       {wish && (
         <span className="text-[10px] text-gray-400">
-          Dorit: <span className="text-amber-600 font-semibold">{wish} {cur}</span>
+          Wished: <span className="text-amber-600 font-semibold">{wish} {cur}</span>
         </span>
       )}
     </div>
@@ -101,8 +101,8 @@ function MatchCard({
       await onAdd()
       setAdded(true)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Eroare la adăugare'
-      if (msg.includes('deja în pipeline')) {
+      const msg = e instanceof Error ? e.message : 'Error adding'
+      if (msg.includes('deja în pipeline') || msg.includes('already in pipeline')) {
         setAdded(true)
       } else {
         setAddError(msg)
@@ -122,10 +122,10 @@ function MatchCard({
           <RateBadge min={item.rate_min} wish={item.rate_wish} currency={item.currency} />
           <div className="flex flex-wrap gap-1 mt-1.5">
             {item.matched_skills.slice(0, 3).map(s => (
-              <span key={s} className="text-[10px] bg-blue-50 text-[#2AA3FF] border border-blue-100 px-1.5 py-0.5 rounded" title="Criteriu acoperit">✓ {s}</span>
+              <span key={s} className="text-[10px] bg-blue-50 text-[#2AA3FF] border border-blue-100 px-1.5 py-0.5 rounded" title="Covered criteria">✓ {s}</span>
             ))}
             {item.missing_skills.slice(0, 2).map(s => (
-              <span key={s} className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded" title="Criteriu slab">✗ {s}</span>
+              <span key={s} className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded" title="Weak criteria">✗ {s}</span>
             ))}
           </div>
         </div>
@@ -143,10 +143,10 @@ function MatchCard({
                 ? 'bg-green-50 text-green-600 border border-green-200 cursor-default'
                 : 'bg-[#0B1A33] text-white hover:bg-[#0B1A33]/90 disabled:opacity-60'
             }`}
-            title="Adaugă în pipeline"
+            title="Add to pipeline"
           >
             {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <Plus size={11} />}
-            {added ? 'Adăugat' : 'Adaugă'}
+            {added ? 'Added' : 'Add'}
           </button>
         )}
 
@@ -155,9 +155,9 @@ function MatchCard({
           <button
             onClick={onViewProfile}
             className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-gray-200 text-gray-600 hover:border-[#2AA3FF] hover:text-[#2AA3FF] transition-colors"
-            title="Profil candidat"
+            title="Candidate profile"
           >
-            <User size={11} /> Profil
+            <User size={11} /> Profile
           </button>
         )}
 
@@ -166,7 +166,7 @@ function MatchCard({
           <button
             onClick={onViewCV}
             className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-gray-200 text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-colors"
-            title="Vizualizează CV"
+            title="View CV"
           >
             <FileText size={11} /> CV
           </button>
@@ -210,10 +210,10 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
     try {
       const res = await fetch(`/api/roles/${roleId}/match`, { method: 'POST' })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Eroare AI matching')
+      if (!res.ok) throw new Error(d.error ?? 'AI matching error')
       setData(d)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Eroare necunoscută')
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setLoading(false)
     }
@@ -227,7 +227,7 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
             <Sparkles size={16} className="text-[#2AA3FF]" />
             <div>
               <h3 className="text-sm font-semibold text-gray-900">AI Matching</h3>
-              <p className="text-[10px] text-gray-400 leading-tight">bazat pe Rubix Matrix</p>
+              <p className="text-[10px] text-gray-400 leading-tight">based on Rubix Matrix</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -237,13 +237,13 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2AA3FF] text-white text-xs font-medium rounded-xl hover:bg-[#2AA3FF]/90 transition-colors disabled:opacity-60"
             >
               {loading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-              {loading ? 'Analizez...' : data ? 'Re-analizează' : 'Analizează'}
+              {loading ? 'Analysing...' : data ? 'Re-analyse' : 'Analyse'}
             </button>
             {onClose && (
               <button
                 onClick={onClose}
                 className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Închide"
+                title="Close"
               >
                 <X size={15} />
               </button>
@@ -253,7 +253,7 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
 
         {/* Rate submisie */}
         <div className="mb-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Rate submisie</label>
+          <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Submission rate</label>
           <div className="flex gap-1.5">
             <input
               type="number"
@@ -288,7 +288,7 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
             {data.pipeline_scored.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-                  În pipeline ({data.pipeline_scored.length})
+                  In pipeline ({data.pipeline_scored.length})
                 </p>
                 <div className="space-y-2">
                   {data.pipeline_scored.map(item => (
@@ -306,7 +306,7 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
             {data.discovered.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-                  Candidați potriviți ({data.discovered.length})
+                  Matching candidates ({data.discovered.length})
                 </p>
                 <div className="space-y-2">
                   {data.discovered.map(item => (
@@ -335,14 +335,14 @@ export function AIMatchPanel({ roleId, onAddCandidate, onClose }: Props) {
             )}
 
             {data.pipeline_scored.length === 0 && data.discovered.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4">Nu s-au găsit candidați potriviți.</p>
+              <p className="text-xs text-gray-400 text-center py-4">No matching candidates found.</p>
             )}
           </div>
         )}
 
         {!data && !loading && (
           <p className="text-xs text-gray-400 text-center py-6">
-            Apasă &quot;Analizează&quot; pentru a găsi candidații potriviți cu AI.
+            Click &quot;Analyse&quot; to find matching candidates using AI.
           </p>
         )}
       </div>

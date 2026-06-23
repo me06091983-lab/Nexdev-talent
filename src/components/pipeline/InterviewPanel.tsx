@@ -93,20 +93,20 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
           </div>
           <div>
             <p className="text-sm font-semibold text-[#0B1A33]">
-              {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
+              {c ? `${c.first_name} ${c.last_name}` : 'Candidate'}
             </p>
             {c?.profile && <p className="text-xs text-gray-400">{c.profile.name}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {saved && <span className="text-xs text-green-600 font-medium">Salvat ✓</span>}
+          {saved && <span className="text-xs text-green-600 font-medium">Saved ✓</span>}
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0B1A33] text-white text-xs font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-            Salvează
+            Save
           </button>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded">
             <X size={16} />
@@ -119,10 +119,10 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
         {/* Column headers */}
         <div className="grid grid-cols-[20px_120px_180px_160px_90px_1fr] gap-3 mb-2 px-1">
           <div />
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Interviu</div>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Data și ora</div>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Interview</div>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Date & time</div>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Status</div>
-          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Acceptat</div>
+          <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Accepted</div>
           <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Feedback</div>
         </div>
 
@@ -186,7 +186,7 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
                   className="w-4 h-4 rounded border-gray-300 accent-green-500 cursor-pointer"
                 />
                 <span className={`text-xs font-medium ${slot.candidate_accepted ? 'text-green-600' : 'text-gray-400'}`}>
-                  {slot.candidate_accepted ? 'Da' : 'Nu'}
+                  {slot.candidate_accepted ? 'Yes' : 'No'}
                 </span>
               </label>
 
@@ -196,7 +196,7 @@ export function InterviewPanel({ submission, onClose, onSaved }: Props) {
                 value={slot.feedback}
                 onChange={e => update(idx, 'feedback', e.target.value)}
                 disabled={!slot.enabled}
-                placeholder={slot.enabled ? 'Adaugă feedback...' : '—'}
+                placeholder={slot.enabled ? 'Add feedback...' : '—'}
                 className={`w-full px-2.5 py-1.5 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/40 transition-opacity ${
                   slot.enabled
                     ? 'border-gray-200 bg-white text-gray-700'

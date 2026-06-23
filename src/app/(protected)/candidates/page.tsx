@@ -56,14 +56,14 @@ export default async function CandidatesPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Candidați</h1>
-          <p className="text-gray-500 mt-1">{list.length} candidați în baza de date</p>
+          <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
+          <p className="text-gray-500 mt-1">{list.length} candidates in the database</p>
         </div>
         <Link
           href="/candidates/new"
           className="bg-[#2AA3FF] hover:bg-[#1a8fe0] text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors"
         >
-          + Candidat nou
+          + New candidate
         </Link>
       </div>
 
