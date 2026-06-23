@@ -10,21 +10,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Job Description missing. Please fill in the role JD first.' }, { status: 400 })
   }
 
-  const prompt = `Ești un recrutor tehnic senior la NexDev, firmă de staffing IT. Analizează JD-ul de mai jos și generează o Rubrix Matrix de evaluare, exact ca în modelul nostru intern.
+  const prompt = `You are a senior technical recruiter at NexDev, an IT staffing company. Analyse the Job Description below and generate a Rubix Matrix evaluation rubric.
 
 JOB DESCRIPTION:
 ${description.slice(0, 8000)}
 
-INSTRUCȚIUNI:
-1. Extrage 6–10 criterii de evaluare cheie din secțiunile "Required Knowledge", "Required Experience", "Responsibilities" și altele relevante din JD.
-2. Fiecare criteriu trebuie să fie o propoziție clară și concisă care descrie CE evaluezi la candidat (ex: "4+ ani experiență industrie demonstrată", "Proficiency în Python, C++ sau Java").
-3. Asignează fiecărui criteriu o pondere (weight) în procente. SUMA TOTALĂ trebuie să fie EXACT 100%.
-4. Criteriile mai importante / mai des menționate în JD primesc ponderi mai mari.
-5. Nu folosi skilluri individuale ca criterii — grupează-le în categorii compuse (ex: nu "Python" și "Java" separat, ci "Proficiency în limbaje moderne — Python, C++ sau Java").
-6. Răspunde DOAR cu JSON valid, fără text suplimentar.
+INSTRUCTIONS:
+1. Extract 6–10 key evaluation criteria from the "Required Knowledge", "Required Experience", "Responsibilities" and other relevant sections in the JD.
+2. Each criterion must be a clear, concise sentence describing WHAT you evaluate in the candidate (e.g., "4+ years demonstrated industry experience", "Proficiency in Python, C++ or Java").
+3. Assign each criterion a weight percentage. The TOTAL must be EXACTLY 100%.
+4. More important / more frequently mentioned criteria receive higher weights.
+5. Do NOT use individual skills as criteria — group them into composite categories (e.g., not "Python" and "Java" separately, but "Proficiency in modern languages — Python, C++ or Java").
+6. Write ALL criterion text in English.
+7. Respond ONLY with valid JSON, no additional text.
 
-Format JSON:
-{"criteria":[{"criterion":"Text criteriu complet","weight":20},{"criterion":"Alt criteriu","weight":15}]}`
+JSON format:
+{"criteria":[{"criterion":"Full criterion text","weight":20},{"criterion":"Another criterion","weight":15}]}`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -42,7 +43,7 @@ Format JSON:
   try {
     result = JSON.parse(jsonMatch[0])
   } catch {
-    return NextResponse.json({ error: 'JSON invalid de la AI.' }, { status: 500 })
+    return NextResponse.json({ error: 'Invalid JSON from AI.' }, { status: 500 })
   }
 
   const criteria = (result.criteria ?? []).map((c, i) => ({

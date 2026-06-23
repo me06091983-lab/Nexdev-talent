@@ -44,15 +44,15 @@ export async function POST(_req: NextRequest, { params }: Params) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((cs: any) => (Array.isArray(cs.skill) ? cs.skill[0] : cs.skill)?.name)
     .filter(Boolean)
-    .join(', ') || 'Niciun skill înregistrat'
+    .join(', ') || 'No skills on record'
 
   const expText = ((c.experiences ?? []) as Array<{
     role: string; company: string; start_date?: string; end_date?: string | null;
     is_present?: boolean; description?: string
   }>)
     .slice(0, 8)
-    .map(e => `• ${e.role} @ ${e.company} (${e.start_date ?? '?'} – ${e.is_present ? 'prezent' : (e.end_date ?? '?')})${e.description ? ': ' + e.description.slice(0, 600) : ''}`)
-    .join('\n') || 'Nicio experiență înregistrată'
+    .map(e => `• ${e.role} @ ${e.company} (${e.start_date ?? '?'} – ${e.is_present ? 'present' : (e.end_date ?? '?')})${e.description ? ': ' + e.description.slice(0, 600) : ''}`)
+    .join('\n') || 'No experience on record'
 
   const profileName = Array.isArray(c.profile) ? (c.profile[0]?.name ?? '') : (c.profile?.name ?? '')
 
@@ -60,27 +60,28 @@ export async function POST(_req: NextRequest, { params }: Params) {
     .map((cr, i) => `${i + 1}. [${cr.weight}%] "${cr.criterion}"`)
     .join('\n')
 
-  const prompt = `Ești recrutor tehnic senior la NexDev. Evaluează candidatul de mai jos contra fiecărui criteriu din rubrica de evaluare. Folosește scala 0–5.
+  const prompt = `You are a senior technical recruiter at NexDev. Evaluate the candidate below against each criterion in the evaluation rubric. Use the 0–5 scale.
 
-CANDIDAT: ${c.first_name} ${c.last_name}
-PROFIL: ${profileName}
-SENIORITATE: ${c.seniority ?? 'Nespecificată'}
-SKILLURI: ${skillNames}
-EXPERIENȚĂ:
+CANDIDATE: ${c.first_name} ${c.last_name}
+PROFILE: ${profileName}
+SENIORITY: ${c.seniority ?? 'Not specified'}
+SKILLS: ${skillNames}
+EXPERIENCE:
 ${expText}
 
-CRITERII DE EVALUARE (din JD):
+EVALUATION CRITERIA (from JD):
 ${criteriaText}
 
-SCALA: 5 = îndeplinit complet, evidențiat · 4 = puternic · 3 = parțial/adiacent · 2 = limitat · 1 = minimal · 0 = absent
+SCALE: 5 = fully met, clearly evidenced · 4 = strong · 3 = partial/adjacent · 2 = limited · 1 = minimal · 0 = absent
 
-Instrucțiuni:
-- Scorează FIECARE criteriu individual, bazat strict pe datele candidatului de mai sus.
-- Pentru fiecare criteriu, adaugă 1-2 propoziții scurte de evidență specifică din profilul candidatului.
-- Răspunde DOAR cu JSON valid.
+Instructions:
+- Score EACH criterion individually, based strictly on the candidate data above.
+- For each criterion, add 1–2 short sentences of specific evidence from the candidate's profile.
+- Write ALL evidence text in English.
+- Respond ONLY with valid JSON.
 
 Format:
-{"scores":[{"index":1,"score":4.5,"evidence":"Text evidență..."},{"index":2,"score":3,"evidence":"..."}]}`
+{"scores":[{"index":1,"score":4.5,"evidence":"Evidence text..."},{"index":2,"score":3,"evidence":"..."}]}`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',

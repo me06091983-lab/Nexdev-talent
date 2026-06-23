@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { RefreshCw, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -43,7 +44,8 @@ function ScoreCell({ score, evidence, weight }: {
   evidence: string | null | undefined
   weight: number
 }) {
-  const [showTip, setShowTip] = useState(false)
+  const [tipStyle, setTipStyle] = useState<{ left: number; top: number } | null>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
 
   if (score === undefined) {
     return <td className="px-3 py-2 text-center text-xs text-gray-200 border-l border-gray-100">—</td>
@@ -52,21 +54,33 @@ function ScoreCell({ score, evidence, weight }: {
   const weighted = (weight * score) / 5
   const cls = score >= 4 ? 'text-green-700' : score >= 3 ? 'text-amber-600' : score >= 1.5 ? 'text-orange-500' : 'text-red-500'
 
+  function handleMouseEnter() {
+    if (triggerRef.current && evidence) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setTipStyle({ left: rect.left + rect.width / 2, top: rect.bottom + 6 })
+    }
+  }
+
   return (
-    <td className="px-2 py-1.5 text-center border-l border-gray-100 relative">
+    <td className="px-2 py-1.5 text-center border-l border-gray-100">
       <div
+        ref={triggerRef}
         className="inline-flex flex-col items-center gap-0.5 cursor-default"
-        onMouseEnter={() => setShowTip(true)}
-        onMouseLeave={() => setShowTip(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setTipStyle(null)}
       >
         <span className={cn('text-sm font-bold tabular-nums', cls)}>{score}</span>
         <span className="text-[10px] text-gray-400 tabular-nums">{weighted.toFixed(1)}%</span>
       </div>
-      {showTip && evidence && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-1 w-60 bg-[#0B1A33] text-white text-[11px] rounded-lg px-3 py-2 shadow-xl leading-relaxed pointer-events-none whitespace-normal text-left">
+      {tipStyle && evidence && createPortal(
+        <div
+          className="fixed z-[9999] w-64 bg-[#0B1A33] text-white text-[11px] rounded-lg px-3 py-2 shadow-xl leading-relaxed pointer-events-none whitespace-normal text-left"
+          style={{ left: tipStyle.left, top: tipStyle.top, transform: 'translateX(-50%)' }}
+        >
           {evidence}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#0B1A33]" />
-        </div>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#0B1A33]" />
+        </div>,
+        document.body
       )}
     </td>
   )
