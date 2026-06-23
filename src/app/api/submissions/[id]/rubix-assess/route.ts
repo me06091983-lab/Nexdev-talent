@@ -24,7 +24,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     .eq('id', submissionId)
     .single()
 
-  if (!sub) return NextResponse.json({ error: 'Submission negăsit' }, { status: 404 })
+  if (!sub) return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
 
   // Fetch rubix criteria for this role
   const { data: criteria } = await supabase
@@ -34,7 +34,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     .order('order_index')
 
   if (!criteria?.length) {
-    return NextResponse.json({ skipped: true, reason: 'Nicio Rubix Matrix definită pentru acest rol.' })
+    return NextResponse.json({ skipped: true, reason: 'No Rubix Matrix defined for this role.' })
   }
 
   // Build candidate profile text
@@ -90,13 +90,13 @@ Format:
 
   const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) return NextResponse.json({ error: 'Răspuns invalid de la AI' }, { status: 500 })
+  if (!jsonMatch) return NextResponse.json({ error: 'Invalid AI response' }, { status: 500 })
 
   let result: { scores: { index: number; score: number; evidence: string }[] }
   try {
     result = JSON.parse(jsonMatch[0])
   } catch {
-    return NextResponse.json({ error: 'JSON invalid de la AI' }, { status: 500 })
+    return NextResponse.json({ error: 'Invalid JSON from AI' }, { status: 500 })
   }
 
   // Upsert scores

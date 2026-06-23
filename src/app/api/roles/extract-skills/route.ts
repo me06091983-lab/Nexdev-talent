@@ -7,7 +7,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export async function POST(req: NextRequest) {
   const { description } = await req.json()
   if (!description?.trim()) {
-    return NextResponse.json({ error: 'Job description lipsă' }, { status: 400 })
+    return NextResponse.json({ error: 'Job description missing' }, { status: 400 })
   }
 
   // Fetch all skills from nomenclator
@@ -53,7 +53,7 @@ Răspunde DOAR cu JSON valid:
   try {
     extracted = JSON.parse(jsonMatch[0])
   } catch {
-    return NextResponse.json({ error: 'Răspuns invalid de la AI.' }, { status: 500 })
+    return NextResponse.json({ error: 'Invalid AI response.' }, { status: 500 })
   }
 
   // Match extracted names against DB skills (case-insensitive)

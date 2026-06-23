@@ -98,7 +98,7 @@ async function buildContent(bytes: ArrayBuffer, fileName: string): Promise<{ con
   const isDocx = fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')
 
   if (!isPdf && !isDocx) {
-    return { error: 'Tip fișier neacceptat. Folosește PDF sau DOCX.' }
+    return { error: 'Unsupported file type. Please use PDF or DOCX.' }
   }
 
   if (isPdf) {
@@ -115,10 +115,10 @@ async function buildContent(bytes: ArrayBuffer, fileName: string): Promise<{ con
       const result = await mammoth.extractRawText({ buffer: Buffer.from(bytes) })
       extractedText = result.value
     } catch {
-      return { error: 'Nu s-a putut citi fișierul DOCX. Încearcă să îl salvezi ca PDF.' }
+      return { error: 'Could not read the DOCX file. Try saving it as PDF.' }
     }
     if (!extractedText.trim()) {
-      return { error: 'Fișierul DOCX pare gol sau are conținut protejat.' }
+      return { error: 'The DOCX file appears empty or has protected content.' }
     }
     return {
       content: [{
@@ -139,16 +139,16 @@ export async function POST(request: NextRequest) {
     // Fișier trimis direct
     const formData = await request.formData()
     const file = formData.get('cv') as File
-    if (!file) return NextResponse.json({ error: 'Niciun fișier primit.' }, { status: 400 })
+    if (!file) return NextResponse.json({ error: 'No file received.' }, { status: 400 })
     bytes = await file.arrayBuffer()
     fileName = file.name
   } else {
     // Parsare CV existent din storage (file_path)
     const body = await request.json()
-    if (!body.file_path) return NextResponse.json({ error: 'file_path sau fișier necesar.' }, { status: 400 })
+    if (!body.file_path) return NextResponse.json({ error: 'file_path or file is required.' }, { status: 400 })
     const admin = createAdminClient()
     const { data, error } = await admin.storage.from('cvs').download(body.file_path)
-    if (error || !data) return NextResponse.json({ error: 'Nu s-a putut descărca CV-ul din storage.' }, { status: 500 })
+    if (error || !data) return NextResponse.json({ error: 'Could not download CV from storage.' }, { status: 500 })
     bytes = await data.arrayBuffer()
     fileName = body.file_path
   }
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
     const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) return NextResponse.json({ error: 'Nu s-a putut parsa CV-ul. Încearcă din nou.' }, { status: 500 })
+    if (!jsonMatch) return NextResponse.json({ error: 'Could not parse the CV. Please try again.' }, { status: 500 })
 
     let parsed: Record<string, unknown>
     try {
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     } catch {
       // JSON trunchiat — încearcă să recupereze ce s-a extras
       const partial = recoverPartialJson(jsonMatch[0])
-      if (!partial) return NextResponse.json({ error: 'CV-ul este prea lung pentru a fi procesat complet. Încearcă un CV mai scurt sau în format DOCX.' }, { status: 500 })
+      if (!partial) return NextResponse.json({ error: 'The CV is too long to be fully processed. Try a shorter CV or DOCX format.' }, { status: 500 })
       parsed = partial
     }
 
@@ -215,6 +215,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(parsed)
   } catch (err) {
     console.error('CV parse error:', err)
-    return NextResponse.json({ error: 'Eroare la procesarea CV-ului' }, { status: 500 })
+    return NextResponse.json({ error: 'Error processing CV' }, { status: 500 })
   }
 }

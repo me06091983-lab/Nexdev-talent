@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   } = body
 
   if (!start_date || !pay_rate || !bill_rate) {
-    return NextResponse.json({ error: 'Câmpuri obligatorii lipsă.' }, { status: 400 })
+    return NextResponse.json({ error: 'Required fields missing.' }, { status: 400 })
   }
 
   let resolvedCandidateId = candidate_id ?? null
@@ -81,13 +81,13 @@ export async function POST(request: NextRequest) {
       .eq('id', submission_id)
       .single()
 
-    if (subError || !sub) return NextResponse.json({ error: 'Submisie negăsită.' }, { status: 404 })
-    if (sub.status !== 'offer') return NextResponse.json({ error: 'Submisia nu are status Ofertă.' }, { status: 400 })
+    if (subError || !sub) return NextResponse.json({ error: 'Submission not found.' }, { status: 404 })
+    if (sub.status !== 'offer') return NextResponse.json({ error: 'Submission does not have Offer status.' }, { status: 400 })
 
     resolvedCandidateId = sub.candidate_id
     resolvedRoleId = sub.role_id
   } else if (!candidate_id) {
-    return NextResponse.json({ error: 'Candidat obligatoriu.' }, { status: 400 })
+    return NextResponse.json({ error: 'Candidate is required.' }, { status: 400 })
   } else if (candidate_id && role_id) {
     // Find latest submission for this candidate+role that doesn't already have a contract
     const { data: matchingSub } = await supabase
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
   if (contractError) {
     if (contractError.code === '23505') {
-      return NextResponse.json({ error: 'Există deja un contract pentru această submisie.' }, { status: 409 })
+      return NextResponse.json({ error: 'A contract already exists for this submission.' }, { status: 409 })
     }
     return NextResponse.json({ error: contractError.message }, { status: 500 })
   }

@@ -36,7 +36,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .eq('id', id)
   if (error) {
     const msg = error.message.includes('foreign key')
-      ? 'Clientul nu poate fi șters — are roluri asociate. Șterge mai întâi rolurile.'
+      ? 'Client cannot be deleted — it has associated roles. Delete the roles first.'
       : error.message
     return NextResponse.json({ error: msg }, { status: 500 })
   }

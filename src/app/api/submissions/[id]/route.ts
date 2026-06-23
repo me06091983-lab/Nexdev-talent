@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await supabase.from('stage_history').insert({
       submission_id: id,
       stage_id: current_stage_id ?? null,
-      stage_name: status ? (STATUS_LABELS[status] ?? status) : 'Notă',
+      stage_name: status ? (STATUS_LABELS[status] ?? status) : 'Note',
       result: result ?? null,
       feedback: feedback?.trim() || null,
     })

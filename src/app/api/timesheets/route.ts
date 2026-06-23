@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   const { contract_id, candidate_id, year, month, hours } = await request.json()
 
   if (!contract_id || !year || !month) {
-    return NextResponse.json({ error: 'Câmpuri lipsă.' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing fields.' }, { status: 400 })
   }
 
   const { data, error } = await admin

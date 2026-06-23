@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const { description } = await req.json()
 
   if (!description?.trim()) {
-    return NextResponse.json({ error: 'Job Description lipsă. Completează mai întâi JD-ul rolului.' }, { status: 400 })
+    return NextResponse.json({ error: 'Job Description missing. Please fill in the role JD first.' }, { status: 400 })
   }
 
   const prompt = `Ești un recrutor tehnic senior la NexDev, firmă de staffing IT. Analizează JD-ul de mai jos și generează o Rubrix Matrix de evaluare, exact ca în modelul nostru intern.
@@ -35,7 +35,7 @@ Format JSON:
   const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    return NextResponse.json({ error: 'Răspuns invalid de la AI.' }, { status: 500 })
+    return NextResponse.json({ error: 'Invalid AI response.' }, { status: 500 })
   }
 
   let result: { criteria: { criterion: string; weight: number }[] }

@@ -14,7 +14,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const caller = await requireAdmin()
-  if (!caller) return NextResponse.json({ error: 'Acces interzis.' }, { status: 403 })
+  if (!caller) return NextResponse.json({ error: 'Access denied.' }, { status: 403 })
 
   const { id } = await params
   const body = await request.json()
@@ -29,7 +29,7 @@ export async function PATCH(
 
   if (body.password) {
     if (body.password.length < 6) {
-      return NextResponse.json({ error: 'Parola trebuie să aibă cel puțin 6 caractere.' }, { status: 400 })
+      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
     }
     updates.password = body.password
   }
@@ -45,13 +45,13 @@ export async function PATCH(
   if (typeof body.enabled === 'boolean') {
     // Cannot disable own account
     if (!body.enabled && caller.id === id) {
-      return NextResponse.json({ error: 'Nu poți dezactiva propriul cont.' }, { status: 400 })
+      return NextResponse.json({ error: 'You cannot deactivate your own account.' }, { status: 400 })
     }
     updates.ban_duration = body.enabled ? 'none' : '876600h'
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'Nimic de actualizat.' }, { status: 400 })
+    return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 })
   }
 
   const { error } = await admin.auth.admin.updateUserById(id, updates)
@@ -65,12 +65,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const caller = await requireAdmin()
-  if (!caller) return NextResponse.json({ error: 'Acces interzis.' }, { status: 403 })
+  if (!caller) return NextResponse.json({ error: 'Access denied.' }, { status: 403 })
 
   const { id } = await params
 
   if (caller.id === id) {
-    return NextResponse.json({ error: 'Nu poți șterge propriul cont.' }, { status: 400 })
+    return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 400 })
   }
 
   const admin = createAdminClient()

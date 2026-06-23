@@ -146,7 +146,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .eq('id', id)
     .single()
 
-  if (!role) return NextResponse.json({ error: 'Rol negăsit' }, { status: 404 })
+  if (!role) return NextResponse.json({ error: 'Role not found' }, { status: 404 })
 
   // Rubix Matrix — obligatoriu
   const { data: criteria } = await supabase
@@ -157,7 +157,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   if (!criteria || criteria.length === 0) {
     return NextResponse.json(
-      { error: 'Nu există Rubix Matrix pentru acest rol. Adaugă una din secțiunea Editare Rol, apoi revino.' },
+      { error: 'No Rubix Matrix found for this role. Add one in the Role Edit section, then come back.' },
       { status: 400 }
     )
   }

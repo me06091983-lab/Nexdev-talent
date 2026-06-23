@@ -105,8 +105,8 @@ export function TimesheetsClient() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Timesheeturi</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Ore lucrate per candidat · contracte active</p>
+          <h1 className="text-2xl font-bold text-gray-900">Timesheets</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Hours worked per candidate · active contracts</p>
         </div>
 
         {/* Year navigation */}
@@ -152,7 +152,7 @@ export function TimesheetsClient() {
               <thead>
                 <tr>
                   <th className="sticky left-0 z-10 bg-gray-50 border-b border-r border-gray-100 text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[220px]">
-                    Candidat
+                    Candidate
                   </th>
                   {MONTHS.map((m, mi) => (
                     <th
@@ -183,7 +183,7 @@ export function TimesheetsClient() {
                         )}
                       </div>
                       <div className="text-xs text-gray-300 mt-0.5">
-                        {row.bill_rate} {row.currency}/{row.rate_type === 'daily' ? 'zi' : 'h'}
+                        {row.bill_rate} {row.currency}/{row.rate_type === 'daily' ? 'day' : 'h'}
                       </div>
                     </td>
 
@@ -216,7 +216,7 @@ export function TimesheetsClient() {
                                 }}
                                 onBlur={e => handleSave(row.contract_id, row.candidate_id, month, e.target.value)}
                                 placeholder="—"
-                                title={isError ? 'Eroare la salvare' : undefined}
+                                title={isError ? 'Save error' : undefined}
                                 className={cn(
                                   'w-14 text-center text-sm rounded-lg border py-1.5 transition-all',
                                   'focus:outline-none focus:ring-2 focus:ring-green-300/40 focus:border-green-400',

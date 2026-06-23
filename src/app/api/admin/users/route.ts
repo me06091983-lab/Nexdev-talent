@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
   const { email, password, role, first_name = '', last_name = '', phone = '', enabled = true } = body
 
   if (!email || !password || !role) {
-    return NextResponse.json({ error: 'Email, parolă și rol sunt obligatorii.' }, { status: 400 })
+    return NextResponse.json({ error: 'Email, password and role are required.' }, { status: 400 })
   }
   if (password.length < 6) {
-    return NextResponse.json({ error: 'Parola trebuie să aibă cel puțin 6 caractere.' }, { status: 400 })
+    return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
   }
   if (!['admin', 'recruiter'].includes(role)) {
     return NextResponse.json({ error: 'Rol invalid.' }, { status: 400 })

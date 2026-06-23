@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
   const supabase = await createClient()
   const { stage_id, order_index } = await request.json()
-  if (!stage_id) return NextResponse.json({ error: 'stage_id lipsă' }, { status: 400 })
+  if (!stage_id) return NextResponse.json({ error: 'stage_id missing' }, { status: 400 })
 
   const { error } = await supabase
     .from('role_stages')
@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const supabase = await createClient()
   const url = new URL(request.url)
   const stageId = url.searchParams.get('stage_id')
-  if (!stageId) return NextResponse.json({ error: 'stage_id lipsă' }, { status: 400 })
+  if (!stageId) return NextResponse.json({ error: 'stage_id missing' }, { status: 400 })
 
   const { error } = await supabase
     .from('role_stages')

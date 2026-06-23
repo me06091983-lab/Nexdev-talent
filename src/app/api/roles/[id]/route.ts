@@ -20,12 +20,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 const TRACKED_FIELDS: Record<string, string> = {
-  status: 'Status', title: 'Titlu', deadline: 'Deadline submisii',
-  positions_count: 'Număr roluri', location: 'Locație', seniority: 'Senioritate',
+  status: 'Status', title: 'Title', deadline: 'Submission deadline',
+  positions_count: 'Role count', location: 'Location', seniority: 'Seniority',
 }
 
 const STATUS_LABELS_RO: Record<string, string> = {
-  draft: 'Draft', active: 'Activ', on_hold: 'On Hold', closed: 'Închis', filled: 'Ocupat',
+  draft: 'Draft', active: 'Active', on_hold: 'On Hold', closed: 'Closed', filled: 'Filled',
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

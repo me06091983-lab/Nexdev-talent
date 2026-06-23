@@ -3,30 +3,30 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 const COLUMN_LABELS: Record<string, string> = {
-  first_name: 'Prenume', last_name: 'Nume', email: 'Email', phone: 'Telefon',
-  source_type: 'Sursă', seniority: 'Nivel senioritate', rate_min: 'Rate minim',
-  rate_wish: 'Rate dorit', currency: 'Monedă', profile_id: 'Profil',
+  first_name: 'First name', last_name: 'Last name', email: 'Email', phone: 'Phone',
+  source_type: 'Source', seniority: 'Seniority level', rate_min: 'Minimum rate',
+  rate_wish: 'Desired rate', currency: 'Currency', profile_id: 'Profile',
 }
 
 function friendlyError(msg: string): string {
   const nullCol = msg.match(/null value in column "(\w+)"/)
   if (nullCol) {
     const label = COLUMN_LABELS[nullCol[1]] ?? nullCol[1]
-    return `Câmpul "${label}" este obligatoriu și nu poate fi gol.`
+    return `The field "${label}" is required and cannot be empty.`
   }
   if (msg.includes('duplicate key') && msg.includes('email'))
-    return 'Există deja un candidat cu această adresă de email.'
+    return 'A candidate with this email already exists.'
   if (msg.includes('duplicate key'))
-    return 'Există deja o înregistrare cu aceste date.'
+    return 'A record with these details already exists.'
   if (msg.includes('invalid input syntax'))
-    return 'Valoare invalidă introdusă într-un câmp. Verifică câmpurile numerice și datele.'
+    return 'Invalid value in a field. Check numeric fields and dates.'
   if (msg.includes('foreign key'))
-    return 'Referință invalidă — una dintre selecții nu mai există. Reîncarcă pagina și încearcă din nou.'
+    return 'Invalid reference — one of the selections no longer exists. Reload the page and try again.'
   if (msg.includes('violates check constraint'))
-    return 'Valoare nepermisă într-un câmp. Verifică selecțiile (senioritate, monedă) și încearcă din nou.'
+    return 'Invalid value in a field. Check selections (seniority, currency) and try again.'
   if (msg.includes('does not exist'))
-    return 'Eroare de configurare — un câmp trimis nu există în baza de date. Contactează administratorul.'
-  return `Eroare la salvare: ${msg}`
+    return 'Configuration error — a submitted field does not exist in the database. Contact the administrator.'
+  return `Save error: ${msg}`
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

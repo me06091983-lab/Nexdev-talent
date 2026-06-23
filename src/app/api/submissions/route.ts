@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (anyExisting) {
-    return NextResponse.json({ error: 'Candidatul este deja în pipeline-ul acestui rol.' }, { status: 409 })
+    return NextResponse.json({ error: 'Candidate is already in the pipeline for this role.' }, { status: 409 })
   }
 
   const { data: submission, error: insertError } = await supabase
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   if (note?.trim()) {
     await supabase.from('stage_history').insert({
       submission_id: submission.id,
-      stage_name: 'Adăugat în pipeline',
+      stage_name: 'Added to pipeline',
       result: 'info',
       feedback: note,
     })
