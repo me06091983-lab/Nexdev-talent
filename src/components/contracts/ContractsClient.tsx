@@ -3,7 +3,7 @@
 import { useState, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Calendar, Trash2, XCircle, Loader2, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Calendar, Trash2, XCircle, RotateCcw, Loader2, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContractModal, type CandidateOption, type RoleOption, type PartnerOption } from '@/components/pipeline/ContractModal'
 
@@ -252,6 +252,7 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
   const [editContractId, setEditContractId] = useState<string | null>(null)
   const [terminateId, setTerminateId] = useState<string | null>(null)
   const [terminating, setTerminating] = useState(false)
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   // undefined = not fetched yet, null = loading, [] = loaded (empty)
@@ -313,6 +314,21 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
       setTerminateId(null)
     } finally {
       setTerminating(false)
+    }
+  }
+
+  async function handleReactivate(id: string) {
+    if (!confirm('Reactivate this contract? It will be moved back to Active contracts.')) return
+    setReactivatingId(id)
+    try {
+      await fetch(`/api/contracts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_status: 'activ', termination_reason: null }),
+      })
+      router.refresh()
+    } finally {
+      setReactivatingId(null)
     }
   }
 
@@ -498,6 +514,19 @@ export function ContractsClient({ contracts, candidates, roles, partners }: {
                               className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 px-2 py-1 rounded transition-colors"
                             >
                               <XCircle size={12} /> Terminate
+                            </button>
+                          )}
+                          {tab === 'terminat' && (
+                            <button
+                              onClick={() => handleReactivate(c.id)}
+                              disabled={reactivatingId === c.id}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 hover:bg-green-50 px-2 py-1 rounded transition-colors disabled:opacity-40"
+                            >
+                              {reactivatingId === c.id
+                                ? <Loader2 size={12} className="animate-spin" />
+                                : <RotateCcw size={12} />
+                              }
+                              Reactivate
                             </button>
                           )}
                           <button
