@@ -12,7 +12,7 @@ interface HistoryEntry {
 }
 
 function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('ro-RO', {
+  return new Date(iso).toLocaleString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
@@ -42,18 +42,18 @@ export function RoleHistory({ roleId }: { roleId: string }) {
       >
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         <History size={13} className="text-gray-400" />
-        Istoric modificări
+        Change history
       </button>
 
       {open && (
         <div className="mt-3">
           {loading && (
             <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-              <Loader2 size={12} className="animate-spin" /> Se încarcă...
+              <Loader2 size={12} className="animate-spin" /> Loading...
             </div>
           )}
           {!loading && entries?.length === 0 && (
-            <p className="text-xs text-gray-400 italic py-2">Nicio modificare înregistrată.</p>
+            <p className="text-xs text-gray-400 italic py-2">No changes recorded.</p>
           )}
           {!loading && entries && entries.length > 0 && (
             <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">

@@ -170,18 +170,18 @@ interface DashboardData {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PIPELINE_STAGE_LABELS: Record<string, string> = {
-  new: 'Nou',
-  cv_received: 'CV primit',
-  in_review: 'În analiză',
-  match_found: 'Potrivire identificată',
-  to_contact: 'De contactat',
-  contacted: 'Contactat',
-  screening_scheduled: 'Screening programat',
-  screening_done: 'Screening realizat',
-  submitted: 'Propus client',
-  offer: 'Ofertă',
-  rejected: 'Respins',
-  on_hold: 'În așteptare',
+  new: 'New',
+  cv_received: 'CV received',
+  in_review: 'In review',
+  match_found: 'Match found',
+  to_contact: 'To contact',
+  contacted: 'Contacted',
+  screening_scheduled: 'Screening scheduled',
+  screening_done: 'Screening done',
+  submitted: 'Submitted to client',
+  offer: 'Offer',
+  rejected: 'Rejected',
+  on_hold: 'On hold',
   pipeline: 'Pipeline',
 }
 
@@ -216,7 +216,7 @@ function groupWeeklyInterviewsByDay(interviews: DashboardData['weeklyInterviews'
     if (!groups.has(dateKey)) {
       groups.set(dateKey, {
         dateKey,
-        dateLabel: d.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'short' }),
+        dateLabel: d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }),
         isToday: iv.isToday,
         items: [],
       })
@@ -227,7 +227,7 @@ function groupWeeklyInterviewsByDay(interviews: DashboardData['weeklyInterviews'
 }
 
 function fmt(n: number) {
-  return n.toLocaleString('ro-RO', { maximumFractionDigits: 0 })
+  return n.toLocaleString('en-GB', { maximumFractionDigits: 0 })
 }
 
 function fmtK(n: number) {
@@ -242,7 +242,7 @@ function timeAgo(dateStr: string) {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs}h`
   const days = Math.floor(hrs / 24)
-  return `${days}z`
+  return `${days}d`
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ function PipelineTooltip({ active, payload }: any) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-2 text-xs">
       <p className="font-semibold text-gray-700">{item.payload.label}</p>
-      <p className="text-[#2AA3FF] font-medium">{item.value} candidați</p>
+      <p className="text-[#2AA3FF] font-medium">{item.value} candidates</p>
     </div>
   )
 }
@@ -342,7 +342,7 @@ function ClientRevenueTooltip({ active, payload }: any) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-2 text-xs">
       <p className="font-semibold text-gray-700">{item.payload.client}</p>
-      <p className="text-indigo-600 font-medium">{item.payload.count} contracte</p>
+      <p className="text-indigo-600 font-medium">{item.payload.count} contracts</p>
       <p className="text-gray-600">Revenue: {fmt(item.value)}</p>
     </div>
   )
@@ -385,15 +385,15 @@ function InterviewCard({ iv }: {
     iv.interviewStatus === 'set' ? 'text-orange-600' :
     'text-gray-500'
   const statusLabel =
-    iv.interviewStatus === 'rejected' ? 'Respins' :
+    iv.interviewStatus === 'rejected' ? 'Rejected' :
     iv.interviewStatus === 'pending_feedback' ? 'Pending Feedback' :
     iv.interviewStatus === 'passed' ? 'Passed' :
     iv.interviewStatus === 'set' ? 'Set' :
     iv.interviewStatus === 'waiting_customer' ? 'Waiting customer' :
     iv.interviewStatus
   const d = new Date(iv.datetime)
-  const dateStr = d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
-  const timeStr = d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   return (
     <div className={cn('flex items-start gap-3 px-3 py-2.5 rounded-xl border', bg)}>
       <div className="min-w-0 flex-1">
@@ -472,8 +472,8 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
       {/* Greeting */}
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-[#0B1A33]">Bun venit înapoi, Marius! 👋</h2>
-          <p className="text-gray-400 text-sm mt-0.5">Iată ce se întâmplă cu recrutarea ta astăzi.</p>
+          <h2 className="text-xl font-semibold text-[#0B1A33]">Welcome back, Marius! 👋</h2>
+          <p className="text-gray-400 text-sm mt-0.5">Here&apos;s what&apos;s happening with your recruitment today.</p>
         </div>
       </div>
 
@@ -484,40 +484,40 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
               <Users size={17} className="text-blue-500" />
             </div>
-            <p className="text-xs font-medium text-gray-500">Candidați noi</p>
+            <p className="text-xs font-medium text-gray-500">New candidates</p>
           </div>
           <p className="text-3xl font-bold text-[#0B1A33] leading-none">{data.candidates.recentlyAdded}</p>
-          <p className="text-[11px] text-gray-400 mt-1.5">în ultimele 7 zile</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">in the last 7 days</p>
         </div>
         <div className="glass rounded-2xl px-5 py-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
               <Briefcase size={17} className="text-indigo-500" />
             </div>
-            <p className="text-xs font-medium text-gray-500">Joburi active</p>
+            <p className="text-xs font-medium text-gray-500">Active roles</p>
           </div>
           <p className="text-3xl font-bold text-[#0B1A33] leading-none">{data.roles.active}</p>
-          <p className="text-[11px] text-gray-400 mt-1.5">{data.roles.onHold} în așteptare</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">{data.roles.onHold} on hold</p>
         </div>
         <div className="glass rounded-2xl px-5 py-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
               <Activity size={17} className="text-purple-500" />
             </div>
-            <p className="text-xs font-medium text-gray-500">Potriviri AI</p>
+            <p className="text-xs font-medium text-gray-500">AI matches</p>
           </div>
           <p className="text-3xl font-bold text-[#0B1A33] leading-none">{activeSubmissions}</p>
-          <p className="text-[11px] text-gray-400 mt-1.5">candidați în pipeline</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">candidates in pipeline</p>
         </div>
         <div className="glass rounded-2xl px-5 py-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
               <Send size={17} className="text-amber-500" />
             </div>
-            <p className="text-xs font-medium text-gray-500">De contactat</p>
+            <p className="text-xs font-medium text-gray-500">To contact</p>
           </div>
           <p className="text-3xl font-bold text-[#0B1A33] leading-none">{deContactatCount}</p>
-          <p className="text-[11px] text-gray-400 mt-1.5">candidați în așteptare</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">candidates waiting</p>
         </div>
       </div>
 
@@ -531,7 +531,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
             {/* Interviuri viitoare */}
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#0B1A33]">Interviuri viitoare</h3>
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Upcoming interviews</h3>
                 {futureInterviews.length > 0 && (
                   <span className="text-[10px] bg-[#2AA3FF]/10 text-[#2AA3FF] font-medium px-2 py-0.5 rounded-full">
                     {futureInterviews.length}
@@ -541,7 +541,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
               {futureInterviews.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
                   <Calendar size={22} className="text-gray-300" />
-                  <span className="text-center">Niciun interviu planificat</span>
+                  <span className="text-center">No interviews planned</span>
                 </div>
               ) : (
                 <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
@@ -555,7 +555,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
             {/* Așteptare feedback */}
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#0B1A33]">Așteptare feedback</h3>
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Pending feedback</h3>
                 {data.pendingFeedbackInterviews.length > 0 && (
                   <span className="text-[10px] bg-yellow-50 text-yellow-700 font-medium px-2 py-0.5 rounded-full border border-yellow-200">
                     {data.pendingFeedbackInterviews.length}
@@ -565,7 +565,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
               {data.pendingFeedbackInterviews.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
                   <Calendar size={22} className="text-gray-300" />
-                  <span className="text-center">Niciun interviu în așteptare feedback</span>
+                  <span className="text-center">No interviews pending feedback</span>
                 </div>
               ) : (
                 <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
@@ -579,7 +579,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
             {/* Istoric interviuri */}
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric interviuri</h3>
+                <h3 className="text-sm font-semibold text-[#0B1A33]">Interview history</h3>
                 {data.interviewHistory.length > 0 && (
                   <span className="text-[10px] bg-gray-100 text-gray-500 font-medium px-2 py-0.5 rounded-full">
                     {data.interviewHistory.length}
@@ -589,7 +589,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
               {data.interviewHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-1">
                   <Calendar size={22} className="text-gray-300" />
-                  <span className="text-center">Niciun interviu finalizat în 30 zile</span>
+                  <span className="text-center">No interviews completed in 30 days</span>
                 </div>
               ) : (
                 <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
@@ -606,13 +606,13 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
       {/* Roluri deschise */}
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-[#0B1A33]">Roluri deschise</h3>
-          <span className="text-[10px] text-gray-400">{data.openRoles.length} roluri</span>
+          <h3 className="text-sm font-semibold text-[#0B1A33]">Open roles</h3>
+          <span className="text-[10px] text-gray-400">{data.openRoles.length} roles</span>
         </div>
         {data.openRoles.length === 0 ? (
           <div className="flex items-center justify-center h-20 text-gray-400 text-sm gap-2">
             <Briefcase size={18} className="text-gray-300" />
-            <span>Niciun rol deschis momentan</span>
+            <span>No open roles at the moment</span>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
@@ -634,7 +634,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
                       </span>
                     )}
                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', role.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700')}>
-                      {role.status === 'active' ? 'Activ' : 'Hold'}
+                      {role.status === 'active' ? 'Active' : 'Hold'}
                     </span>
                   </div>
                 </div>
@@ -649,12 +649,12 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Activitate recentă */}
         <div className="col-span-5 glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Activitate recentă</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Recent activity</h3>
           </div>
           {data.recentActivity.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-2">
               <Activity size={24} className="text-gray-300" />
-              <span>Nicio activitate recentă</span>
+              <span>No recent activity</span>
             </div>
           ) : (
             <div className="space-y-3.5 overflow-y-auto max-h-[280px] pr-1">
@@ -693,12 +693,12 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Joburi cu cei mai mulți candidați */}
         <div className="col-span-7 glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Joburi cu cele mai bune potriviri</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Jobs with best matches</h3>
           </div>
           {topRoles.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-52 text-gray-400 text-sm gap-2">
               <Briefcase size={24} className="text-gray-300" />
-              <span>Niciun rol activ cu candidați</span>
+              <span>No active role with candidates</span>
             </div>
           ) : (
             <div className="space-y-3.5 overflow-y-auto max-h-[280px] pr-1">
@@ -712,7 +712,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-semibold text-gray-800 truncate">{role.roleTitle}</p>
                         <span className="text-[10px] font-semibold text-[#2AA3FF] ml-2 flex-shrink-0">
-                          {role.candidates.length} candidați
+                          {role.candidates.length} candidates
                         </span>
                       </div>
                       <p className="text-[10px] text-gray-400 mb-2 truncate">{role.clientName}</p>
@@ -751,12 +751,12 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
       <div className="grid grid-cols-12 gap-4">
         {/* Pipeline recrutare */}
         <div className="col-span-5 glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Pipeline recrutare</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Recruitment pipeline</h3>
           {pipelineChartData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
               <div className="text-center">
                 <Activity size={20} className="mx-auto mb-2 text-gray-300" />
-                Fără date pipeline
+                No pipeline data
               </div>
             </div>
           ) : mounted ? (
@@ -805,13 +805,13 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Candidați de top (AI score ≥ 90%) */}
         <div className="col-span-7 glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Candidați de top</h3>
-            <span className="text-[10px] text-gray-400">scor AI ≥ 90%</span>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Top candidates</h3>
+            <span className="text-[10px] text-gray-400">AI score ≥ 90%</span>
           </div>
           {data.topAiMatches.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-gray-400 text-sm gap-2">
               <TrendingUp size={20} className="text-gray-300" />
-              <span>Niciun candidat cu scor ≥ 90%</span>
+              <span>No candidate with score ≥ 90%</span>
             </div>
           ) : (
             <div className="space-y-2.5 overflow-y-auto max-h-[180px] pr-1">
@@ -851,24 +851,24 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
       <div className="grid grid-cols-2 gap-4">
         {/* Active actions */}
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni în curs</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Ongoing actions</h3>
           <div className="flex gap-2 mb-4">
             <input
               value={newAction}
               onChange={e => setNewAction(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addAction()}
-              placeholder="Adaugă o acțiune nouă..."
+              placeholder="Add a new action..."
               className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
             />
             <button
               onClick={addAction}
               className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
             >
-              Adaugă
+              Add
             </button>
           </div>
           {actions.filter(a => !a.completed).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Nicio acțiune activă.</p>
+            <p className="text-sm text-gray-400 text-center py-4">No active actions.</p>
           ) : (
             <div className="space-y-1 overflow-y-auto max-h-[200px]">
               {actions.filter(a => !a.completed).map(action => (
@@ -888,7 +888,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Completed history */}
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Acțiuni finalizate</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Completed actions</h3>
             {actions.filter(a => a.completed).length > 0 && (
               <span className="text-[10px] bg-green-50 text-green-600 font-medium px-2 py-0.5 rounded-full">
                 {actions.filter(a => a.completed).length}
@@ -896,7 +896,7 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
             )}
           </div>
           {actions.filter(a => a.completed).length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Nicio acțiune finalizată încă.</p>
+            <p className="text-sm text-gray-400 text-center py-4">No completed actions yet.</p>
           ) : (
             <div className="space-y-1 overflow-y-auto max-h-[200px]">
               {[...actions.filter(a => a.completed)].reverse().map(action => (
@@ -906,9 +906,9 @@ function TabRecrutare({ data, mounted }: { data: DashboardData; mounted: boolean
                     <p className="text-sm text-gray-400 line-through">{action.text}</p>
                     {action.completedAt && (
                       <p className="text-[10px] text-gray-300 mt-0.5">
-                        {new Date(action.completedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(action.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         {' · '}
-                        {new Date(action.completedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(action.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>
@@ -968,25 +968,25 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
 
   const statusPieData = [
     { name: 'Active', value: data.contracts.active, color: '#22c55e' },
-    { name: 'Terminate', value: data.contracts.terminated, color: '#94a3b8' },
+    { name: 'Terminated', value: data.contracts.terminated, color: '#94a3b8' },
   ]
 
   return (
     <div className="space-y-5">
       {/* Row 1: Stat Cards */}
       <div className="grid grid-cols-4 gap-3">
-        <StatCard label="Contracte active" value={data.contracts.active} icon={Users} iconColor="text-green-600" iconBg="bg-green-50" />
+        <StatCard label="Active contracts" value={data.contracts.active} icon={Users} iconColor="text-green-600" iconBg="bg-green-50" />
         <div className={cn('glass rounded-2xl px-4 py-3 flex items-center gap-3', expiring30 > 0 ? 'border border-red-200 bg-red-50/30' : '')}>
           <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', expiring30 > 0 ? 'bg-red-50' : 'bg-amber-50')}>
             <Calendar size={16} className={expiring30 > 0 ? 'text-red-500' : 'text-amber-500'} />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-gray-400 leading-none mb-1">Expiră în 30 zile</p>
+            <p className="text-[10px] font-medium text-gray-400 leading-none mb-1">Expiring in 30 days</p>
             <p className={cn('text-xl font-bold leading-none', expiring30 > 0 ? 'text-red-600' : 'text-[#0B1A33]')}>{expiring30}</p>
           </div>
         </div>
-        <StatCard label="Expiră 31-60 zile" value={expiring31to60} icon={Calendar} iconColor="text-amber-500" iconBg="bg-amber-50" />
-        <StatCard label="Total terminate" value={data.contracts.terminated} icon={XCircle} iconColor="text-gray-400" iconBg="bg-gray-100" />
+        <StatCard label="Expiring 31-60 days" value={expiring31to60} icon={Calendar} iconColor="text-amber-500" iconBg="bg-amber-50" />
+        <StatCard label="Total terminated" value={data.contracts.terminated} icon={XCircle} iconColor="text-gray-400" iconBg="bg-gray-100" />
       </div>
 
       {/* Row 2: Contracte recente + Expiring list */}
@@ -994,7 +994,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Contracte emise în ultima lună */}
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Contracte noi — ultima lună</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">New contracts — last month</h3>
             <span className="text-[10px] bg-indigo-50 text-indigo-600 font-medium px-2 py-0.5 rounded-full">
               {data.contracts.recentContracts.length}
             </span>
@@ -1003,7 +1003,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
             <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
               <div className="text-center">
                 <FileText size={24} className="mx-auto mb-2 text-gray-300" />
-                Niciun contract nou în ultima lună
+                No new contracts in the last month
               </div>
             </div>
           ) : (
@@ -1021,14 +1021,14 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                       'text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0',
                       c.contract_status === 'activ' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
                     )}>
-                      {c.contract_status === 'activ' ? 'Activ' : c.contract_status}
+                      {c.contract_status === 'activ' ? 'Active' : c.contract_status}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1.5 text-[10px] text-gray-400">
-                    <span>Start: {new Date(c.start_date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                    {c.end_date && <span>· End: {new Date(c.end_date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                    <span>Start: {new Date(c.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    {c.end_date && <span>· End: {new Date(c.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                     <span className="ml-auto font-medium text-gray-600">
-                      {c.bill_rate} {c.currency}/{c.rate_type === 'daily' ? 'zi' : 'h'}
+                      {c.bill_rate} {c.currency}/{c.rate_type === 'daily' ? 'day' : 'h'}
                     </span>
                   </div>
                 </div>
@@ -1039,11 +1039,11 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
 
         {/* Expiring contracts list */}
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Contracte care expiră în 60 zile</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Contracts expiring in 60 days</h3>
           {data.contracts.expiringContracts.length === 0 ? (
             <div className="flex items-center justify-center h-52 gap-2 text-green-600 text-sm">
               <CheckCircle size={18} />
-              <span>Nicio expirare în 60 de zile</span>
+              <span>No expiry in 60 days</span>
             </div>
           ) : (
             <div className="space-y-2 overflow-y-auto max-h-[270px] pr-1">
@@ -1055,7 +1055,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                     </p>
                     <p className="text-[10px] text-gray-400 truncate">{c.role?.title ?? '—'} · {c.client?.name ?? '—'}</p>
                     <p className="text-[10px] text-gray-400">
-                      Expiră: {new Date(c.end_date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      Expires: {new Date(c.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <span className={cn(
@@ -1064,7 +1064,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                     : c.daysLeft <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200'
                     : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                   )}>
-                    {c.daysLeft}z
+                    {c.daysLeft}d
                   </span>
                 </div>
               ))}
@@ -1076,7 +1076,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
       {/* Row 3: Distribution pie charts */}
       <div className="grid grid-cols-2 gap-4">
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Status contracte</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Contract status</h3>
           {mounted ? (
             <div className="flex items-center gap-4">
               <ResponsiveContainer width="60%" height={160}>
@@ -1101,12 +1101,12 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
         </div>
 
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Lunar per currency — contracte active</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Monthly per currency — active contracts</h3>
           {data.contracts.byCurrency.length === 0 ? (
             <div className="flex items-center justify-center h-36 text-gray-400 text-sm">
               <div className="text-center">
                 <TrendingUp size={20} className="mx-auto mb-2 text-gray-300" />
-                Niciun contract activ
+                No active contract
               </div>
             </div>
           ) : (
@@ -1117,15 +1117,15 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                   <div key={cur.currency}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-semibold text-gray-700">{cur.currency}</span>
-                      <span className="text-[10px] text-gray-400">{cur.count} contracte</span>
+                      <span className="text-[10px] text-gray-400">{cur.count} contracts</span>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-indigo-500 font-medium">Încasez lunar</span>
+                        <span className="text-indigo-500 font-medium">Monthly revenue</span>
                         <span className="font-semibold text-gray-800 tabular-nums">{fmt(cur.revenue)} {cur.currency}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-rose-400 font-medium">Plătesc lunar</span>
+                        <span className="text-rose-400 font-medium">Monthly cost</span>
                         <span className="font-semibold text-gray-800 tabular-nums">{fmt(cur.cost)} {cur.currency}</span>
                       </div>
                       {/* Visual bar: cost as % of revenue */}
@@ -1133,7 +1133,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                         <div className="h-full bg-rose-400 rounded-full" style={{ width: `${Math.min(costPct, 100)}%` }} />
                       </div>
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-green-600 font-medium">Marjă: {fmt(cur.margin)} {cur.currency}</span>
+                        <span className="text-green-600 font-medium">Margin: {fmt(cur.margin)} {cur.currency}</span>
                         <span className="text-green-500">{cur.marginPct}%</span>
                       </div>
                     </div>
@@ -1149,25 +1149,25 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
       <div className="grid grid-cols-2 gap-4">
         {/* Active actions */}
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Acțiuni în curs</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Ongoing actions</h3>
           <div className="flex gap-2 mb-4">
             <input
               value={newAction}
               onChange={e => setNewAction(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addAction()}
-              placeholder="Adaugă o acțiune nouă..."
+              placeholder="Add a new action..."
               className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#2AA3FF] placeholder:text-gray-300"
             />
             <button
               onClick={addAction}
               className="px-4 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#162540] transition-colors flex-shrink-0"
             >
-              Adaugă
+              Add
             </button>
           </div>
           {actions.filter(a => !a.completed).length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
-              Nicio acțiune activă. Bifează o acțiune pentru a o finaliza.
+              No active actions. Check an action to complete it.
             </p>
           ) : (
             <div className="space-y-1 overflow-y-auto max-h-[220px]">
@@ -1188,7 +1188,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
         {/* Completed history */}
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Istoric finalizate</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Completed history</h3>
             {actions.filter(a => a.completed).length > 0 && (
               <span className="text-[10px] bg-green-50 text-green-600 font-medium px-2 py-0.5 rounded-full">
                 {actions.filter(a => a.completed).length}
@@ -1197,7 +1197,7 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
           </div>
           {actions.filter(a => a.completed).length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
-              Nicio acțiune finalizată încă.
+              No completed actions yet.
             </p>
           ) : (
             <div className="space-y-1 overflow-y-auto max-h-[220px]">
@@ -1208,9 +1208,9 @@ function TabContracte({ data, mounted }: { data: DashboardData; mounted: boolean
                     <p className="text-sm text-gray-400 line-through">{action.text}</p>
                     {action.completedAt && (
                       <p className="text-[10px] text-gray-300 mt-0.5">
-                        {new Date(action.completedAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(action.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         {' · '}
-                        {new Date(action.completedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(action.completedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>
@@ -1301,7 +1301,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
   function exportCsv() {
     const rows = [
-      ['Luna', 'Revenue', 'Cost', 'Comisioane', 'Profit'],
+      ['Month', 'Revenue', 'Cost', 'Commissions', 'Profit'],
       ...monthly.map(m => [m.label, m.revenue.toFixed(2), m.cost.toFixed(2), m.comms.toFixed(2), m.profit.toFixed(2)]),
       ['TOTAL YTD', ytd.revenue.toFixed(2), ytd.cost.toFixed(2), ytd.comms.toFixed(2), ytd.profit.toFixed(2)],
     ]
@@ -1322,10 +1322,10 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-[#0B1A33]">
-              YTD — per valuta <span className="text-xs font-normal text-gray-400">(de la 1 ian.)</span>
+              YTD — per currency <span className="text-xs font-normal text-gray-400">(from 1 Jan.)</span>
             </h3>
             <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
-              {(ytdByCurrency ?? []).length} valute active
+              {(ytdByCurrency ?? []).length} active currencies
             </span>
           </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min((ytdByCurrency ?? []).length, 4)}, 1fr)` }}>
@@ -1336,7 +1336,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
                 <div key={cur.currency} className={cn('rounded-xl border p-3', pos ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/20')}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-bold text-[#0B1A33]">{cur.currency}</span>
-                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', pos ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>{pct}% marja</span>
+                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', pos ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>{pct}% margin</span>
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -1349,7 +1349,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
                     </div>
                     {cur.comms > 0 && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-amber-500 font-medium flex items-center gap-1"><Receipt size={11} />Comis.</span>
+                        <span className="text-amber-500 font-medium flex items-center gap-1"><Receipt size={11} />Comm.</span>
                         <span className="font-semibold text-amber-700 tabular-nums">{fmtK(cur.comms)}</span>
                       </div>
                     )}
@@ -1374,7 +1374,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
             </div>
             <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.revenue)}</p>
             <p className="text-[10px] text-gray-400 mt-1">
-              cumulat de la 1 ian.{(ytdByCurrency ?? [])[0] ? ` · ${(ytdByCurrency ?? [])[0].currency}` : ''}
+              cumulated from 1 Jan.{(ytdByCurrency ?? [])[0] ? ` · ${(ytdByCurrency ?? [])[0].currency}` : ''}
             </p>
           </div>
 
@@ -1386,7 +1386,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               <p className="text-xs font-medium text-gray-500">Cost YTD</p>
             </div>
             <p className="text-xl font-bold text-[#0B1A33]">{fmtK(ytd.cost)}</p>
-            <p className="text-[10px] text-gray-400 mt-1">cumulat de la 1 ian.</p>
+            <p className="text-[10px] text-gray-400 mt-1">cumulated from 1 Jan.</p>
           </div>
 
           <div className="glass rounded-2xl p-4 border border-amber-100">
@@ -1394,10 +1394,10 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
                 <Receipt size={16} className="text-amber-500" />
               </div>
-              <p className="text-xs font-medium text-gray-500">Comisioane YTD</p>
+              <p className="text-xs font-medium text-gray-500">Commissions YTD</p>
             </div>
             <p className="text-xl font-bold text-amber-700">{fmtK(ytd.comms)}</p>
-            <p className="text-[10px] text-gray-400 mt-1">platite partenerilor</p>
+            <p className="text-[10px] text-gray-400 mt-1">paid to partners</p>
           </div>
 
           <div className={cn('glass rounded-2xl p-4', profitPositive ? 'border border-green-100' : 'border border-red-100')}>
@@ -1405,11 +1405,11 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center', profitPositive ? 'bg-green-50' : 'bg-red-50')}>
                 <TrendingUp size={16} className={profitPositive ? 'text-green-500' : 'text-red-500'} />
               </div>
-              <p className="text-xs font-medium text-gray-500">Profit net YTD</p>
+              <p className="text-xs font-medium text-gray-500">Net profit YTD</p>
             </div>
             <p className={cn('text-xl font-bold', profitPositive ? 'text-green-700' : 'text-red-600')}>{fmtK(ytd.profit)}</p>
             <p className="text-[10px] text-gray-400 mt-1">
-              <span className={cn('font-medium', profitPositive ? 'text-green-600' : 'text-red-500')}>{profitPct}%</span> din revenue
+              <span className={cn('font-medium', profitPositive ? 'text-green-600' : 'text-red-500')}>{profitPct}%</span> of revenue
             </p>
           </div>
         </div>
@@ -1418,17 +1418,17 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
       {/* Row 2: Composed Chart */}
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h3 className="text-sm font-semibold text-[#0B1A33]">Evoluție financiară</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33]">Financial evolution</h3>
           {monthOptions.length > 0 && (
             <div className="flex items-center gap-3">
               <MonthYearPicker
-                label="De la"
+                label="From"
                 value={safeFrom}
                 onChange={v => setChartFromIdx(v)}
                 options={monthOptions}
               />
               <MonthYearPicker
-                label="Până la"
+                label="To"
                 value={safeTo}
                 onChange={v => setChartToIdx(v)}
                 options={monthOptions}
@@ -1473,7 +1473,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
               <Line
                 type="monotone"
                 dataKey="comms"
-                name="Comisioane"
+                name="Commissions"
                 stroke="#f59e0b"
                 strokeWidth={2}
                 strokeDasharray="4 2"
@@ -1498,12 +1498,12 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
       <div className="grid grid-cols-2 gap-4">
         {/* Month-over-month trend */}
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Trend lunar (ultimele 3 luni)</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Monthly trend (last 3 months)</h3>
           <div className="space-y-3">
             {[0, 1, 2].map(idx => {
               const trend = monthTrend(idx)
               if (!trend) return (
-                <div key={idx} className="text-xs text-gray-400 py-2">Date insuficiente</div>
+                <div key={idx} className="text-xs text-gray-400 py-2">Insufficient data</div>
               )
               const { revChange, costChange, commsChange, profitChange, current } = trend
               return (
@@ -1513,11 +1513,11 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
                     {[
                       { label: 'Revenue',    value: current.revenue, change: revChange,    good: revChange    >= 0 },
                       { label: 'Cost',       value: current.cost,    change: costChange,   good: costChange   <= 0 },
-                      { label: 'Comisioane', value: current.comms,   change: commsChange,  good: commsChange  <= 0 },
+                      { label: 'Commissions', value: current.comms,   change: commsChange,  good: commsChange  <= 0 },
                       { label: 'Profit',     value: current.profit,  change: profitChange, good: profitChange >= 0 },
                     ].map(item => (
                       <div key={item.label} className="text-center">
-                        <p className="text-[10px] text-gray-400 mb-0.5">{item.label}</p>
+                        <p className="text-[10px] text-gray-400 mb-0.5 capitalize">{item.label}</p>
                         <p className="text-xs font-semibold text-gray-800">{fmtK(item.value)}</p>
                         <div className={cn('flex items-center justify-center gap-0.5 text-[10px]', item.good ? 'text-green-600' : 'text-red-500')}>
                           {item.change >= 0 ? <ArrowUp size={9} /> : <ArrowDown size={9} />}
@@ -1534,30 +1534,30 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
 
         {/* Key financials */}
         <div className="glass rounded-2xl p-4">
-          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Indicatori cheie</h3>
+          <h3 className="text-sm font-semibold text-[#0B1A33] mb-3">Key metrics</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
-              <p className="text-[10px] text-emerald-600 font-medium mb-1">Luna cea mai bună</p>
+              <p className="text-[10px] text-emerald-600 font-medium mb-1">Best month</p>
               <p className="text-sm font-bold text-emerald-700">{bestMonth?.label ?? '—'}</p>
               <p className="text-xs text-emerald-600">{bestMonth ? fmtK(bestMonth.profit) : '—'} profit</p>
             </div>
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-[10px] text-blue-600 font-medium mb-1">Medie profit lunar</p>
+              <p className="text-[10px] text-blue-600 font-medium mb-1">Average monthly profit</p>
               <p className="text-sm font-bold text-blue-700">{fmtK(avgProfit)}</p>
-              <p className="text-[10px] text-blue-500">pe ultimele 12 luni</p>
+              <p className="text-[10px] text-blue-500">over the last 12 months</p>
             </div>
             <div className="bg-rose-50 border border-rose-100 rounded-xl p-3">
-              <p className="text-[10px] text-rose-600 font-medium mb-1">Cel mai mare cost</p>
+              <p className="text-[10px] text-rose-600 font-medium mb-1">Highest cost month</p>
               <p className="text-sm font-bold text-rose-700">{maxCostMonth?.label ?? '—'}</p>
               <p className="text-xs text-rose-600">{maxCostMonth ? fmtK(maxCostMonth.cost) : '—'} cost</p>
             </div>
             <div className={cn('border rounded-xl p-3', overallTrendUp ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100')}>
-              <p className={cn('text-[10px] font-medium mb-1', overallTrendUp ? 'text-green-600' : 'text-amber-600')}>Trend general</p>
+              <p className={cn('text-[10px] font-medium mb-1', overallTrendUp ? 'text-green-600' : 'text-amber-600')}>Overall trend</p>
               <div className={cn('flex items-center gap-1', overallTrendUp ? 'text-green-700' : 'text-amber-700')}>
                 {overallTrendUp ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                <span className="text-sm font-bold">{overallTrendUp ? 'Crescător' : 'Descrescător'}</span>
+                <span className="text-sm font-bold">{overallTrendUp ? 'Upward' : 'Downward'}</span>
               </div>
-              <p className="text-[10px] text-gray-500 mt-1">Ultimele 3 vs anterioarele 3</p>
+              <p className="text-[10px] text-gray-500 mt-1">Last 3 vs previous 3</p>
             </div>
           </div>
         </div>
@@ -1567,7 +1567,7 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-[#0B1A33]">Detaliu lunar</h3>
+            <h3 className="text-sm font-semibold text-[#0B1A33]">Monthly detail</h3>
             {availableYears.length > 0 && (
               <select
                 value={detaliuYear}
@@ -1588,12 +1588,12 @@ function TabFinanciar({ data, mounted }: { data: DashboardData; mounted: boolean
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Lună</th>
+                <th className="text-left py-2 px-3 text-gray-500 font-medium">Month</th>
                 <th className="text-right py-2 px-3 text-gray-500 font-medium">Revenue</th>
                 <th className="text-right py-2 px-3 text-gray-500 font-medium">Cost</th>
-                <th className="text-right py-2 px-3 text-amber-500 font-medium">Comisioane</th>
+                <th className="text-right py-2 px-3 text-amber-500 font-medium">Commissions</th>
                 <th className="text-right py-2 px-3 text-gray-500 font-medium">Profit</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Marjă%</th>
+                <th className="text-right py-2 px-3 text-gray-500 font-medium">Margin%</th>
               </tr>
             </thead>
             <tbody>
@@ -1654,7 +1654,7 @@ interface FacturiSummary { months: MonthSummary[]; ytd: { emise_total: number; e
 interface TvaMonth { month: number; tva_incasat: number; tva_platit: number; diferenta: number }
 interface TvaSummary { months: TvaMonth[]; totals: { tva_incasat: number; tva_platit: number; diferenta: number } }
 
-const MONTH_LABELS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function KpiCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: 'indigo' | 'green' | 'amber' | 'red' }) {
   const colors = {
@@ -1731,12 +1731,12 @@ function TabFacturi() {
   const emiseBase   = (emiseMonth   !== null && summary?.months?.[emiseMonth   - 1]) ? summary.months[emiseMonth   - 1] : ytd
   const primiteBase = (primiteMonth !== null && summary?.months?.[primiteMonth - 1]) ? summary.months[primiteMonth - 1] : ytd
   const emisePie   = [
-    { name: 'Încasate',   value: emiseBase.emise_incasate },
-    { name: 'Neîncasate', value: emiseBase.emise_total - emiseBase.emise_incasate },
+    { name: 'Collected',   value: emiseBase.emise_incasate },
+    { name: 'Uncollected', value: emiseBase.emise_total - emiseBase.emise_incasate },
   ]
   const primitePie = [
-    { name: 'Plătite',   value: primiteBase.primite_platite },
-    { name: 'Neplătite', value: primiteBase.primite_total - primiteBase.primite_platite },
+    { name: 'Paid',   value: primiteBase.primite_platite },
+    { name: 'Unpaid', value: primiteBase.primite_total - primiteBase.primite_platite },
   ]
   const PIE_E = ['#4F46E5', '#C7D2FE']
   const PIE_P = ['#16A34A', '#BBF7D0']
@@ -1748,7 +1748,7 @@ function TabFacturi() {
     <div className="space-y-6">
       {/* Year nav */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#0B1A33]">Sumar facturi anual</h2>
+        <h2 className="text-lg font-semibold text-[#0B1A33]">Annual invoice summary</h2>
         <div className="flex items-center gap-2">
           <button onClick={() => setYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
             <ChevronLeft size={18} />
@@ -1768,19 +1768,19 @@ function TabFacturi() {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard label="Total emis" value={fmt(ytd.emise_total)} sub={`din care încasat: ${fmt(ytd.emise_incasate)}`} color="indigo" />
-            <KpiCard label="Neîncasat" value={fmt(neincasat)} sub={neincasat === 0 ? 'Totul încasat' : `${ytd.emise_total > 0 ? ((neincasat / ytd.emise_total) * 100).toFixed(0) : 0}% din total emis`} color={neincasat > 0 ? 'amber' : 'green'} />
-            <KpiCard label="Total primit" value={fmt(ytd.primite_total)} sub={`din care plătit: ${fmt(ytd.primite_platite)}`} color="green" />
-            <KpiCard label="Neplătit" value={fmt(neplatit)} sub={neplatit === 0 ? 'Totul plătit' : `${ytd.primite_total > 0 ? ((neplatit / ytd.primite_total) * 100).toFixed(0) : 0}% din total primit`} color={neplatit > 0 ? 'red' : 'green'} />
+            <KpiCard label="Total issued" value={fmt(ytd.emise_total)} sub={`of which collected: ${fmt(ytd.emise_incasate)}`} color="indigo" />
+            <KpiCard label="Uncollected" value={fmt(neincasat)} sub={neincasat === 0 ? 'Fully collected' : `${ytd.emise_total > 0 ? ((neincasat / ytd.emise_total) * 100).toFixed(0) : 0}% of total issued`} color={neincasat > 0 ? 'amber' : 'green'} />
+            <KpiCard label="Total received" value={fmt(ytd.primite_total)} sub={`of which paid: ${fmt(ytd.primite_platite)}`} color="green" />
+            <KpiCard label="Unpaid" value={fmt(neplatit)} sub={neplatit === 0 ? 'Fully paid' : `${ytd.primite_total > 0 ? ((neplatit / ytd.primite_total) * 100).toFixed(0) : 0}% of total received`} color={neplatit > 0 ? 'red' : 'green'} />
           </div>
 
           {/* Main chart */}
           <div className="glass rounded-2xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <p className="text-sm font-semibold text-gray-700">Emise vs. primite pe luni</p>
+              <p className="text-sm font-semibold text-gray-700">Issued vs. received per month</p>
               <div className="flex flex-wrap items-center gap-3">
-                <MonthYearPicker label="De la" value={chartFromMonth} onChange={v => setChartFromMonth(Math.min(v, chartToMonth))} options={monthOpts} />
-                <MonthYearPicker label="Până la" value={chartToMonth} onChange={v => setChartToMonth(Math.max(v, chartFromMonth))} options={monthOpts} />
+                <MonthYearPicker label="From" value={chartFromMonth} onChange={v => setChartFromMonth(Math.min(v, chartToMonth))} options={monthOpts} />
+                <MonthYearPicker label="To" value={chartToMonth} onChange={v => setChartToMonth(Math.max(v, chartFromMonth))} options={monthOpts} />
                 {(chartFromMonth !== 1 || chartToMonth !== 12) && (
                   <button onClick={() => { setChartFromMonth(1); setChartToMonth(12) }}
                     className="text-[11px] text-[#2AA3FF] hover:underline">Reset</button>
@@ -1790,16 +1790,16 @@ function TabFacturi() {
             {(chartFromMonth !== 1 || chartToMonth !== 12) && (periodEmise > 0 || periodPrimite > 0) && (
               <div className="flex gap-4 mb-3">
                 <span className="text-xs bg-indigo-50 text-indigo-700 rounded-lg px-2.5 py-1 font-medium">
-                  Emise: <strong>{fmt(periodEmise)}</strong>
+                  Issued: <strong>{fmt(periodEmise)}</strong>
                 </span>
                 <span className="text-xs bg-green-50 text-green-700 rounded-lg px-2.5 py-1 font-medium">
-                  Primite: <strong>{fmt(periodPrimite)}</strong>
+                  Received: <strong>{fmt(periodPrimite)}</strong>
                 </span>
               </div>
             )}
             {!hasEmise && !hasPrimite ? (
               <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
-                Nu există facturi pentru {year}
+                No invoices for {year}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -1810,13 +1810,13 @@ function TabFacturi() {
                   <Tooltip
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     formatter={(value: any, name: any) => {
-                      const labels: Record<string, string> = { emise_total: 'Total emise', primite_total: 'Total primite' }
+                      const labels: Record<string, string> = { emise_total: 'Total issued', primite_total: 'Total received' }
                       return [fmt(Number(value ?? 0)), labels[name] ?? name]
                     }}
                     contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #e5e7eb' }}
                   />
                   <Legend formatter={(value) => {
-                    const labels: Record<string, string> = { emise_total: 'Total emise', primite_total: 'Total primite' }
+                    const labels: Record<string, string> = { emise_total: 'Total issued', primite_total: 'Total received' }
                     return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
                   }} />
                   <Bar dataKey="emise_total" name="emise_total" fill="#4F46E5" radius={[6, 6, 0, 0]}>
@@ -1838,28 +1838,28 @@ function TabFacturi() {
           <div className="glass rounded-2xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
-                <p className="text-sm font-semibold text-gray-700">Evoluție TVA lunar</p>
-                <p className="text-xs text-gray-400 mt-0.5">Referință: data efectivă de încasare / plată</p>
+                <p className="text-sm font-semibold text-gray-700">Monthly VAT evolution</p>
+                <p className="text-xs text-gray-400 mt-0.5">Reference: actual collection / payment date</p>
               </div>
               {tva?.totals && (tva.totals.tva_incasat > 0 || tva.totals.tva_platit > 0) && (
                 <div className="flex flex-wrap gap-2">
                   <span className="text-xs bg-indigo-50 text-indigo-700 rounded-lg px-2.5 py-1 font-medium">
-                    TVA încasat: <strong>{fmt(tva.totals.tva_incasat)}</strong>
+                    VAT collected: <strong>{fmt(tva.totals.tva_incasat)}</strong>
                   </span>
                   <span className="text-xs bg-green-50 text-green-700 rounded-lg px-2.5 py-1 font-medium">
-                    TVA plătit: <strong>{fmt(tva.totals.tva_platit)}</strong>
+                    VAT paid: <strong>{fmt(tva.totals.tva_platit)}</strong>
                   </span>
                   <span className={cn('text-xs rounded-lg px-2.5 py-1 font-medium',
                     tva.totals.diferenta >= 0 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
                   )}>
-                    De plătit stat: <strong>{fmt(tva.totals.diferenta)}</strong>
+                    Due to state: <strong>{fmt(tva.totals.diferenta)}</strong>
                   </span>
                 </div>
               )}
             </div>
             {!tva || (tva.totals.tva_incasat === 0 && tva.totals.tva_platit === 0) ? (
               <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
-                Nu există date TVA pentru {year}
+                No VAT data for {year}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -1871,7 +1871,7 @@ function TabFacturi() {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     formatter={(value: any, name: any) => {
                       const labels: Record<string, string> = {
-                        tva_incasat: 'TVA încasat', tva_platit: 'TVA plătit', diferenta: 'TVA de plătit stat',
+                        tva_incasat: 'VAT collected', tva_platit: 'VAT paid', diferenta: 'VAT due to state',
                       }
                       return [fmt(Number(value ?? 0)), labels[name] ?? name]
                     }}
@@ -1879,7 +1879,7 @@ function TabFacturi() {
                   />
                   <Legend formatter={(value) => {
                     const labels: Record<string, string> = {
-                      tva_incasat: 'TVA încasat', tva_platit: 'TVA plătit', diferenta: 'TVA de plătit stat',
+                      tva_incasat: 'VAT collected', tva_platit: 'VAT paid', diferenta: 'VAT due to state',
                     }
                     return <span style={{ fontSize: 11, color: '#6B7280' }}>{labels[value] ?? value}</span>
                   }} />
@@ -1908,21 +1908,21 @@ function TabFacturi() {
             {/* Emise donut */}
             <div className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-gray-700">Status facturi emise</p>
+                <p className="text-sm font-semibold text-gray-700">Issued invoice status</p>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-400">Luna</span>
+                  <span className="text-[11px] text-gray-400">Month</span>
                   <select
                     value={emiseMonth ?? ''}
                     onChange={e => setEmiseMonth(e.target.value === '' ? null : Number(e.target.value))}
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
                   >
-                    <option value="">Tot anul</option>
+                    <option value="">Full year</option>
                     {MONTH_LABELS.map((l, i) => <option key={i} value={i + 1}>{l}</option>)}
                   </select>
                 </div>
               </div>
               {!hasEmise ? (
-                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
+                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">No data</div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <ResponsiveContainer width="100%" height={140}>
@@ -1950,21 +1950,21 @@ function TabFacturi() {
             {/* Primite donut */}
             <div className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-semibold text-gray-700">Status facturi primite</p>
+                <p className="text-sm font-semibold text-gray-700">Received invoice status</p>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-400">Luna</span>
+                  <span className="text-[11px] text-gray-400">Month</span>
                   <select
                     value={primiteMonth ?? ''}
                     onChange={e => setPrimiteMonth(e.target.value === '' ? null : Number(e.target.value))}
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:border-[#2AA3FF] cursor-pointer"
                   >
-                    <option value="">Tot anul</option>
+                    <option value="">Full year</option>
                     {MONTH_LABELS.map((l, i) => <option key={i} value={i + 1}>{l}</option>)}
                   </select>
                 </div>
               </div>
               {!hasPrimite ? (
-                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">Fără date</div>
+                <div className="h-36 flex items-center justify-center text-gray-400 text-xs">No data</div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <ResponsiveContainer width="100%" height={140}>
@@ -1991,13 +1991,13 @@ function TabFacturi() {
 
             {/* Monthly table */}
             <div className="glass rounded-2xl p-5 overflow-auto">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Detaliu lunar</p>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Monthly detail</p>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-gray-400 border-b border-gray-100">
-                    <th className="pb-2 text-left font-medium">Lună</th>
-                    <th className="pb-2 text-right font-medium text-indigo-500">Emise</th>
-                    <th className="pb-2 text-right font-medium text-green-600">Primite</th>
+                    <th className="pb-2 text-left font-medium">Month</th>
+                    <th className="pb-2 text-right font-medium text-indigo-500">Issued</th>
+                    <th className="pb-2 text-right font-medium text-green-600">Received</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2008,12 +2008,12 @@ function TabFacturi() {
                         <td className="py-1.5 text-gray-700 font-medium">{MONTH_LABELS[i]}</td>
                         <td className="py-1.5 text-right text-indigo-700">
                           {m.emise_total > 0 ? (
-                            <span title={`Încasat: ${fmt(m.emise_incasate)}`}>{fmt(m.emise_total)}</span>
+                            <span title={`Collected: ${fmt(m.emise_incasate)}`}>{fmt(m.emise_total)}</span>
                           ) : '—'}
                         </td>
                         <td className="py-1.5 text-right text-green-700">
                           {m.primite_total > 0 ? (
-                            <span title={`Plătit: ${fmt(m.primite_platite)}`}>{fmt(m.primite_total)}</span>
+                            <span title={`Paid: ${fmt(m.primite_platite)}`}>{fmt(m.primite_total)}</span>
                           ) : '—'}
                         </td>
                       </tr>
@@ -2064,10 +2064,10 @@ export function DashboardClient() {
   }, [])
 
   const tabs = [
-    { key: 'recruitare' as const, label: 'Recrutare', icon: Users },
-    { key: 'contracte' as const, label: 'Contracte', icon: FileText },
-    { key: 'financiar' as const, label: 'Financiar', icon: TrendingUp },
-    { key: 'facturi' as const, label: 'Facturi', icon: Receipt },
+    { key: 'recruitare' as const, label: 'Recruitment', icon: Users },
+    { key: 'contracte' as const, label: 'Contracts', icon: FileText },
+    { key: 'financiar' as const, label: 'Financial', icon: TrendingUp },
+    { key: 'facturi' as const, label: 'Invoices', icon: Receipt },
   ]
 
   return (
@@ -2076,7 +2076,7 @@ export function DashboardClient() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#0B1A33]">Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Bun venit pe platforma NexDev Talent</p>
+          <p className="text-gray-400 text-sm mt-0.5">Welcome to the NexDev Talent platform</p>
         </div>
       </div>
 
@@ -2109,7 +2109,7 @@ export function DashboardClient() {
         <LoadingSkeleton />
       ) : error ? (
         <div className="glass rounded-2xl p-8 text-center">
-          <p className="text-red-500 font-medium">Eroare la încărcarea datelor</p>
+          <p className="text-red-500 font-medium">Error loading data</p>
           <p className="text-gray-400 text-sm mt-1">{error}</p>
         </div>
       ) : data ? (

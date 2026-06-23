@@ -35,7 +35,7 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
   }
 
   function addCriterion() {
-    const name = window.prompt('Textul criteriului de evaluare:')
+    const name = window.prompt('Evaluation criterion text:')
     if (!name?.trim()) return
     onChange([...criteria, { order_index: criteria.length, criterion: name.trim(), weight: 0 }])
   }
@@ -50,24 +50,24 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
             Rubix Matrix
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-            Rubrică de evaluare ponderată — generată din JD · scor 0–5 per candidat · Weighted = Weight × Score ÷ 5
+            Weighted evaluation rubric — generated from JD · score 0–5 per candidate · Weighted = Weight × Score ÷ 5
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Save status indicator */}
           {saveStatus === 'saving' && (
             <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
-              <Loader2 size={10} className="animate-spin" /> Salvează...
+              <Loader2 size={10} className="animate-spin" /> Saving...
             </span>
           )}
           {saveStatus === 'saved' && (
             <span className="inline-flex items-center gap-1 text-[10px] text-green-600">
-              <CheckCircle2 size={10} /> Salvat
+              <CheckCircle2 size={10} /> Saved
             </span>
           )}
           {saveStatus === 'error' && (
             <span className="inline-flex items-center gap-1 text-[10px] text-red-500" title={saveError}>
-              <AlertCircle size={10} /> Eroare: {saveError}
+              <AlertCircle size={10} /> Error: {saveError}
             </span>
           )}
 
@@ -78,7 +78,7 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#2AA3FF]/10 hover:bg-[#2AA3FF]/20 text-[#2AA3FF] border border-[#2AA3FF]/30 rounded-lg transition-colors disabled:opacity-60 shrink-0"
           >
             {generating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            {generating ? 'Generează...' : criteria.length ? 'Regenerează din JD' : 'Generează din JD (AI)'}
+            {generating ? 'Generating...' : criteria.length ? 'Regenerate from JD' : 'Generate from JD (AI)'}
           </button>
         </div>
       </div>
@@ -87,10 +87,10 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
       {!generating && criteria.length === 0 && (
         <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
           <p className="text-sm text-gray-400">
-            Apasă <span className="font-semibold text-[#2AA3FF]">Generează din JD (AI)</span> pentru a crea rubrica automat.
+            Click <span className="font-semibold text-[#2AA3FF]">Generate from JD (AI)</span> to create the rubric automatically.
           </p>
           <p className="text-xs text-gray-300 mt-1">
-            AI-ul va extrage 6–10 criterii compuse din JD și le va pondea (suma = 100%).
+            The AI will extract 6–10 compound criteria from the JD and weight them (sum = 100%).
           </p>
         </div>
       )}
@@ -98,7 +98,7 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
       {generating && (
         <div className="text-center py-10">
           <Loader2 size={22} className="animate-spin mx-auto mb-2 text-[#2AA3FF]" />
-          <p className="text-sm text-gray-500">Claude analizează JD-ul și construiește rubrica...</p>
+          <p className="text-sm text-gray-500">Claude is analysing the JD and building the rubric...</p>
         </div>
       )}
 
@@ -109,8 +109,8 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
               <thead>
                 <tr className="bg-[#0B1A33] text-white">
                   <th className="w-8 px-3 py-2.5 text-center text-xs font-semibold opacity-60">#</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold">Criteriu (din JD)</th>
-                  <th className="w-28 px-3 py-2.5 text-center text-xs font-semibold">Pondere %</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold">Criterion (from JD)</th>
+                  <th className="w-28 px-3 py-2.5 text-center text-xs font-semibold">Weight %</th>
                   <th className="w-8 px-2 py-2.5" />
                 </tr>
               </thead>
@@ -124,7 +124,7 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
                         value={c.criterion}
                         onChange={e => updateCriterion(idx, 'criterion', e.target.value)}
                         className="w-full bg-transparent text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-[#2AA3FF]/40 rounded px-1 py-0.5"
-                        placeholder="Descrie criteriul..."
+                        placeholder="Describe the criterion..."
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -158,7 +158,7 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
                       ? <CheckCircle2 size={14} className="text-green-600 shrink-0" />
                       : <AlertCircle size={14} className="text-amber-500 shrink-0" />}
                     <span className={weightOk ? 'text-green-700' : 'text-amber-700'}>
-                      {weightOk ? 'TOTAL FIT — distribuție corectă' : `TOTAL — ${totalWeight > 100 ? 'depășești' : 'lipsesc'} ${Math.abs(100 - totalWeight)}%`}
+                      {weightOk ? 'TOTAL FIT — correct distribution' : `TOTAL — ${totalWeight > 100 ? 'exceeds' : 'missing'} ${Math.abs(100 - totalWeight)}%`}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-center">
@@ -174,18 +174,18 @@ export function RubixMatrixPanel({ criteria, onChange, onRegenerate, generating,
 
           <div className="mt-3 flex items-center justify-between px-1">
             <p className="text-xs text-gray-400">
-              <span className="font-medium text-gray-500">Scală scoring:</span>{' '}
-              5 = îndeplinit complet · 4 = puternic · 3 = parțial · 2 = limitat · 1 = minimal · 0 = absent
+              <span className="font-medium text-gray-500">Scoring scale:</span>{' '}
+              5 = fully met · 4 = strong · 3 = partial · 2 = limited · 1 = minimal · 0 = absent
             </p>
             <button type="button" onClick={addCriterion}
               className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#2AA3FF] transition-colors">
-              <Plus size={13} /> Adaugă criteriu
+              <Plus size={13} /> Add criterion
             </button>
           </div>
 
           {!roleId && (
             <p className="mt-2 px-1 text-xs text-gray-400 italic">
-              Matrix-ul se salvează automat la crearea rolului.
+              The matrix is saved automatically when the role is created.
             </p>
           )}
         </>
