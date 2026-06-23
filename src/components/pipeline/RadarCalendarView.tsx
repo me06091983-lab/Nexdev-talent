@@ -8,11 +8,11 @@ import type { RadarSubmission } from './PipelineRadarClient'
 import type { Submission as KanbanSubmission } from './KanbanBoard'
 import type { PipelineStatus } from '@/lib/pipeline'
 
-const DAYS_SHORT = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du']
+const DAYS_SHORT = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
-const MONTHS_RO = [
-  'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
-  'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie',
+const MONTHS_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
 interface InterviewEvent {
@@ -50,7 +50,7 @@ export function RadarCalendarView({
     const result: InterviewEvent[] = []
     for (const sub of submissions) {
       const c = sub.candidate
-      const name = c ? `${c.first_name} ${c.last_name}` : 'Candidat'
+      const name = c ? `${c.first_name} ${c.last_name}` : 'Candidate'
       for (const slot of sub.interviews) {
         if (!slot.enabled || !slot.datetime) continue
         const dt = new Date(slot.datetime)
@@ -117,14 +117,14 @@ export function RadarCalendarView({
           </button>
           <div className="text-center">
             <h2 className="text-base font-bold text-white tracking-wide">
-              {MONTHS_RO[month]} {year}
+              {MONTHS_EN[month]} {year}
             </h2>
             {totalThisMonth > 0 ? (
               <p className="text-[11px] text-[#2AA3FF] mt-0.5 font-medium">
-                {totalThisMonth} interviu{totalThisMonth !== 1 ? 'ri' : ''} programat{totalThisMonth !== 1 ? 'e' : ''}
+                {totalThisMonth} interview{totalThisMonth !== 1 ? 's' : ''} scheduled
               </p>
             ) : (
-              <p className="text-[11px] text-white/30 mt-0.5">Niciun interviu</p>
+              <p className="text-[11px] text-white/30 mt-0.5">No interviews</p>
             )}
           </div>
           <button
@@ -189,14 +189,14 @@ export function RadarCalendarView({
                         <button
                           key={i}
                           onClick={() => setSelected(ev.submission)}
-                          title={`${ev.candidateName} · ${ev.roleTitle} · ${ev.interviewLabel} · ${ev.datetime.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`}
+                          title={`${ev.candidateName} · ${ev.roleTitle} · ${ev.interviewLabel} · ${ev.datetime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
                           className={cn(
                             'w-full text-left text-[10px] font-medium px-1.5 py-0.5 rounded border block leading-tight hover:opacity-75 transition-opacity',
                             chipClass(ev.status, ev.accepted),
                           )}
                         >
                           <span className="font-bold">
-                            {ev.datetime.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}
+                            {ev.datetime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {' '}
                           {ev.candidateName}
@@ -204,7 +204,7 @@ export function RadarCalendarView({
                       ))}
                       {evs.length > maxVisible && (
                         <p className="text-[10px] text-[#2AA3FF] pl-1 leading-tight font-medium">
-                          +{evs.length - maxVisible} mai mult{evs.length - maxVisible === 1 ? '' : 'e'}
+                          +{evs.length - maxVisible} more
                         </p>
                       )}
                     </div>
@@ -218,13 +218,13 @@ export function RadarCalendarView({
 
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-2 mt-3 px-1">
-        <span className="text-[11px] text-slate-500 font-semibold mr-1 uppercase tracking-wide">Legendă:</span>
+        <span className="text-[11px] text-slate-500 font-semibold mr-1 uppercase tracking-wide">Legend:</span>
         {[
-          { label: 'Programat', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
-          { label: 'Confirmat de candidat', cls: 'bg-green-100 text-green-700 border-green-200' },
-          { label: 'Feedback în așteptare', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-          { label: 'Trecut cu succes', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-          { label: 'Respins', cls: 'bg-red-100 text-red-700 border-red-200' },
+          { label: 'Scheduled', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
+          { label: 'Confirmed by candidate', cls: 'bg-green-100 text-green-700 border-green-200' },
+          { label: 'Pending feedback', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+          { label: 'Passed', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
+          { label: 'Rejected', cls: 'bg-red-100 text-red-700 border-red-200' },
         ].map(({ label, cls }) => (
           <span key={label} className={cn('text-[10px] px-2 py-0.5 rounded border font-medium', cls)}>
             {label}

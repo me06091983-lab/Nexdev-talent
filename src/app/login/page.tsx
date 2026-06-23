@@ -9,11 +9,11 @@ export default async function LoginPage({
 
   const errorMessage =
     error === 'invalid_credentials'
-      ? 'Email sau parolă incorectă. Încearcă din nou.'
+      ? 'Incorrect email or password. Please try again.'
       : error === 'unauthorized'
-      ? 'Nu ai permisiunea să accesezi această pagină.'
+      ? 'You do not have permission to access this page.'
       : error
-      ? 'A apărut o eroare. Încearcă din nou.'
+      ? 'An error occurred. Please try again.'
       : null
 
   return (
@@ -24,12 +24,12 @@ export default async function LoginPage({
           <h1 className="text-white font-bold text-3xl tracking-tight">
             <span className="text-[#2AA3FF]">Nex</span>Dev Talent
           </h1>
-          <p className="text-white/50 text-sm mt-2">Platformă internă de recrutare</p>
+          <p className="text-white/50 text-sm mt-2">Internal recruitment platform</p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-gray-900 font-semibold text-xl mb-6">Autentificare</h2>
+          <h2 className="text-gray-900 font-semibold text-xl mb-6">Sign in</h2>
 
           {errorMessage && (
             <div className="mb-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-sm text-red-700">
@@ -56,7 +56,7 @@ export default async function LoginPage({
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Parolă
+                Password
               </label>
               <input
                 id="password"
@@ -72,7 +72,7 @@ export default async function LoginPage({
               type="submit"
               className="w-full bg-[#2AA3FF] hover:bg-[#1a8fe0] text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
             >
-              Intră în platformă
+              Sign in
             </button>
           </form>
         </div>

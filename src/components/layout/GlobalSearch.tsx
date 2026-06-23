@@ -65,7 +65,7 @@ export function GlobalSearch() {
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/60 text-xs transition-all"
       >
         <Search size={13} />
-        <span className="flex-1 text-left">Caută...</span>
+        <span className="flex-1 text-left">Search...</span>
         <kbd className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded font-mono">Ctrl K</kbd>
       </button>
 
@@ -78,7 +78,7 @@ export function GlobalSearch() {
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Caută candidați, roluri, contracte..."
+                placeholder="Search candidates, roles, contracts..."
                 className="flex-1 text-sm text-gray-800 outline-none placeholder:text-gray-400"
                 autoFocus
               />
@@ -90,11 +90,11 @@ export function GlobalSearch() {
             </div>
 
             {loading && (
-              <div className="px-4 py-3 text-xs text-gray-400">Se caută...</div>
+              <div className="px-4 py-3 text-xs text-gray-400">Searching...</div>
             )}
 
             {!loading && results && !hasResults && (
-              <div className="px-4 py-3 text-xs text-gray-400">Niciun rezultat pentru &ldquo;{query}&rdquo;</div>
+              <div className="px-4 py-3 text-xs text-gray-400">No results for &ldquo;{query}&rdquo;</div>
             )}
 
             {hasResults && (
@@ -103,7 +103,7 @@ export function GlobalSearch() {
                   <div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5">
                       <Users size={11} className="text-gray-400" />
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidați</span>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Candidates</span>
                     </div>
                     {results!.candidates.map(c => (
                       <button
@@ -134,7 +134,7 @@ export function GlobalSearch() {
                   <div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 mt-1">
                       <Briefcase size={11} className="text-gray-400" />
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Roluri</span>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Roles</span>
                     </div>
                     {results!.roles.map(r => (
                       <button
@@ -165,7 +165,7 @@ export function GlobalSearch() {
                   <div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 mt-1">
                       <ScrollText size={11} className="text-gray-400" />
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Contracte</span>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Contracts</span>
                     </div>
                     {results!.contracts.map(c => (
                       <button

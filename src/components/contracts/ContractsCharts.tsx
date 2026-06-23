@@ -17,7 +17,7 @@ function CountTooltip({ active, payload, label }: { active?: boolean; payload?: 
   return (
     <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
       <p className="font-semibold text-gray-700 mb-0.5">{label}</p>
-      <p className="text-[#2AA3FF]">{payload[0].value} contracte</p>
+      <p className="text-[#2AA3FF]">{payload[0].value} contracts</p>
     </div>
   )
 }
@@ -29,7 +29,7 @@ function ProfitTooltip({ active, payload, label }: { active?: boolean; payload?:
     <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-3 py-2 text-xs">
       <p className="font-semibold text-gray-700 mb-0.5">{label}</p>
       <p className={v >= 0 ? 'text-green-600' : 'text-red-500'}>
-        {v >= 0 ? '+' : ''}{v.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} EUR
+        {v >= 0 ? '+' : ''}{v.toLocaleString('en-GB', { maximumFractionDigits: 0 })} EUR
       </p>
     </div>
   )
@@ -42,8 +42,8 @@ export function ContractsCharts({ data }: { data: ChartMonth[] }) {
     <div className="grid grid-cols-2 gap-4 mb-5">
       {/* Grafic 1: nr contracte noi */}
       <div className="glass rounded-2xl p-4">
-        <p className="text-xs font-semibold text-gray-600 mb-0.5">Contracte active / lună</p>
-        <p className="text-[10px] text-gray-400 mb-3">total activ în fiecare lună, ultimele 12 luni</p>
+        <p className="text-xs font-semibold text-gray-600 mb-0.5">Active contracts / month</p>
+        <p className="text-[10px] text-gray-400 mb-3">total active each month, last 12 months</p>
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -68,8 +68,8 @@ export function ContractsCharts({ data }: { data: ChartMonth[] }) {
 
       {/* Grafic 2: profit net cumulat lunar */}
       <div className="glass rounded-2xl p-4">
-        <p className="text-xs font-semibold text-gray-600 mb-0.5">Profit net lunar estimat</p>
-        <p className="text-[10px] text-gray-400 mb-3">suma marjelor nete din contractele active în fiecare lună</p>
+        <p className="text-xs font-semibold text-gray-600 mb-0.5">Estimated monthly net profit</p>
+        <p className="text-[10px] text-gray-400 mb-3">sum of net margins from active contracts each month</p>
         <ResponsiveContainer width="100%" height={150}>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
