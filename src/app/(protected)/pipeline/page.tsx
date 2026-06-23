@@ -10,7 +10,7 @@ export default async function PipelinePage() {
     .from('submissions')
     .select(`
       id, status, ai_score, ai_summary, rubix_fit, interviews, updated_at, role_id,
-      candidate:candidates(id, first_name, last_name, phone, profile:profiles(name)),
+      candidate:candidates(id, first_name, last_name, phone, email, profile:profiles(name)),
       role:roles(id, title, status, client:clients(name))
     `)
     .is('deleted_at', null)
@@ -40,6 +40,7 @@ export default async function PipelinePage() {
             first_name: candidate.first_name,
             last_name: candidate.last_name,
             phone: candidate.phone ?? null,
+            email: candidate.email ?? null,
             profile: Array.isArray(candidate.profile)
               ? (candidate.profile[0] ?? null)
               : (candidate.profile ?? null),

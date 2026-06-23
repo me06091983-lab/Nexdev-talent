@@ -17,7 +17,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
 import { cn } from '@/lib/utils'
-import { Calendar, ExternalLink, Trash2, MessageSquare, User, Phone, LayoutGrid, CalendarDays } from 'lucide-react'
+import { Calendar, ExternalLink, Trash2, MessageSquare, User, Phone, Mail, LayoutGrid, CalendarDays } from 'lucide-react'
 import { StatusModal } from './StatusModal'
 import type { Submission as KanbanSubmission } from './KanbanBoard'
 import { RadarCalendarView } from './RadarCalendarView'
@@ -36,6 +36,7 @@ export interface RadarSubmission {
     first_name: string
     last_name: string
     phone: string | null
+    email: string | null
     profile: { name: string } | null
   } | null
   role: {
@@ -117,6 +118,7 @@ function CandidateCard({
       accepted: s.candidate_accepted ?? false,
     }))
   const [phoneVisible, setPhoneVisible] = useState(false)
+  const [emailVisible, setEmailVisible] = useState(false)
 
   return (
     <div
@@ -163,6 +165,23 @@ function CandidateCard({
             onClick={e => e.stopPropagation()}
           >
             {c.phone}
+          </a>
+        </div>
+      )}
+
+      {/* Email popup — inline, sub telefon */}
+      {emailVisible && c?.email && (
+        <div
+          className="mt-1.5 flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1"
+          onPointerDown={e => e.stopPropagation()}
+        >
+          <Mail size={10} className="text-[#2AA3FF] flex-shrink-0" />
+          <a
+            href={`mailto:${c.email}`}
+            className="text-[11px] font-medium text-[#2AA3FF] hover:underline truncate"
+            onClick={e => e.stopPropagation()}
+          >
+            {c.email}
           </a>
         </div>
       )}
@@ -230,6 +249,20 @@ function CandidateCard({
             title="Phone number"
           >
             <Phone size={12} />
+          </button>
+        )}
+        {c?.email && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); setEmailVisible(v => !v) }}
+            className={cn(
+              'p-1 transition-colors rounded',
+              emailVisible ? 'text-[#2AA3FF]' : 'text-gray-300 hover:text-[#2AA3FF]',
+            )}
+            title="Email address"
+          >
+            <Mail size={12} />
           </button>
         )}
         <Link

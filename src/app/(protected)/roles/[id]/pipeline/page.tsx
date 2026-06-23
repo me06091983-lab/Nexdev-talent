@@ -21,7 +21,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
         submission_rate, submission_currency, submission_rate_type,
         contract:contracts(id),
         candidate:candidates(
-          id, first_name, last_name, phone, seniority,
+          id, first_name, last_name, phone, email, seniority,
           rate_min, rate_wish, currency,
           profile:profiles(name),
           candidate_skills(skill:skills(id, name, category))
@@ -72,6 +72,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
           first_name: s.candidate.first_name,
           last_name: s.candidate.last_name,
           phone: s.candidate.phone ?? null,
+          email: s.candidate.email ?? null,
           seniority: s.candidate.seniority,
           rate_min: s.candidate.rate_min ?? null,
           rate_wish: s.candidate.rate_wish ?? null,
