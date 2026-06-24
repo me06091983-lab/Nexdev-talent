@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Plus, Trash2, Check,
-  Loader2, ArrowUpRight, ArrowDownLeft, FileText, AlertCircle, X, Pencil, Search,
+  Loader2, ArrowUpRight, ArrowDownLeft, FileText, AlertCircle, X, Pencil, Search, Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +44,14 @@ interface PageData {
   facturi: Factura[]
   activeContracts: ActiveContract[]
   clients: Client[]
+}
+
+interface CompanyCandidate {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  company_name: string | null
+  company_bank_account: string | null
 }
 
 interface FormState {
@@ -134,7 +142,7 @@ export function FacturareClient() {
   const [year,    setYear]    = useState(currentYear)
   const [month,   setMonth]   = useState(currentMonth)
   const [showAll, setShowAll] = useState(false)
-  const [tab,     setTab]     = useState<'emisa' | 'primita'>('emisa')
+  const [tab,     setTab]     = useState<'emisa' | 'primita' | 'company'>('emisa')
   const [data,    setData]    = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [search,  setSearch]  = useState('')
@@ -154,6 +162,10 @@ export function FacturareClient() {
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  const [companyData,    setCompanyData]    = useState<CompanyCandidate[]>([])
+  const [companyLoading, setCompanyLoading] = useState(false)
+  const [companySearch,  setCompanySearch]  = useState('')
+
   const fetchData = useCallback(async (y: number, m: number, all: boolean) => {
     setLoading(true)
     const params = all ? `?all=true` : `?year=${y}&month=${m}`
@@ -163,6 +175,17 @@ export function FacturareClient() {
   }, [])
 
   useEffect(() => { fetchData(year, month, showAll) }, [year, month, showAll, fetchData])
+
+  const fetchCompanyData = useCallback(async () => {
+    setCompanyLoading(true)
+    const res = await fetch('/api/facturi/company-details')
+    if (res.ok) setCompanyData(await res.json())
+    setCompanyLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'company') fetchCompanyData()
+  }, [tab, fetchCompanyData])
 
   // ── Expected amount from timesheets (primite = pay_rate, emise = bill_rate) ──
   useEffect(() => {
@@ -203,7 +226,7 @@ export function FacturareClient() {
 
   function openAddForm() {
     setEditingId(null)
-    setForm(emptyForm(tab))
+    setForm(emptyForm(tab === 'company' ? 'emisa' : tab))
     setFormError('')
     setExpectedAmt(null)
     setAmountMismatch(false)
@@ -230,15 +253,19 @@ export function FacturareClient() {
     setTvaMismatch(false)
   }
 
-  function handleTabChange(t: 'emisa' | 'primita') {
+  function handleTabChange(t: 'emisa' | 'primita' | 'company') {
     setTab(t)
     setSearch('')
-    if (showForm && !editingId) {
-      setForm(emptyForm(t))
+    setCompanySearch('')
+    if (t !== 'company' && showForm && !editingId) {
+      setForm(emptyForm(t as 'emisa' | 'primita'))
       setFormError('')
       setExpectedAmt(null)
       setAmountMismatch(false)
-    setTvaMismatch(false)
+      setTvaMismatch(false)
+    }
+    if (t === 'company' && showForm) {
+      closeForm()
     }
   }
 
@@ -381,6 +408,7 @@ export function FacturareClient() {
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   const isEmit    = tab === 'emisa'
+  const isCompany = tab === 'company'
   const isEditing = editingId !== null
 
   const filtered = useMemo(() => {
@@ -411,6 +439,16 @@ export function FacturareClient() {
     ),
     [filtered]
   )
+
+  const companyFiltered = useMemo(() => {
+    if (!companySearch.trim()) return companyData
+    const term = companySearch.trim().toLowerCase()
+    return companyData.filter(c =>
+      `${c.first_name ?? ''} ${c.last_name ?? ''}`.toLowerCase().includes(term) ||
+      (c.company_name ?? '').toLowerCase().includes(term) ||
+      (c.company_bank_account ?? '').toLowerCase().includes(term)
+    )
+  }, [companyData, companySearch])
 
   const periodLabel = showAll
     ? 'all invoices'
@@ -799,7 +837,7 @@ export function FacturareClient() {
             onClick={() => handleTabChange('emisa')}
             className={cn(
               'flex items-center gap-1.5 text-sm font-medium rounded-lg px-4 py-1.5 transition-all',
-              isEmit ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'
+              tab === 'emisa' ? 'bg-white shadow text-indigo-700' : 'text-gray-500 hover:text-gray-700'
             )}
           >
             <ArrowUpRight size={14} />
@@ -809,24 +847,107 @@ export function FacturareClient() {
             onClick={() => handleTabChange('primita')}
             className={cn(
               'flex items-center gap-1.5 text-sm font-medium rounded-lg px-4 py-1.5 transition-all',
-              !isEmit ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
+              tab === 'primita' ? 'bg-white shadow text-green-700' : 'text-gray-500 hover:text-gray-700'
             )}
           >
             <ArrowDownLeft size={14} />
             Received invoices
           </button>
+          <button
+            onClick={() => handleTabChange('company')}
+            className={cn(
+              'flex items-center gap-1.5 text-sm font-medium rounded-lg px-4 py-1.5 transition-all',
+              isCompany ? 'bg-white shadow text-[#0B1A33]' : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <Building2 size={14} />
+            Client Company Details
+          </button>
         </div>
-        <button
-          onClick={openAddForm}
-          className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
-        >
-          <Plus size={14} />
-          Add invoice
-        </button>
+        {!isCompany && (
+          <button
+            onClick={openAddForm}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
+          >
+            <Plus size={14} />
+            Add invoice
+          </button>
+        )}
       </div>
 
+      {/* ── Company Details Tab ─────────────────────────────────────────────── */}
+      {isCompany && (
+        <>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name, company or IBAN..."
+              value={companySearch}
+              onChange={e => setCompanySearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 focus:border-[#2AA3FF] bg-white"
+            />
+            {companySearch && (
+              <button
+                onClick={() => setCompanySearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {companyLoading ? (
+            <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm">Loading...</span>
+            </div>
+          ) : companyFiltered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white rounded-2xl border border-gray-100">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <Building2 size={22} className="text-gray-400" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-gray-600 text-sm">
+                  {companySearch ? `No results for "${companySearch}"` : 'No candidates with active contracts'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">First Name</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Name</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Name</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">IBAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companyFiltered.map(c => (
+                    <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-900">{c.first_name ?? '—'}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">{c.last_name ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {c.company_name
+                          ? <span className="flex items-center gap-1.5"><Building2 size={13} className="text-gray-400 flex-shrink-0" />{c.company_name}</span>
+                          : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                        {c.company_bank_account ?? <span className="text-gray-300">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Summary cards */}
-      {Object.entries(summary).map(([cur, s]) => (
+      {!isCompany && Object.entries(summary).map(([cur, s]) => (
         <div key={cur} className="grid grid-cols-3 gap-3">
           <div className="glass rounded-xl px-3 py-2.5 flex items-center gap-3">
             {isEmit
@@ -863,9 +984,10 @@ export function FacturareClient() {
       ))}
 
       {/* Form (add or edit) */}
-      {showForm && formJSX}
+      {!isCompany && showForm && formJSX}
 
       {/* Search bar */}
+      {!isCompany && (
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
@@ -884,9 +1006,10 @@ export function FacturareClient() {
           </button>
         )}
       </div>
+      )}
 
       {/* List */}
-      {loading ? (
+      {!isCompany && (loading ? (
         <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
           <span className="text-sm">Loading...</span>
@@ -1041,7 +1164,7 @@ export function FacturareClient() {
             </tbody>
           </table>
         </div>
-      )}
+      ))}
     </div>
   )
 }
