@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('manual_invoices')
-    .select('id, type, valoare, tva_valoare, valuta, data_emitere, data_scadenta, incasata_platita, data_incasare_plata, numar_factura, client_id, contract_id, luna_efectiva, notes')
+    .select('id, type, valoare, tva_valoare, valuta, data_emitere, data_scadenta, incasata_platita, data_incasare_plata, numar_factura, client_id, contract_id, partner_id, luna_efectiva, notes')
 
   if (all) {
     query = query
@@ -36,14 +36,18 @@ export async function GET(request: NextRequest) {
   // Enrich with names
   const clientIds   = [...new Set((facturi ?? []).filter(f => f.client_id).map(f => f.client_id as string))]
   const contractIds = [...new Set((facturi ?? []).filter(f => f.contract_id).map(f => f.contract_id as string))]
+  const partnerIds  = [...new Set((facturi ?? []).filter(f => f.partner_id).map(f => f.partner_id as string))]
 
-  const [{ data: clientsData }, { data: contractsData }] = await Promise.all([
+  const [{ data: clientsData }, { data: contractsData }, { data: partnerNamesData }] = await Promise.all([
     clientIds.length > 0
       ? supabase.from('clients').select('id, name').in('id', clientIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     contractIds.length > 0
       ? supabase.from('contracts').select('id, candidate:candidates!candidate_id(id, first_name, last_name)').in('id', contractIds)
       : Promise.resolve({ data: [] as { id: string; candidate: unknown }[] }),
+    partnerIds.length > 0
+      ? supabase.from('partners').select('id, first_name, last_name').in('id', partnerIds)
+      : Promise.resolve({ data: [] as { id: string; first_name: string | null; last_name: string }[] }),
   ])
 
   const clientMap: Record<string, string> = {}
@@ -56,10 +60,16 @@ export async function GET(request: NextRequest) {
     if (cand) contractCandMap[c.id] = `${cand.first_name} ${cand.last_name}`
   }
 
+  const partnerMap: Record<string, string> = {}
+  for (const p of partnerNamesData ?? []) {
+    partnerMap[p.id] = [p.first_name, p.last_name].filter(Boolean).join(' ')
+  }
+
   const enriched = (facturi ?? []).map(f => ({
     ...f,
     client_name:    f.client_id   ? (clientMap[f.client_id]         ?? null) : null,
-    candidate_name: f.contract_id ? (contractCandMap[f.contract_id] ?? null) : null,
+    candidate_name: f.contract_id ? (contractCandMap[f.contract_id] ?? null)
+                  : f.partner_id  ? (partnerMap[f.partner_id]       ?? null) : null,
   }))
 
   // Active contracts for dropdowns (primite + emise)
@@ -72,10 +82,10 @@ export async function GET(request: NextRequest) {
     .not('candidate_id', 'is', null)
     .order('start_date', { ascending: false })
 
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('id, name')
-    .order('name', { ascending: true })
+  const [{ data: clients }, { data: allPartners }] = await Promise.all([
+    supabase.from('clients').select('id, name').order('name', { ascending: true }),
+    supabase.from('partners').select('id, first_name, last_name').order('last_name', { ascending: true }),
+  ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parsedContracts = (activeContracts ?? []).reduce<{ id: string; currency: string; candidate_name: string; client_id: string | null }[]>((acc, c: any) => {
@@ -95,6 +105,7 @@ export async function GET(request: NextRequest) {
     facturi: enriched,
     activeContracts: parsedContracts,
     clients: clients ?? [],
+    partners: allPartners ?? [],
   })
 }
 

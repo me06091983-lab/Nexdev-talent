@@ -22,10 +22,17 @@ interface Factura {
   numar_factura: string | null
   client_id: string | null
   contract_id: string | null
+  partner_id: string | null
   client_name: string | null
   candidate_name: string | null
   luna_efectiva: number | null
   notes: string | null
+}
+
+interface Partner {
+  id: string
+  first_name: string | null
+  last_name: string
 }
 
 interface ActiveContract {
@@ -44,6 +51,7 @@ interface PageData {
   facturi: Factura[]
   activeContracts: ActiveContract[]
   clients: Client[]
+  partners: Partner[]
 }
 
 interface CompanyCandidate {
@@ -58,6 +66,7 @@ interface FormState {
   type: 'emisa' | 'primita'
   client_id: string
   contract_id: string
+  partner_id: string
   numar_factura: string
   valoare: string
   valuta: string
@@ -101,6 +110,7 @@ function emptyForm(type: 'emisa' | 'primita'): FormState {
     type,
     client_id: '',
     contract_id: '',
+    partner_id: '',
     numar_factura: '',
     valoare: '',
     valuta: 'EUR',
@@ -119,6 +129,7 @@ function facturaToForm(f: Factura): FormState {
     type:                f.type,
     client_id:           f.client_id   ?? '',
     contract_id:         f.contract_id ?? '',
+    partner_id:          f.partner_id  ?? '',
     numar_factura:       f.numar_factura ?? '',
     valoare:             String(f.valoare),
     valuta:              f.valuta,
@@ -277,7 +288,22 @@ export function FacturareClient() {
 
   function handleContractChange(contractId: string) {
     const contract = data?.activeContracts.find(c => c.id === contractId)
-    setForm(prev => ({ ...prev, contract_id: contractId, valuta: contract?.currency ?? prev.valuta }))
+    setForm(prev => ({ ...prev, contract_id: contractId, partner_id: '', valuta: contract?.currency ?? prev.valuta }))
+    setAmountMismatch(false)
+    setTvaMismatch(false)
+  }
+
+  function handlePrimitaSelectionChange(value: string) {
+    if (value.startsWith('contract:')) {
+      const contractId = value.slice('contract:'.length)
+      const contract = data?.activeContracts.find(c => c.id === contractId)
+      setForm(prev => ({ ...prev, contract_id: contractId, partner_id: '', valuta: contract?.currency ?? prev.valuta }))
+    } else if (value.startsWith('partner:')) {
+      const partnerId = value.slice('partner:'.length)
+      setForm(prev => ({ ...prev, partner_id: partnerId, contract_id: '' }))
+    } else {
+      setForm(prev => ({ ...prev, contract_id: '', partner_id: '' }))
+    }
     setAmountMismatch(false)
     setTvaMismatch(false)
   }
@@ -302,8 +328,8 @@ export function FacturareClient() {
       setFormError('Please select a client.')
       return
     }
-    if (form.type === 'primita' && !form.contract_id) {
-      setFormError('Please select a candidate.')
+    if (form.type === 'primita' && !form.contract_id && !form.partner_id) {
+      setFormError('Please select a candidate or partner.')
       return
     }
 
@@ -336,6 +362,7 @@ export function FacturareClient() {
       type:             form.type,
       client_id:        form.type === 'emisa'  ? (form.client_id   || null) : null,
       contract_id:      form.contract_id || null,
+      partner_id:       form.type === 'primita' ? (form.partner_id || null) : null,
       numar_factura:    form.numar_factura.trim() || null,
       valoare:          parseFloat(form.valoare),
       valuta:           form.valuta,
@@ -504,17 +531,33 @@ export function FacturareClient() {
           </>
         ) : (
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Candidate (active contract) *</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Candidate or Partner *</label>
             <select
-              value={form.contract_id}
-              onChange={e => handleContractChange(e.target.value)}
+              value={
+                form.contract_id ? `contract:${form.contract_id}`
+                : form.partner_id ? `partner:${form.partner_id}`
+                : ''
+              }
+              onChange={e => handlePrimitaSelectionChange(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 bg-white"
             >
-              <option value="">Select candidate...</option>
-              {data?.activeContracts.length === 0 && <option disabled>No active contracts</option>}
-              {data?.activeContracts.map(c => (
-                <option key={c.id} value={c.id}>{c.candidate_name}</option>
-              ))}
+              <option value="">Select candidate or partner...</option>
+              {(data?.activeContracts ?? []).length > 0 && (
+                <optgroup label="Candidates">
+                  {data?.activeContracts.map(c => (
+                    <option key={`contract:${c.id}`} value={`contract:${c.id}`}>{c.candidate_name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {(data?.partners ?? []).length > 0 && (
+                <optgroup label="Partners">
+                  {data?.partners.map(p => (
+                    <option key={`partner:${p.id}`} value={`partner:${p.id}`}>
+                      {[p.first_name, p.last_name].filter(Boolean).join(' ')}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
         )}
