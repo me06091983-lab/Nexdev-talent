@@ -10,12 +10,13 @@ export async function GET(request: NextRequest) {
   const yearStart = `${year}-01-01`
   const yearEnd = `${year}-12-31`
 
-  // Contracts active in this year
+  // Contracts active in this year — partner_id / partner_id_2 fetched as plain columns
   const { data: contracts, error } = await supabase
     .from('contracts')
     .select(`
       id, candidate_id, role_id, bill_rate, pay_rate, rate_type, currency, start_date, end_date,
       partner_commission, partner_commission_type, partner_commission_2, partner_commission_2_type,
+      partner_id, partner_id_2,
       candidate:candidates!candidate_id(id, first_name, last_name, company_tva, profile:profiles(name)),
       role:roles!role_id(id, title, client:clients(name))
     `)
@@ -26,6 +27,25 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!contracts?.length) return NextResponse.json({ rows: [] })
+
+  // Collect all unique partner IDs from both commission slots
+  const partnerIds = new Set<string>()
+  for (const c of contracts) {
+    if (c.partner_id)   partnerIds.add(c.partner_id)
+    if (c.partner_id_2) partnerIds.add(c.partner_id_2)
+  }
+
+  // Fetch partner names in one query
+  const partnerMap: Record<string, string> = {}
+  if (partnerIds.size > 0) {
+    const { data: partners } = await supabase
+      .from('partners')
+      .select('id, name')
+      .in('id', Array.from(partnerIds))
+    for (const p of partners ?? []) {
+      partnerMap[p.id] = p.name
+    }
+  }
 
   const contractIds = contracts.map(c => c.id)
 
@@ -66,6 +86,10 @@ export async function GET(request: NextRequest) {
       partner_commission_type:   c.partner_commission_type   ?? 'hourly',
       partner_commission_2:      c.partner_commission_2      ?? 0,
       partner_commission_2_type: c.partner_commission_2_type ?? 'hourly',
+      partner_id:     c.partner_id   ?? null,
+      partner_name:   c.partner_id   ? (partnerMap[c.partner_id]   ?? null) : null,
+      partner_id_2:   c.partner_id_2 ?? null,
+      partner_name_2: c.partner_id_2 ? (partnerMap[c.partner_id_2] ?? null) : null,
       hours: hoursMap[c.id] ?? {},
     }
   })
