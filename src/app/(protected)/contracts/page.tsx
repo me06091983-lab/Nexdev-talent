@@ -120,8 +120,8 @@ export default async function ContractsPage() {
     currencyMap[cur].cost    += c.pay_rate  * units
     currencyMap[cur].count   += 1
     currencyMap[cur].comms   +=
-      (c.partner_commission   ? Number(c.partner_commission)   * (c.partner_commission_type   === 'daily' ? 20 : 160) : 0) +
-      (c.partner_commission_2 ? Number(c.partner_commission_2) * (c.partner_commission_2_type === 'daily' ? 20 : 160) : 0)
+      (c.partner_commission   ? Number(c.partner_commission)   * (c.partner_commission_type   === 'daily' ? 20 : c.partner_commission_type   === 'hourly' ? 160 : 0) : 0) +
+      (c.partner_commission_2 ? Number(c.partner_commission_2) * (c.partner_commission_2_type === 'daily' ? 20 : c.partner_commission_2_type === 'hourly' ? 160 : 0) : 0)
   }
   const currencySummaries = Object.entries(currencyMap)
     .map(([cur, g]) => ({
@@ -168,8 +168,8 @@ export default async function ContractsPage() {
       const units = c.rate_type === 'daily' ? 20 : 160
       const gross = (Number(c.bill_rate) - Number(c.pay_rate)) * units
       const comms =
-        (c.partner_commission   ? Number(c.partner_commission)   * (c.partner_commission_type   === 'daily' ? 20 : 160) : 0) +
-        (c.partner_commission_2 ? Number(c.partner_commission_2) * (c.partner_commission_2_type === 'daily' ? 20 : 160) : 0)
+        (c.partner_commission   ? Number(c.partner_commission)   * (c.partner_commission_type   === 'daily' ? 20 : c.partner_commission_type   === 'hourly' ? 160 : 0) : 0) +
+        (c.partner_commission_2 ? Number(c.partner_commission_2) * (c.partner_commission_2_type === 'daily' ? 20 : c.partner_commission_2_type === 'hourly' ? 160 : 0) : 0)
       profit += toEur(gross - comms, c.currency ?? 'EUR')
     }
 
