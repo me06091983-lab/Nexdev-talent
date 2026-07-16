@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, Pencil, Trash2, X, Kanban, ChevronRight, ChevronDown, Loader2, Eye } from 'lucide-react'
+import { Search, Pencil, Trash2, X, Kanban, ChevronRight, ChevronDown, Loader2, Eye, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 
@@ -208,6 +208,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
   const [statusFilter, setStatusFilter] = useState('')
   const [hiringManagerFilter, setHiringManagerFilter] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [reactivating, setReactivating] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const hiringManagers = Array.from(
@@ -255,6 +256,26 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
       router.refresh()
     } finally {
       setDeleting(null)
+    }
+  }
+
+  async function handleReactivate(id: string, title: string) {
+    if (!confirm(`Reactivate role "${title}"?`)) return
+    setReactivating(id)
+    try {
+      const res = await fetch(`/api/roles/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Error reactivating role.')
+        return
+      }
+      router.refresh()
+    } finally {
+      setReactivating(null)
     }
   }
 
@@ -427,11 +448,19 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                     <Kanban size={15} />
                                   </Link>
                                   {r.status === 'closed' ? (
-                                    <Link href={`/roles/${r.id}`}
-                                      className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
-                                      title="View">
-                                      <Eye size={15} />
-                                    </Link>
+                                    <>
+                                      <Link href={`/roles/${r.id}`}
+                                        className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded transition-colors"
+                                        title="View">
+                                        <Eye size={15} />
+                                      </Link>
+                                      <button onClick={() => handleReactivate(r.id, r.title)}
+                                        disabled={reactivating === r.id}
+                                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                                        title="Reactivate">
+                                        <RotateCcw size={15} />
+                                      </button>
+                                    </>
                                   ) : (
                                     <>
                                       <Link href={`/roles/${r.id}`}

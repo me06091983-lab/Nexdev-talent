@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Plus, Sparkles, Lock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Sparkles, Lock, RotateCcw } from 'lucide-react'
 import { KanbanBoard, type Submission } from './KanbanBoard'
 import { AddCandidateModal } from './AddCandidateModal'
 import { AIMatchPanel, type AddCandidateParams } from './AIMatchPanel'
@@ -41,12 +42,34 @@ function calcEurEquivalents(
 }
 
 export function RolePipelineClient({ role, initialSubmissions, partners }: Props) {
+  const router = useRouter()
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [showAdd, setShowAdd] = useState(false)
   const [showAI, setShowAI] = useState(false)
   const [lastAddedSubmissionId, setLastAddedSubmissionId] = useState<string | null>(null)
   const [fxRates, setFxRates] = useState<FxRates | null>(null)
+  const [reactivating, setReactivating] = useState(false)
   const isClosed = role.status === 'closed'
+
+  async function handleReactivate() {
+    if (!confirm(`Reactivate role "${role.title}"?`)) return
+    setReactivating(true)
+    try {
+      const res = await fetch(`/api/roles/${role.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.error ?? 'Error reactivating role.')
+        return
+      }
+      router.refresh()
+    } finally {
+      setReactivating(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/exchange-rates')
@@ -99,7 +122,15 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
         {isClosed && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm text-gray-600 flex-shrink-0">
             <Lock size={14} className="text-gray-400 flex-shrink-0" />
-            <span>Role <strong>closed</strong> — read-only view. Candidates cannot be added or statuses changed.</span>
+            <span className="flex-1">Role <strong>closed</strong> — read-only view. Candidates cannot be added or statuses changed.</span>
+            <button
+              onClick={handleReactivate}
+              disabled={reactivating}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors flex-shrink-0"
+            >
+              <RotateCcw size={12} />
+              Reactivate
+            </button>
           </div>
         )}
 
