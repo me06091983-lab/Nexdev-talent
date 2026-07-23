@@ -354,9 +354,9 @@ function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id: status.value, disabled: readOnly })
 
   return (
-    <div className="flex-shrink-0 w-[220px] flex flex-col">
+    <div className="flex-shrink-0 w-[220px] h-full flex flex-col">
       <div className={cn(
-        'px-3 py-2 rounded-t-xl border border-b-0 text-xs font-semibold flex items-center justify-between',
+        'px-3 py-2 rounded-t-xl border border-b-0 text-xs font-semibold flex items-center justify-between flex-shrink-0',
         status.headerClass
       )}>
         <span className="truncate">{status.label}</span>
@@ -367,7 +367,7 @@ function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 min-h-[400px] p-2 space-y-2 rounded-b-xl border transition-all duration-150',
+          'flex-1 min-h-[400px] overflow-y-auto p-2 space-y-2 rounded-b-xl border transition-all duration-150',
           !readOnly && isOver
             ? 'border-[#2AA3FF] border-dashed bg-blue-50/70 scale-[1.01]'
             : 'border-gray-200 bg-white/30'
@@ -473,7 +473,7 @@ export function KanbanBoard({
           <span>{dragError}</span>
         </div>
       )}
-      <div className="overflow-x-auto pb-4 -mx-1 px-1">
+      <div className="h-full overflow-x-auto pb-4 -mx-1 px-1">
         {!mounted ? (
           <div className="flex gap-2.5 min-w-max">
             {PIPELINE_STATUSES.map(status => (
@@ -487,7 +487,7 @@ export function KanbanBoard({
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-2.5 min-w-max">
+            <div className="flex gap-2.5 min-w-max h-full">
               {PIPELINE_STATUSES.map(status => (
                 <KanbanColumn
                   key={status.value}
