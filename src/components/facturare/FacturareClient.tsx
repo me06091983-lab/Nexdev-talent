@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  ChevronLeft, ChevronRight, Plus, Trash2, Check,
-  Loader2, ArrowUpRight, ArrowDownLeft, FileText, AlertCircle, X, Pencil, Search, Building2,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Trash2, Check,
+  Loader2, ArrowUpRight, ArrowDownLeft, FileText, AlertCircle, X, Pencil, Search, Building2, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -60,6 +60,25 @@ interface CompanyCandidate {
   last_name: string | null
   company_name: string | null
   company_bank_account: string | null
+}
+
+interface EmployeeInvoiceRow {
+  id: string
+  valoare: number
+  valuta: string
+  data_emitere: string
+  luna_efectiva: number | null
+  incasata_platita: boolean
+  data_incasare_plata: string | null
+  numar_factura: string | null
+}
+
+interface EmployeeCandidate {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  has_active_contract: boolean
+  invoices: EmployeeInvoiceRow[]
 }
 
 interface FormState {
@@ -153,7 +172,7 @@ export function FacturareClient() {
   const [year,    setYear]    = useState(currentYear)
   const [month,   setMonth]   = useState(currentMonth)
   const [showAll, setShowAll] = useState(false)
-  const [tab,     setTab]     = useState<'emisa' | 'primita' | 'company'>('emisa')
+  const [tab,     setTab]     = useState<'emisa' | 'primita' | 'company' | 'employee'>('emisa')
   const [data,    setData]    = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [search,  setSearch]  = useState('')
@@ -177,6 +196,11 @@ export function FacturareClient() {
   const [companyLoading, setCompanyLoading] = useState(false)
   const [companySearch,  setCompanySearch]  = useState('')
 
+  const [employeeData,    setEmployeeData]    = useState<EmployeeCandidate[]>([])
+  const [employeeLoading, setEmployeeLoading] = useState(false)
+  const [employeeSearch,  setEmployeeSearch]  = useState('')
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set())
+
   const fetchData = useCallback(async (y: number, m: number, all: boolean) => {
     setLoading(true)
     const params = all ? `?all=true` : `?year=${y}&month=${m}`
@@ -197,6 +221,26 @@ export function FacturareClient() {
   useEffect(() => {
     if (tab === 'company') fetchCompanyData()
   }, [tab, fetchCompanyData])
+
+  const fetchEmployeeData = useCallback(async () => {
+    setEmployeeLoading(true)
+    const res = await fetch('/api/facturi/employee-invoices')
+    if (res.ok) setEmployeeData(await res.json())
+    setEmployeeLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'employee') fetchEmployeeData()
+  }, [tab, fetchEmployeeData])
+
+  function toggleEmployeeExpanded(id: string) {
+    setExpandedEmployees(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   // ── Expected amount from timesheets (primite = pay_rate, emise = bill_rate) ──
   useEffect(() => {
@@ -237,7 +281,7 @@ export function FacturareClient() {
 
   function openAddForm() {
     setEditingId(null)
-    setForm(emptyForm(tab === 'company' ? 'emisa' : tab))
+    setForm(emptyForm(tab === 'company' || tab === 'employee' ? 'emisa' : tab))
     setFormError('')
     setExpectedAmt(null)
     setAmountMismatch(false)
@@ -264,18 +308,19 @@ export function FacturareClient() {
     setTvaMismatch(false)
   }
 
-  function handleTabChange(t: 'emisa' | 'primita' | 'company') {
+  function handleTabChange(t: 'emisa' | 'primita' | 'company' | 'employee') {
     setTab(t)
     setSearch('')
     setCompanySearch('')
-    if (t !== 'company' && showForm && !editingId) {
+    setEmployeeSearch('')
+    if (t !== 'company' && t !== 'employee' && showForm && !editingId) {
       setForm(emptyForm(t as 'emisa' | 'primita'))
       setFormError('')
       setExpectedAmt(null)
       setAmountMismatch(false)
       setTvaMismatch(false)
     }
-    if (t === 'company' && showForm) {
+    if ((t === 'company' || t === 'employee') && showForm) {
       closeForm()
     }
   }
@@ -434,9 +479,10 @@ export function FacturareClient() {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const isEmit    = tab === 'emisa'
-  const isCompany = tab === 'company'
-  const isEditing = editingId !== null
+  const isEmit     = tab === 'emisa'
+  const isCompany  = tab === 'company'
+  const isEmployee = tab === 'employee'
+  const isEditing  = editingId !== null
 
   const filtered = useMemo(() => {
     const byTab = (data?.facturi ?? []).filter(f => f.type === tab)
@@ -476,6 +522,14 @@ export function FacturareClient() {
       (c.company_bank_account ?? '').toLowerCase().includes(term)
     )
   }, [companyData, companySearch])
+
+  const employeeFiltered = useMemo(() => {
+    if (!employeeSearch.trim()) return employeeData
+    const term = employeeSearch.trim().toLowerCase()
+    return employeeData.filter(c =>
+      `${c.first_name ?? ''} ${c.last_name ?? ''}`.toLowerCase().includes(term)
+    )
+  }, [employeeData, employeeSearch])
 
   const periodLabel = showAll
     ? 'all invoices'
@@ -906,8 +960,18 @@ export function FacturareClient() {
             <Building2 size={14} />
             Client Company Details
           </button>
+          <button
+            onClick={() => handleTabChange('employee')}
+            className={cn(
+              'flex items-center gap-1.5 text-sm font-medium rounded-lg px-4 py-1.5 transition-all',
+              isEmployee ? 'bg-white shadow text-[#0B1A33]' : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            <Users size={14} />
+            Employee Invoice
+          </button>
         </div>
-        {!isCompany && (
+        {!isCompany && !isEmployee && (
           <button
             onClick={openAddForm}
             className="flex items-center gap-1.5 px-3 py-2 bg-[#0B1A33] text-white text-sm font-medium rounded-xl hover:bg-[#0B1A33]/90 transition-colors"
@@ -989,8 +1053,128 @@ export function FacturareClient() {
         </>
       )}
 
+      {/* ── Employee Invoice Tab ────────────────────────────────────────────── */}
+      {isEmployee && (
+        <>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by candidate name..."
+              value={employeeSearch}
+              onChange={e => setEmployeeSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30 focus:border-[#2AA3FF] bg-white"
+            />
+            {employeeSearch && (
+              <button
+                onClick={() => setEmployeeSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {employeeLoading ? (
+            <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm">Loading...</span>
+            </div>
+          ) : employeeFiltered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white rounded-2xl border border-gray-100">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <Users size={22} className="text-gray-400" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-gray-600 text-sm">
+                  {employeeSearch ? `No results for "${employeeSearch}"` : 'No candidates with contracts'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-50">
+              {employeeFiltered.map(c => {
+                const expanded = expandedEmployees.has(c.id)
+                const fullName = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—'
+                return (
+                  <div key={c.id}>
+                    <button
+                      onClick={() => toggleEmployeeExpanded(c.id)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {expanded ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                        <span className="font-medium text-gray-900 text-sm">{fullName}</span>
+                        <span className={cn(
+                          'text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide',
+                          c.has_active_contract
+                            ? 'bg-green-50 text-green-600 border border-green-100'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200'
+                        )}>
+                          {c.has_active_contract ? 'Active' : 'Terminated'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {c.invoices.length} invoice{c.invoices.length === 1 ? '' : 's'}
+                      </span>
+                    </button>
+
+                    {expanded && (
+                      c.invoices.length === 0 ? (
+                        <div className="px-4 pb-4 text-xs text-gray-400">No invoices recorded for this candidate.</div>
+                      ) : (
+                        <div className="px-4 pb-4 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-100">
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nr.</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Eff. month</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Issue date</th>
+                                <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paid</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment date</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {c.invoices.map(inv => (
+                                <tr key={inv.id} className="border-b border-gray-50">
+                                  <td className="px-3 py-2 text-xs text-gray-400 font-mono whitespace-nowrap">{inv.numar_factura ?? '—'}</td>
+                                  <td className="px-3 py-2">
+                                    {inv.luna_efectiva != null ? (
+                                      <span className="text-xs font-medium bg-violet-50 text-violet-600 border border-violet-100 px-2 py-0.5 rounded-full">
+                                        {MONTHS_SHORT[inv.luna_efectiva - 1]}
+                                      </span>
+                                    ) : <span className="text-gray-300 text-xs">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{fmtDate(inv.data_emitere)}</td>
+                                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap text-gray-700 font-medium">
+                                    {fmt(inv.valoare, inv.valuta)}
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    {inv.incasata_platita
+                                      ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600"><Check size={12} /> Paid</span>
+                                      : <span className="text-[11px] font-medium text-amber-600">Unpaid</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+                                    {inv.data_incasare_plata ? fmtDate(inv.data_incasare_plata) : <span className="text-gray-300">—</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Summary cards */}
-      {!isCompany && Object.entries(summary).map(([cur, s]) => (
+      {!isCompany && !isEmployee && Object.entries(summary).map(([cur, s]) => (
         <div key={cur} className="grid grid-cols-3 gap-3">
           <div className="glass rounded-xl px-3 py-2.5 flex items-center gap-3">
             {isEmit
@@ -1027,10 +1211,10 @@ export function FacturareClient() {
       ))}
 
       {/* Form (add or edit) */}
-      {!isCompany && showForm && formJSX}
+      {!isCompany && !isEmployee && showForm && formJSX}
 
       {/* Search bar */}
-      {!isCompany && (
+      {!isCompany && !isEmployee && (
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
@@ -1052,7 +1236,7 @@ export function FacturareClient() {
       )}
 
       {/* List */}
-      {!isCompany && (loading ? (
+      {!isCompany && !isEmployee && (loading ? (
         <div className="flex items-center justify-center h-48 text-gray-400 gap-2">
           <Loader2 size={20} className="animate-spin" />
           <span className="text-sm">Loading...</span>
