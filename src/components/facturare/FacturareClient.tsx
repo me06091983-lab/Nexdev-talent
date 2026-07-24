@@ -1124,7 +1124,17 @@ export function FacturareClient() {
                         <div className="px-4 pb-4 text-xs text-gray-400">No invoices recorded for this candidate.</div>
                       ) : (
                         <div className="px-4 pb-4 overflow-x-auto">
-                          <table className="w-full text-sm">
+                          {/* table-layout:fixed + colgroup so columns line up identically across every
+                              expanded candidate, regardless of that candidate's own content widths. */}
+                          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+                            <colgroup>
+                              <col style={{ width: '15%' }} />
+                              <col style={{ width: '14%' }} />
+                              <col style={{ width: '16%' }} />
+                              <col style={{ width: '18%' }} />
+                              <col style={{ width: '15%' }} />
+                              <col style={{ width: '22%' }} />
+                            </colgroup>
                             <thead>
                               <tr className="border-b border-gray-100">
                                 <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nr.</th>
@@ -1138,7 +1148,7 @@ export function FacturareClient() {
                             <tbody>
                               {c.invoices.map(inv => (
                                 <tr key={inv.id} className="border-b border-gray-50">
-                                  <td className="px-3 py-2 text-xs text-gray-400 font-mono whitespace-nowrap">{inv.numar_factura ?? '—'}</td>
+                                  <td className="px-3 py-2 text-xs text-gray-400 font-mono truncate whitespace-nowrap">{inv.numar_factura ?? '—'}</td>
                                   <td className="px-3 py-2">
                                     {inv.luna_efectiva != null ? (
                                       <span className="text-xs font-medium bg-violet-50 text-violet-600 border border-violet-100 px-2 py-0.5 rounded-full">
