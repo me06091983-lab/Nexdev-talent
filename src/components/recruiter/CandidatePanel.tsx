@@ -63,7 +63,7 @@ export function CandidatePanel({
       dragHandleClassName="panel-drag-handle"
       minWidth={200}
       minHeight={140}
-      style={{ zIndex }}
+      style={{ display: 'flex', flexDirection: 'column', zIndex }}
       className={`deck-panel rounded-2xl overflow-hidden flex flex-col transition-colors ${
         droppable.isOver ? 'ring-2 ring-[#34D2FF]/70' : ''
       }`}

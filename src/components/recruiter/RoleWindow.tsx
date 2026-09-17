@@ -43,7 +43,13 @@ function RoleWindowInner({
       dragHandleClassName="window-drag-handle"
       minWidth={520}
       minHeight={420}
-      style={{ zIndex: 30, pointerEvents: 'auto', boxShadow: '0 40px 110px rgba(0,0,0,.55)' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 30,
+        pointerEvents: 'auto',
+        boxShadow: '0 40px 110px rgba(0,0,0,.55)',
+      }}
       className="deck-panel rounded-[28px] overflow-hidden flex flex-col"
       onMouseDown={onFocus}
     >

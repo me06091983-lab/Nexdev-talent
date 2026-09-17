@@ -21,11 +21,14 @@ function RadarTicks() {
       const major = i % 6 === 0
       const r1 = 440
       const r2 = major ? 420 : 431
+      // Rounded to avoid a float-precision SSR/client hydration mismatch on
+      // these SVG attributes (last-digit rounding differs between server and
+      // browser number formatting) — whole pixels are plenty for tick marks.
       items.push({
-        x1: 450 + r1 * Math.cos(angle),
-        y1: 450 + r1 * Math.sin(angle),
-        x2: 450 + r2 * Math.cos(angle),
-        y2: 450 + r2 * Math.sin(angle),
+        x1: Math.round(450 + r1 * Math.cos(angle)),
+        y1: Math.round(450 + r1 * Math.sin(angle)),
+        x2: Math.round(450 + r2 * Math.cos(angle)),
+        y2: Math.round(450 + r2 * Math.sin(angle)),
         major,
       })
     }

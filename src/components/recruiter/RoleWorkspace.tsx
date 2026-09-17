@@ -42,7 +42,7 @@ function ChatPanel({
       dragHandleClassName="panel-drag-handle"
       minWidth={300}
       minHeight={340}
-      style={{ zIndex, boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
+      style={{ display: 'flex', flexDirection: 'column', zIndex, boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
       className="deck-panel rounded-3xl overflow-hidden flex flex-col"
     >
       <ChatColumn roleTitle={role.title} {...chatProps} />
