@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
   const messages: Anthropic.MessageParam[] = [...priorTurns, { role: 'user', content: message }]
 
   const foundCandidates: MatchResult[] = []
+  const discoveredToPersist: MatchResult[] = []
   let pipelineChanged = false
 
   async function executeTool(name: string, input: Record<string, unknown>): Promise<unknown> {
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
         if ('error' in result) return { error: result.error }
         const filtered = result.discovered.filter(d => d.score >= minScore)
         foundCandidates.push(...filtered)
+        discoveredToPersist.push(...filtered)
         return {
           count: filtered.length,
           candidates: filtered.map(c => ({ candidate_id: c.candidate_id, name: c.candidate_name, score: Math.round(c.score) })),
@@ -128,20 +130,20 @@ export async function POST(request: NextRequest) {
       case 'search_candidates_by_keyword': {
         const query = String(input.query ?? '')
         const results = await searchCandidatesByKeyword(supabase, query)
-        foundCandidates.push(
-          ...results.map(r => ({
-            candidate_id: r.candidate_id,
-            candidate_name: r.candidate_name,
-            score: r.score,
-            matched_skills: r.matched_skills,
-            missing_skills: [],
-            summary: '',
-            rate_min: r.rate_min,
-            rate_wish: r.rate_wish,
-            currency: r.currency,
-            cv_file_path: null,
-          }))
-        )
+        const mapped = results.map(r => ({
+          candidate_id: r.candidate_id,
+          candidate_name: r.candidate_name,
+          score: r.score,
+          matched_skills: r.matched_skills,
+          missing_skills: [],
+          summary: '',
+          rate_min: r.rate_min,
+          rate_wish: r.rate_wish,
+          currency: r.currency,
+          cv_file_path: null,
+        }))
+        foundCandidates.push(...mapped)
+        discoveredToPersist.push(...mapped)
         return {
           count: results.length,
           candidates: results.map(r => ({ candidate_id: r.candidate_id, name: r.candidate_name, matched_skills: r.matched_skills })),
@@ -254,9 +256,78 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const finalReply = reply || 'Done.'
+
+  await supabase.from('recruiter_chat_messages').insert([
+    { role_id, sender: 'user', text: message },
+    { role_id, sender: 'system', text: finalReply },
+  ])
+
+  if (discoveredToPersist.length > 0) {
+    const dedup = new Map(discoveredToPersist.filter(c => c.candidate_id).map(c => [c.candidate_id, c]))
+    await supabase.from('recruiter_discovered_candidates').upsert(
+      [...dedup.values()].map(c => ({
+        role_id,
+        candidate_id: c.candidate_id,
+        score: c.score,
+        matched_skills: c.matched_skills,
+        missing_skills: c.missing_skills,
+        summary: c.summary,
+        rate_min: c.rate_min,
+        rate_wish: c.rate_wish,
+        currency: c.currency,
+      })),
+      { onConflict: 'role_id,candidate_id' }
+    )
+  }
+
   return NextResponse.json({
-    reply: reply || 'Done.',
+    reply: finalReply,
     candidates: foundCandidates,
     pipelineChanged,
+  })
+}
+
+export async function GET(request: NextRequest) {
+  const roleId = new URL(request.url).searchParams.get('role_id')
+  if (!roleId) return NextResponse.json({ error: 'role_id is required' }, { status: 400 })
+
+  const supabase = await createClient()
+
+  const [{ data: messages }, { data: discovered }] = await Promise.all([
+    supabase
+      .from('recruiter_chat_messages')
+      .select('sender, text, created_at')
+      .eq('role_id', roleId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('recruiter_discovered_candidates')
+      .select('candidate_id, score, matched_skills, missing_skills, summary, rate_min, rate_wish, currency, candidate:candidates(first_name, last_name)')
+      .eq('role_id', roleId)
+      .order('score', { ascending: false }),
+  ])
+
+  return NextResponse.json({
+    messages: (messages ?? []).map(m => ({
+      from: m.sender as 'user' | 'system',
+      text: m.text,
+      time: new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    discovered: (discovered ?? []).map((d: any) => {
+      const candidate = Array.isArray(d.candidate) ? d.candidate[0] : d.candidate
+      return {
+        candidate_id: d.candidate_id,
+        candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : 'Unknown candidate',
+        score: d.score,
+        matched_skills: d.matched_skills ?? [],
+        missing_skills: d.missing_skills ?? [],
+        summary: d.summary ?? '',
+        rate_min: d.rate_min,
+        rate_wish: d.rate_wish,
+        currency: d.currency ?? 'EUR',
+        cv_file_path: null,
+      }
+    }),
   })
 }

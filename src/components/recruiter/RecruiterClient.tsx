@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { RoleListColumn } from './RoleListColumn'
 import { ChatColumn, type ChatMessage } from './ChatColumn'
 import { CandidateResultsColumn, type ResultGroup } from './CandidateResultsColumn'
@@ -65,6 +65,31 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
       .then(res => (res.ok ? res.json() : []))
       .then(data => setSubmissionsByRole(prev => ({ ...prev, [selectedId]: data })))
   }, [selectedId, submissionsByRole])
+
+  const hydratedRef = useRef(new Set<string>())
+
+  useEffect(() => {
+    if (!selectedId || hydratedRef.current.has(selectedId)) return
+    hydratedRef.current.add(selectedId)
+    fetch(`/api/recruiter/chat?role_id=${selectedId}`)
+      .then(res => (res.ok ? res.json() : { messages: [], discovered: [] }))
+      .then((data: { messages?: Omit<ChatMessage, 'id'>[]; discovered?: MatchResult[] }) => {
+        const persistedMessages = (data.messages ?? []).map(m => ({ ...m, id: crypto.randomUUID() }))
+        if (persistedMessages.length > 0) {
+          setChatByRole(prev => ({ ...prev, [selectedId]: [...persistedMessages, ...(prev[selectedId] ?? [])] }))
+        }
+        if (data.discovered && data.discovered.length > 0) {
+          setDiscoveredByRole(prev => {
+            const existing = prev[selectedId] ?? []
+            const merged = new Map(existing.map(c => [c.candidate_id, c]))
+            for (const c of data.discovered!) {
+              if (c.candidate_id && !merged.has(c.candidate_id)) merged.set(c.candidate_id, c)
+            }
+            return { ...prev, [selectedId]: [...merged.values()] }
+          })
+        }
+      })
+  }, [selectedId])
 
   function pushMessage(roleId: string, msg: Omit<ChatMessage, 'id' | 'time'>) {
     setChatByRole(prev => ({
