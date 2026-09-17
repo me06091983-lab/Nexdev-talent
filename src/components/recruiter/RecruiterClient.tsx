@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { Plus, X } from 'lucide-react'
-import { RoleBubbleField } from './RoleBubbleField'
-import { RoleWorkspace } from './RoleWorkspace'
+import { MindMapField } from './MindMapField'
+import { RoleWindow } from './RoleWindow'
+import { Dock } from './Dock'
 import { HudDecoration } from './HudDecoration'
 import type { ChatMessage, ProposedCandidateData } from './ChatColumn'
 import type { MatchResult, CandidateSource } from '@/lib/matching'
@@ -42,8 +41,8 @@ function nowLabel() {
 }
 
 export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
-  const [openRoleIds, setOpenRoleIds] = useState<string[]>([])
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [openRoles, setOpenRoles] = useState<string[]>([])
+  const [activeRoleId, setActiveRoleId] = useState<string | null>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [submissionsByRole, setSubmissionsByRole] = useState<Record<string, any[]>>({})
@@ -58,18 +57,18 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   }, [])
 
   useEffect(() => {
-    for (const roleId of openRoleIds) {
+    for (const roleId of openRoles) {
       if (submissionsByRole[roleId]) continue
       fetch(`/api/submissions?role_id=${roleId}`)
         .then(res => (res.ok ? res.json() : []))
         .then(data => setSubmissionsByRole(prev => ({ ...prev, [roleId]: data })))
     }
-  }, [openRoleIds, submissionsByRole])
+  }, [openRoles, submissionsByRole])
 
   const hydratedRef = useRef(new Set<string>())
 
   useEffect(() => {
-    for (const roleId of openRoleIds) {
+    for (const roleId of openRoles) {
       if (hydratedRef.current.has(roleId)) continue
       hydratedRef.current.add(roleId)
       fetch(`/api/recruiter/chat?role_id=${roleId}`)
@@ -91,17 +90,21 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
           }
         })
     }
-  }, [openRoleIds])
+  }, [openRoles])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return
-      if (pickerOpen) setPickerOpen(false)
-      else if (openRoleIds.length > 0) setOpenRoleIds([])
+      setActiveRoleId(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pickerOpen, openRoleIds.length])
+  }, [])
+
+  function openRole(id: string) {
+    setOpenRoles(prev => (prev.includes(id) ? prev : [...prev, id]))
+    setActiveRoleId(id)
+  }
 
   function pushMessage(roleId: string, msg: Omit<ChatMessage, 'id' | 'time'>) {
     const id = crypto.randomUUID()
@@ -314,8 +317,18 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   }
 
   function closeRole(id: string) {
-    setOpenRoleIds(prev => prev.filter(x => x !== id))
+    setOpenRoles(prev => prev.filter(x => x !== id))
+    setActiveRoleId(prev => (prev === id ? null : prev))
   }
+
+  function minimizeRole(id: string) {
+    setActiveRoleId(prev => (prev === id ? null : prev))
+  }
+
+  const minimizedRoles = openRoles
+    .filter(id => id !== activeRoleId)
+    .map(id => roles.find(r => r.id === id))
+    .filter((r): r is RecruiterRole => !!r)
 
   return (
     <div className="h-full deck-bg relative overflow-hidden">
@@ -323,101 +336,42 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
       <div className="deck-rings" />
       <HudDecoration />
 
-      {openRoleIds.length === 0 && (
-        <div className="relative h-full">
-          <RoleBubbleField roles={roles} onSelect={id => setOpenRoleIds([id])} />
-        </div>
-      )}
+      <div className="relative h-full">
+        <MindMapField roles={roles} onOpenRole={openRole} />
+      </div>
 
-      {openRoleIds.length > 0 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
-          {openRoleIds.map(id => {
-            const r = roles.find(x => x.id === id)
-            if (!r) return null
-            return (
-              <div key={id} className="deck-panel rounded-full pl-3.5 pr-1.5 py-1.5 flex items-center gap-2">
-                <span className="text-[12px] font-medium text-white max-w-[180px] truncate">{r.title}</span>
-                <button
-                  onClick={() => closeRole(id)}
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[#7E97BA] hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            )
-          })}
-          {openRoleIds.length === 1 && (
-            <div className="relative">
-              <button
-                onClick={() => setPickerOpen(v => !v)}
-                title="Work on a second role in parallel"
-                className="deck-panel rounded-full w-8 h-8 flex items-center justify-center text-[#34D2FF] hover:bg-white/5 transition-colors"
-              >
-                <Plus size={14} />
-              </button>
-              {pickerOpen && (
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-72 max-h-80 overflow-y-auto deck-scroll deck-panel rounded-xl p-2 space-y-1">
-                  <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#7E97BA]">Open alongside</p>
-                  {roles.filter(r => !openRoleIds.includes(r.id)).map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => {
-                        setOpenRoleIds(prev => [...prev, r.id])
-                        setPickerOpen(false)
-                      }}
-                      className="w-full text-left px-2.5 py-2 rounded-lg text-[12.5px] text-[#EAF1FC] hover:bg-white/5 transition-colors"
-                    >
-                      {r.title} <span className="text-[#7E97BA] text-[10.5px]">· {r.client?.name ?? '—'}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {openRoles.map(id => {
+        const role = roles.find(r => r.id === id)
+        if (!role) return null
+        const cat = deriveCategories(id)
+        return (
+          <RoleWindow
+            key={id}
+            role={role}
+            visible={id === activeRoleId}
+            onMinimize={() => minimizeRole(id)}
+            onClose={() => closeRole(id)}
+            onFocus={() => setActiveRoleId(id)}
+            isClosed={!OPEN_STATUSES.has(role.status)}
+            messages={chatByRole[id] ?? []}
+            busy={!!busyByRole[id]}
+            onSend={text => handleSend(id, text)}
+            onAttachCv={file => handleAttachCv(id, file)}
+            onConfirmProposal={mid => handleConfirmProposal(id, mid)}
+            onDiscardProposal={mid => handleDiscardProposal(id, mid)}
+            loadingCandidates={submissionsByRole[id] === undefined}
+            submitted={cat.submitted}
+            database={cat.database}
+            linkedin={cat.linkedin}
+            cvUpload={cat.cvUpload}
+            interview={cat.interview}
+            onAdd={item => handleAdd(id, item)}
+            onMoveToInterview={item => handleMoveToInterview(id, item)}
+          />
+        )
+      })}
 
-      <AnimatePresence>
-        {openRoleIds.length > 0 && (
-          <motion.div
-            key="workspace"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-            className="absolute inset-0 pt-16 pb-5 px-5 grid gap-4"
-            style={{ gridTemplateColumns: openRoleIds.length === 2 ? '1fr 1fr' : '1fr' }}
-          >
-            {openRoleIds.map(id => {
-              const role = roles.find(r => r.id === id)
-              if (!role) return null
-              const cat = deriveCategories(id)
-              return (
-                <RoleWorkspace
-                  key={id}
-                  role={role}
-                  variant={openRoleIds.length === 2 ? 'split' : 'single'}
-                  isClosed={!OPEN_STATUSES.has(role.status)}
-                  messages={chatByRole[id] ?? []}
-                  busy={!!busyByRole[id]}
-                  onSend={text => handleSend(id, text)}
-                  onAttachCv={file => handleAttachCv(id, file)}
-                  onConfirmProposal={mid => handleConfirmProposal(id, mid)}
-                  onDiscardProposal={mid => handleDiscardProposal(id, mid)}
-                  loadingCandidates={submissionsByRole[id] === undefined}
-                  submitted={cat.submitted}
-                  database={cat.database}
-                  linkedin={cat.linkedin}
-                  cvUpload={cat.cvUpload}
-                  interview={cat.interview}
-                  onAdd={item => handleAdd(id, item)}
-                  onMoveToInterview={item => handleMoveToInterview(id, item)}
-                />
-              )
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Dock items={minimizedRoles} onRestore={openRole} />
     </div>
   )
 }

@@ -52,7 +52,6 @@ function ChatPanel({
 
 export function RoleWorkspace({
   role,
-  variant,
   isClosed,
   messages,
   busy,
@@ -70,7 +69,6 @@ export function RoleWorkspace({
   onMoveToInterview,
 }: {
   role: RecruiterRole
-  variant: 'single' | 'split'
   isClosed: boolean
   messages: ChatMessage[]
   busy: boolean
@@ -105,8 +103,8 @@ export function RoleWorkspace({
     return () => ro.disconnect()
   }, [])
 
-  const chatW = variant === 'split' ? Math.min(300, size ? size.w - 260 : 300) : 440
-  const chatH = size ? Math.min(variant === 'split' ? 520 : 620, size.h - 56) : 500
+  const chatW = 440
+  const chatH = size ? Math.min(620, size.h - 56) : 500
 
   function defaultRects(w: number, h: number): Record<SatelliteKey, PanelRect> {
     const margin = 16
