@@ -136,13 +136,15 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     submissions.map((s: { candidate?: { id?: string } }) => s.candidate?.id).filter(Boolean)
   )
   const discovered = (selectedId && discoveredByRole[selectedId]) || []
-  const discoveredFiltered = discovered.filter(d => d.candidate_id && !pipelineCandidateIds.has(d.candidate_id))
+  const discoveredFiltered = discovered
+    .filter(d => d.candidate_id && !pipelineCandidateIds.has(d.candidate_id))
+    .sort((a, b) => b.score - a.score)
 
   const groups: ResultGroup[] = [
     {
       key: 'pipeline',
       label: isClosed ? 'Past candidates' : 'In pipeline',
-      items: submissions.map(submissionToResult),
+      items: submissions.map(submissionToResult).sort((a, b) => b.score - a.score),
       showAdd: false,
     },
     {
