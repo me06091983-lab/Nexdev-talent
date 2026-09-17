@@ -37,17 +37,6 @@ function nowLabel() {
   return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-function parseCommand(text: string): { type: 'db_match'; threshold: number } | { type: 'linkedin' } | { type: 'unknown' } {
-  const lower = text.toLowerCase()
-  if (lower.includes('linkedin')) return { type: 'linkedin' }
-  const pct = lower.match(/(\d{1,3})\s*%/)
-  if (pct || /match|bază|baza|database|db\b/.test(lower)) {
-    const threshold = pct ? Math.min(100, Math.max(0, parseInt(pct[1], 10))) : 50
-    return { type: 'db_match', threshold }
-  }
-  return { type: 'unknown' }
-}
-
 export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     const firstOpen = roles.find(r => OPEN_STATUSES.has(r.status))
@@ -84,58 +73,42 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     }))
   }
 
-  async function runDbMatch(roleId: string, threshold: number) {
+  async function handleSend(text: string) {
+    if (!selectedId || busy) return
+    const roleId = selectedId
+    const historyForRequest = (chatByRole[roleId] ?? []).map(m => ({ from: m.from, text: m.text }))
+    pushMessage(roleId, { from: 'user', text })
     setBusy(true)
     try {
-      const res = await fetch(`/api/roles/${roleId}/match`, { method: 'POST' })
+      const res = await fetch('/api/recruiter/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_id: roleId, message: text, history: historyForRequest }),
+      })
       const data = await res.json()
       if (!res.ok) {
-        pushMessage(roleId, { from: 'system', text: data.error ?? 'Could not run matching for this role.' })
+        pushMessage(roleId, { from: 'system', text: data.error ?? 'The recruiter assistant hit an error. Try again.' })
         return
       }
-      const filtered: MatchResult[] = (data.discovered ?? []).filter((d: MatchResult) => d.score >= threshold)
-      setDiscoveredByRole(prev => ({ ...prev, [roleId]: filtered }))
-      await loadSubmissions(roleId)
-
-      if (filtered.length === 0) {
-        pushMessage(roleId, { from: 'system', text: `No candidates in the database matched ≥ ${threshold}% for this role.` })
-      } else {
-        const lines = filtered
-          .slice(0, 10)
-          .map(f => `• ${f.candidate_name} — ${Math.round(f.score)}%`)
-          .join('\n')
-        const more = filtered.length > 10 ? `\n…and ${filtered.length - 10} more` : ''
-        pushMessage(roleId, {
-          from: 'system',
-          text: `Found ${filtered.length} candidate${filtered.length === 1 ? '' : 's'} with match ≥ ${threshold}%:\n${lines}${more}\n\nSee the Candidates column →`,
+      pushMessage(roleId, { from: 'system', text: data.reply ?? 'Done.' })
+      if (Array.isArray(data.candidates) && data.candidates.length > 0) {
+        setDiscoveredByRole(prev => {
+          const existing = prev[roleId] ?? []
+          const merged = new Map(existing.map(c => [c.candidate_id, c]))
+          for (const c of data.candidates as MatchResult[]) {
+            if (c.candidate_id) merged.set(c.candidate_id, c)
+          }
+          return { ...prev, [roleId]: [...merged.values()].sort((a, b) => b.score - a.score) }
         })
       }
+      if (data.pipelineChanged) {
+        await loadSubmissions(roleId)
+      }
     } catch {
-      pushMessage(roleId, { from: 'system', text: 'Something went wrong while searching the database. Try again.' })
+      pushMessage(roleId, { from: 'system', text: 'Could not reach the recruiter assistant. Check your connection and try again.' })
     } finally {
       setBusy(false)
     }
-  }
-
-  function handleSend(text: string) {
-    if (!selectedId) return
-    pushMessage(selectedId, { from: 'user', text })
-    const cmd = parseCommand(text)
-    if (cmd.type === 'linkedin') {
-      pushMessage(selectedId, {
-        from: 'system',
-        text: 'LinkedIn search is not available yet in this workspace — it\'s planned for a later phase. For now I can search candidates already in the NexDev database.',
-      })
-      return
-    }
-    if (cmd.type === 'db_match') {
-      runDbMatch(selectedId, cmd.threshold)
-      return
-    }
-    pushMessage(selectedId, {
-      from: 'system',
-      text: 'I can currently search the NexDev database for matches — try "find candidates with match over 50%". Free-form conversation is coming in a later phase.',
-    })
   }
 
   async function handleAdd(item: MatchResult) {
@@ -183,7 +156,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   ]
 
   return (
-    <div className="h-full grid" style={{ gridTemplateColumns: '280px 1fr 380px' }}>
+    <div className="h-full grid" style={{ gridTemplateColumns: '260px 1fr 300px' }}>
       <RoleListColumn roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
       <ChatColumn
         roleTitle={selectedRole?.title ?? null}
