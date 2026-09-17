@@ -5,6 +5,7 @@ import { MindMapField } from './MindMapField'
 import { RoleWindow } from './RoleWindow'
 import { Dock } from './Dock'
 import { HudDecoration } from './HudDecoration'
+import { AuroraBackground } from './AuroraBackground'
 import type { ChatMessage, ProposedCandidateData } from './ChatColumn'
 import type { MatchResult, CandidateSource } from '@/lib/matching'
 
@@ -332,8 +333,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
 
   return (
     <div className="h-full deck-bg relative overflow-hidden">
-      <div className="absolute inset-0 deck-grid pointer-events-none" />
-      <div className="deck-rings" />
+      <AuroraBackground />
       <HudDecoration />
 
       <div className="relative h-full">

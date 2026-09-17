@@ -49,43 +49,57 @@ body {
   outline: none;
 }
 
-/* ---------- Recruiter command deck (HUD, holographic-inspired) ---------- */
+/* ---------- Recruiter command deck (aurora, holographic-inspired) ---------- */
 :root {
   --hud-cyan: #34D2FF;
   --hud-gold: #F5B45C;
 }
 .deck-bg {
-  background:
-    radial-gradient(1000px 700px at 50% 8%, rgba(52, 210, 255, 0.10), transparent 62%),
-    radial-gradient(700px 560px at 92% 92%, rgba(245, 180, 92, 0.06), transparent 58%),
-    radial-gradient(600px 500px at 4% 88%, rgba(52, 210, 255, 0.07), transparent 55%),
-    linear-gradient(180deg, #08090c 0%, #0c0e13 45%, #090a0d 100%);
+  background: radial-gradient(ellipse 140% 90% at 50% -10%, #140b2e 0%, #0a0715 45%, #050308 100%);
 }
-.deck-grid {
-  background-image:
-    linear-gradient(rgba(150, 165, 180, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(150, 165, 180, 0.055) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, #000 30%, transparent 78%);
-}
-/* Concentric HUD rings, centered — decorative, very low opacity */
-.deck-rings {
+
+/* Aurora blobs — soft, slowly drifting color fields instead of a flat tint */
+.aurora-blob {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 1px; height: 1px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  will-change: transform;
   pointer-events: none;
 }
-.deck-rings::before, .deck-rings::after {
-  content: "";
-  position: absolute;
-  top: 50%; left: 50%;
-  border-radius: 50%;
-  border: 1px solid rgba(52, 210, 255, 0.09);
-  transform: translate(-50%, -50%);
+.aurora-blob.one {
+  width: 620px; height: 620px; top: -140px; left: -100px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.55), transparent 70%);
+  animation: aurora-drift-a 26s ease-in-out infinite;
 }
-.deck-rings::before { width: 900px; height: 900px; animation: deck-spin 140s linear infinite; }
-.deck-rings::after { width: 1300px; height: 1300px; border-color: rgba(245, 180, 92, 0.06); animation: deck-spin 200s linear infinite reverse; }
-@keyframes deck-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+.aurora-blob.two {
+  width: 540px; height: 540px; bottom: -120px; right: -80px;
+  background: radial-gradient(circle, rgba(217, 70, 239, 0.4), transparent 70%);
+  animation: aurora-drift-b 32s ease-in-out infinite;
+}
+.aurora-blob.three {
+  width: 460px; height: 460px; top: 26%; right: 6%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.4), transparent 70%);
+  animation: aurora-drift-c 24s ease-in-out infinite;
+}
+.aurora-blob.four {
+  width: 400px; height: 400px; bottom: 12%; left: 6%;
+  background: radial-gradient(circle, rgba(52, 210, 255, 0.28), transparent 70%);
+  animation: aurora-drift-a 30s ease-in-out infinite reverse;
+}
+@keyframes aurora-drift-a { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(60px, 40px) scale(1.15); } }
+@keyframes aurora-drift-b { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-55px, -35px) scale(1.1); } }
+@keyframes aurora-drift-c { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-40px, 50px) scale(0.9); } }
+
+.deck-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: deck-star-twinkle 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes deck-star-twinkle { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.85; } }
 
 .deck-panel {
   background: rgba(16, 18, 22, 0.6);
@@ -133,19 +147,6 @@ body {
 }
 .deck-materialize { animation: deck-materialize .5s cubic-bezier(.2,.8,.2,1) both; }
 
-/* Radar sweep — a rotating beam behind the workspace */
-.deck-sweep {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 900px; height: 900px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(52,210,255,.16) 0deg, transparent 2.5deg, transparent 360deg);
-  mix-blend-mode: screen;
-  animation: deck-spin 10s linear infinite;
-  pointer-events: none;
-}
-
 /* Telemetry blink — a slow status-indicator flicker */
 @keyframes deck-blink {
   0%, 100% { opacity: .35; }
@@ -155,5 +156,5 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .deck-pulse, .deck-rise, .deck-materialize, .deck-blink { animation: none !important; opacity: 1; }
-  .deck-rings::before, .deck-rings::after, .deck-sweep, .deck-radar-ticks { animation: none !important; }
+  .aurora-blob, .deck-star { animation: none !important; }
 }
