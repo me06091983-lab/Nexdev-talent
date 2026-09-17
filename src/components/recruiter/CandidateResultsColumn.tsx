@@ -13,8 +13,8 @@ export interface ResultGroup {
 }
 
 function scoreClasses(score: number) {
-  if (score >= 75) return 'text-[#2AA3FF] bg-[#2AA3FF]/10 border-[#2AA3FF]/30'
-  if (score >= 55) return 'text-amber-400 bg-amber-400/10 border-amber-400/30'
+  if (score >= 80) return 'text-[#5FE0A8] bg-[#5FE0A8]/10 border-[#5FE0A8]/30'
+  if (score >= 60) return 'text-amber-400 bg-amber-400/10 border-amber-400/30'
   return 'text-red-400 bg-red-400/10 border-red-400/30'
 }
 
