@@ -32,6 +32,7 @@ function recoverPartialJson(text: string): Record<string, unknown> | null {
     linkedin_url: get('linkedin_url'),
     location: get('location'),
     seniority: get('seniority'),
+    profile_summary: get('profile_summary'),
     skills_detected: arrMatch('skills_detected'),
     experiences: arrMatch('experiences'),
     certifications: arrMatch('certifications'),
@@ -56,6 +57,7 @@ Format JSON de returnat:
   "linkedin_url": "URL LinkedIn sau null",
   "location": "orașul/țara sau null",
   "seniority": "junior|mid|senior|lead|principal sau null",
+  "profile_summary": "1 propoziție în engleză despre senioritate și punctele forte tehnice ale candidatului, utilă unui recrutor care evaluează rapid CV-ul",
   "skills_detected": ["lista de skilluri tehnice din CV"],
   "experiences": [
     {

@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { RoleListColumn } from './RoleListColumn'
-import { ChatColumn, type ChatMessage } from './ChatColumn'
+import { ChatColumn, type ChatMessage, type ProposedCandidateData } from './ChatColumn'
 import { CandidateResultsColumn, type ResultGroup } from './CandidateResultsColumn'
-import type { MatchResult } from '@/components/pipeline/AIMatchPanel'
+import type { MatchResult } from '@/lib/matching'
 
 export interface RecruiterRole {
   id: string
@@ -30,6 +30,7 @@ function submissionToResult(s: any): MatchResult {
     rate_wish: s.candidate?.rate_wish ?? null,
     currency: s.candidate?.currency ?? 'EUR',
     cv_file_path: null,
+    source: 'database',
   }
 }
 
@@ -47,6 +48,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   const [submissionsByRole, setSubmissionsByRole] = useState<Record<string, any[]>>({})
   const [discoveredByRole, setDiscoveredByRole] = useState<Record<string, MatchResult[]>>({})
   const [chatByRole, setChatByRole] = useState<Record<string, ChatMessage[]>>({})
+  const [activeTab, setActiveTab] = useState('identified')
   const [busy, setBusy] = useState(false)
 
   const selectedRole = useMemo(() => roles.find(r => r.id === selectedId) ?? null, [roles, selectedId])
@@ -92,16 +94,27 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   }, [selectedId])
 
   function pushMessage(roleId: string, msg: Omit<ChatMessage, 'id' | 'time'>) {
+    const id = crypto.randomUUID()
     setChatByRole(prev => ({
       ...prev,
-      [roleId]: [...(prev[roleId] ?? []), { ...msg, id: crypto.randomUUID(), time: nowLabel() }],
+      [roleId]: [...(prev[roleId] ?? []), { ...msg, id, time: nowLabel() }],
+    }))
+    return id
+  }
+
+  function updateProposal(roleId: string, messageId: string, patch: Partial<ProposedCandidateData>) {
+    setChatByRole(prev => ({
+      ...prev,
+      [roleId]: (prev[roleId] ?? []).map(m =>
+        m.id === messageId && m.proposal ? { ...m, proposal: { ...m.proposal, ...patch } } : m
+      ),
     }))
   }
 
   async function handleSend(text: string) {
     if (!selectedId || busy) return
     const roleId = selectedId
-    const historyForRequest = (chatByRole[roleId] ?? []).map(m => ({ from: m.from, text: m.text }))
+    const historyForRequest = (chatByRole[roleId] ?? []).filter(m => !m.proposal).map(m => ({ from: m.from, text: m.text }))
     pushMessage(roleId, { from: 'user', text })
     setBusy(true)
     try {
@@ -126,6 +139,11 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
           return { ...prev, [roleId]: [...merged.values()].sort((a, b) => b.score - a.score) }
         })
       }
+      if (Array.isArray(data.proposedCandidates)) {
+        for (const p of data.proposedCandidates as Omit<ProposedCandidateData, 'status'>[]) {
+          pushMessage(roleId, { from: 'system', text: '', proposal: { ...p, status: 'pending' } })
+        }
+      }
       if (data.pipelineChanged) {
         await loadSubmissions(roleId)
       }
@@ -134,6 +152,90 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleAttachCv(file: File) {
+    if (!selectedId || busy) return
+    const roleId = selectedId
+    pushMessage(roleId, { from: 'user', text: `📎 ${file.name}` })
+    setBusy(true)
+    try {
+      const uploadFd = new FormData()
+      uploadFd.append('cv', file)
+      const parseFd = new FormData()
+      parseFd.append('cv', file)
+
+      const [uploadRes, parseRes] = await Promise.all([
+        fetch('/api/cv-upload', { method: 'POST', body: uploadFd }),
+        fetch('/api/cv-parse', { method: 'POST', body: parseFd }),
+      ])
+      const uploadData = await uploadRes.json()
+      const parsed = await parseRes.json()
+
+      if (!parseRes.ok) {
+        pushMessage(roleId, { from: 'system', text: parsed.error ?? 'Could not read this CV.' })
+        return
+      }
+      if (!parsed.first_name || !parsed.last_name) {
+        pushMessage(roleId, { from: 'system', text: "Could not extract a name from this CV — it may be scanned/image-based. Try a text-based PDF or DOCX." })
+        return
+      }
+
+      pushMessage(roleId, {
+        from: 'system',
+        text: '',
+        proposal: {
+          first_name: parsed.first_name,
+          last_name: parsed.last_name,
+          email: parsed.email ?? null,
+          phone: parsed.phone ?? null,
+          linkedin_url: parsed.linkedin_url ?? null,
+          location: parsed.location ?? null,
+          seniority: parsed.seniority ?? null,
+          skills: (parsed.matched_skills ?? []).map((s: { name: string }) => s.name),
+          summary: parsed.profile_summary ?? '',
+          cv_file_path: uploadRes.ok ? uploadData.path : null,
+          source: 'cv_upload',
+          status: 'pending',
+        },
+      })
+    } catch {
+      pushMessage(roleId, { from: 'system', text: 'Could not process the CV. Try again.' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleConfirmProposal(messageId: string) {
+    if (!selectedId) return
+    const roleId = selectedId
+    const msg = (chatByRole[roleId] ?? []).find(m => m.id === messageId)
+    if (!msg?.proposal) return
+    const { status: _status, ...candidate } = msg.proposal
+    void _status
+
+    const res = await fetch('/api/recruiter/confirm-candidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_id: roleId, candidate, add_to_pipeline: false }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      pushMessage(roleId, { from: 'system', text: data.error ?? 'Could not save this candidate.' })
+      return
+    }
+    updateProposal(roleId, messageId, { status: 'added' })
+    setDiscoveredByRole(prev => {
+      const existing = prev[roleId] ?? []
+      const merged = new Map(existing.map(c => [c.candidate_id, c]))
+      merged.set(data.candidate_id, data as MatchResult)
+      return { ...prev, [roleId]: [...merged.values()] }
+    })
+  }
+
+  function handleDiscardProposal(messageId: string) {
+    if (!selectedId) return
+    updateProposal(selectedId, messageId, { status: 'discarded' })
   }
 
   async function handleAdd(item: MatchResult) {
@@ -167,34 +269,46 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
 
   const groups: ResultGroup[] = [
     {
-      key: 'pipeline',
-      label: isClosed ? 'Past candidates' : 'In pipeline',
-      items: submissions.map(submissionToResult).sort((a, b) => b.score - a.score),
-      showAdd: false,
-    },
-    {
-      key: 'discovered',
-      label: 'New matches from database',
+      key: 'identified',
+      label: 'Identified',
       items: discoveredFiltered,
       showAdd: !isClosed,
+    },
+    {
+      key: 'submitted',
+      label: isClosed ? 'Past candidates' : 'Submitted',
+      items: submissions.map(submissionToResult).sort((a, b) => b.score - a.score),
+      showAdd: false,
     },
   ]
 
   return (
-    <div
-      className="h-full grid overflow-hidden"
-      style={{ gridTemplateColumns: '260px 1fr 300px', gridTemplateRows: 'minmax(0, 1fr)' }}
-    >
-      <RoleListColumn roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
-      <ChatColumn
-        roleTitle={selectedRole?.title ?? null}
-        disabled={!selectedId || isClosed}
-        disabledReason={!selectedId ? 'Select a role on the left to start.' : 'This role is closed — chat actions are disabled here.'}
-        messages={(selectedId && chatByRole[selectedId]) || []}
-        busy={busy}
-        onSend={handleSend}
-      />
-      <CandidateResultsColumn loading={loadingSubmissions} groups={groups} onAdd={handleAdd} />
+    <div className="h-full deck-bg relative overflow-hidden">
+      <div className="absolute inset-0 deck-grid pointer-events-none" />
+      <div
+        className="relative h-full grid"
+        style={{ gridTemplateColumns: '260px 1fr 300px', gridTemplateRows: 'minmax(0, 1fr)' }}
+      >
+        <RoleListColumn roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
+        <ChatColumn
+          roleTitle={selectedRole?.title ?? null}
+          disabled={!selectedId || isClosed}
+          disabledReason={!selectedId ? 'Select a role on the left to start.' : 'This role is closed — chat actions are disabled here.'}
+          messages={(selectedId && chatByRole[selectedId]) || []}
+          busy={busy}
+          onSend={handleSend}
+          onAttachCv={handleAttachCv}
+          onConfirmProposal={handleConfirmProposal}
+          onDiscardProposal={handleDiscardProposal}
+        />
+        <CandidateResultsColumn
+          loading={loadingSubmissions}
+          groups={groups}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onAdd={handleAdd}
+        />
+      </div>
     </div>
   )
 }

@@ -54,6 +54,27 @@ const TOOLS = [
     description: 'Get the full brief for the selected role: title, client, job description, and the weighted evaluation criteria (Rubix Matrix).',
     input_schema: { type: 'object' as const, properties: {} },
   },
+  {
+    name: 'propose_new_candidate',
+    description:
+      'Structure a candidate that is NOT yet in the NexDev database — typically pasted LinkedIn profile text, or a candidate the user describes manually. This does NOT save anything yet — it shows the user a confirmation card so they can review and explicitly approve before it is added to the database. Use this whenever the user pastes profile text/details about someone new, or asks you to "add" a person you do not already have a candidate_id for. Extract as much as you can from what was pasted; leave fields out if not mentioned.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        linkedin_url: { type: 'string' },
+        location: { type: 'string' },
+        seniority: { type: 'string', enum: ['junior', 'mid', 'senior', 'lead', 'principal'] },
+        skills: { type: 'array', items: { type: 'string' } },
+        summary: { type: 'string', description: 'One-sentence recruiter note on this person — seniority, strengths, fit.' },
+        source: { type: 'string', enum: ['linkedin', 'manual'], description: '"linkedin" if this came from pasted LinkedIn content, "manual" otherwise.' },
+      },
+      required: ['first_name', 'last_name', 'source'],
+    },
+  },
 ]
 
 function systemPrompt(roleTitle: string, clientName: string) {
@@ -61,9 +82,11 @@ function systemPrompt(roleTitle: string, clientName: string) {
 
 Rolul selectat acum în interfață: "${roleTitle}" pentru clientul ${clientName}. Toate uneltele tale (căutare, pipeline, adăugare) se referă implicit la acest rol, dacă utilizatorul nu specifică altceva.
 
-Poți: căuta candidați din bază potriviți cu rubrica rolului curent, căuta candidați după cuvinte-cheie (skilluri) în toată baza, vedea cine e deja în pipeline pe rolul curent, adăuga un candidat anume în pipeline, și vedea brief-ul complet al rolului.
+Poți: căuta candidați din bază potriviți cu rubrica rolului curent, căuta candidați după cuvinte-cheie (skilluri) în toată baza, vedea cine e deja în pipeline pe rolul curent, adăuga un candidat anume (deja din bază) în pipeline, structura un candidat nou din text lipit (ex. profil LinkedIn copiat manual) pentru confirmare, și vedea brief-ul complet al rolului.
 
-NU ai acces la LinkedIn sau la internet — dacă ți se cere căutare pe LinkedIn sau alte surse externe, spune clar și scurt că nu e disponibil încă în această etapă a platformei, fără să inventezi rezultate.
+NU poți naviga singur pe LinkedIn sau pe internet — nu ai un instrument de căutare live acolo. Dacă utilizatorul cere să "cauți pe LinkedIn", explică-i clar: nu poți naviga automat, dar dacă îți lipește (paste) textul unui profil găsit de el, îl structurezi imediat cu propose_new_candidate. Nu inventa niciodată rezultate LinkedIn.
+
+Când utilizatorul lipește text despre o persoană (profil LinkedIn, CV ca text, descriere) și pare să vrea s-o adaugi, folosește propose_new_candidate — NU scrie datele extrase doar ca text în răspuns, pentru că interfața are nevoie de acel apel ca să afișeze cardul de confirmare cu butoane Add/Discard. Nu salvezi nimic direct — utilizatorul confirmă din interfață.
 
 Când o unealtă întoarce o listă de candidați, NU repeta toată lista în text — ea apare deja vizual într-o coloană dedicată din interfață. Doar rezumă pe scurt (câți ai găsit, eventual cei mai buni 1-2 cu un motiv scurt) și spune-i utilizatorului să se uite în coloana Candidates.
 
@@ -111,6 +134,7 @@ export async function POST(request: NextRequest) {
 
   const foundCandidates: MatchResult[] = []
   const discoveredToPersist: MatchResult[] = []
+  const proposedCandidates: Record<string, unknown>[] = []
   let pipelineChanged = false
 
   async function executeTool(name: string, input: Record<string, unknown>): Promise<unknown> {
@@ -119,7 +143,7 @@ export async function POST(request: NextRequest) {
         const minScore = typeof input.min_score === 'number' ? input.min_score : 50
         const result = await matchCandidatesForRole(supabase, role_id!)
         if ('error' in result) return { error: result.error }
-        const filtered = result.discovered.filter(d => d.score >= minScore)
+        const filtered = result.discovered.filter(d => d.score >= minScore).map(d => ({ ...d, source: 'database' as const }))
         foundCandidates.push(...filtered)
         discoveredToPersist.push(...filtered)
         return {
@@ -141,6 +165,7 @@ export async function POST(request: NextRequest) {
           rate_wish: r.rate_wish,
           currency: r.currency,
           cv_file_path: null,
+          source: 'database' as const,
         }))
         foundCandidates.push(...mapped)
         discoveredToPersist.push(...mapped)
@@ -189,6 +214,25 @@ export async function POST(request: NextRequest) {
         if (insertError) return { error: insertError.message }
         pipelineChanged = true
         return { ok: true }
+      }
+      case 'propose_new_candidate': {
+        const firstName = String(input.first_name ?? '').trim()
+        const lastName = String(input.last_name ?? '').trim()
+        if (!firstName || !lastName) return { error: 'first_name and last_name are required' }
+        const proposal = {
+          first_name: firstName,
+          last_name: lastName,
+          email: input.email ? String(input.email) : null,
+          phone: input.phone ? String(input.phone) : null,
+          linkedin_url: input.linkedin_url ? String(input.linkedin_url) : null,
+          location: input.location ? String(input.location) : null,
+          seniority: input.seniority ? String(input.seniority) : null,
+          skills: Array.isArray(input.skills) ? input.skills.map(String) : [],
+          summary: input.summary ? String(input.summary) : '',
+          source: input.source === 'linkedin' ? 'linkedin' : 'manual',
+        }
+        proposedCandidates.push(proposal)
+        return { ok: true, shown_to_user: true, note: 'A confirmation card was shown to the user. Do not repeat these details in your text reply — just acknowledge briefly.' }
       }
       case 'get_role_brief': {
         const { data: criteria } = await supabase
@@ -276,6 +320,7 @@ export async function POST(request: NextRequest) {
         rate_min: c.rate_min,
         rate_wish: c.rate_wish,
         currency: c.currency,
+        source: c.source ?? 'database',
       })),
       { onConflict: 'role_id,candidate_id' }
     )
@@ -284,6 +329,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     reply: finalReply,
     candidates: foundCandidates,
+    proposedCandidates,
     pipelineChanged,
   })
 }
@@ -302,7 +348,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: true }),
     supabase
       .from('recruiter_discovered_candidates')
-      .select('candidate_id, score, matched_skills, missing_skills, summary, rate_min, rate_wish, currency, candidate:candidates(first_name, last_name)')
+      .select('candidate_id, score, matched_skills, missing_skills, summary, rate_min, rate_wish, currency, source, candidate:candidates(first_name, last_name)')
       .eq('role_id', roleId)
       .order('score', { ascending: false }),
   ])
@@ -327,6 +373,7 @@ export async function GET(request: NextRequest) {
         rate_wish: d.rate_wish,
         currency: d.currency ?? 'EUR',
         cv_file_path: null,
+        source: d.source ?? 'database',
       }
     }),
   })

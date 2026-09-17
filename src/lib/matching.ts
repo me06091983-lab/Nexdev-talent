@@ -32,6 +32,8 @@ interface RubixScore {
   evidence: string
 }
 
+export type CandidateSource = 'database' | 'linkedin' | 'cv_upload' | 'manual'
+
 export interface MatchResult {
   submission_id?: string
   candidate_id: string
@@ -44,6 +46,7 @@ export interface MatchResult {
   rate_wish: number | null
   currency: string
   cv_file_path: string | null
+  source?: CandidateSource
 }
 
 async function scoreAgainstRubix(
