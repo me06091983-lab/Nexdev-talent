@@ -11,7 +11,7 @@ const RATE_TYPE_OPTIONS = [
   { value: 'hourly', label: '/hour' },
 ]
 
-interface MatchResult {
+export interface MatchResult {
   candidate_id?: string
   candidate_name: string
   submission_id?: string
@@ -25,7 +25,7 @@ interface MatchResult {
   cv_file_path?: string | null
 }
 
-interface MatchData {
+export interface MatchData {
   pipeline_scored: MatchResult[]
   discovered: MatchResult[]
 }
@@ -45,7 +45,7 @@ interface Props {
   onClose?: () => void
 }
 
-function ScoreCircle({ score }: { score: number }) {
+export function ScoreCircle({ score }: { score: number }) {
   const cls = score >= 75
     ? 'border-[#2AA3FF] text-[#2AA3FF] bg-blue-50/40'
     : score >= 55
@@ -58,7 +58,7 @@ function ScoreCircle({ score }: { score: number }) {
   )
 }
 
-function RateBadge({ min, wish, currency }: { min?: number | null; wish?: number | null; currency?: string }) {
+export function RateBadge({ min, wish, currency }: { min?: number | null; wish?: number | null; currency?: string }) {
   if (!min && !wish) return null
   const cur = currency ?? 'EUR'
   return (
@@ -77,16 +77,18 @@ function RateBadge({ min, wish, currency }: { min?: number | null; wish?: number
   )
 }
 
-function MatchCard({
+export function MatchCard({
   item,
   onAdd,
   onViewProfile,
   onViewCV,
+  badge,
 }: {
   item: MatchResult
   onAdd?: () => Promise<void>
   onViewProfile?: () => void
   onViewCV?: () => void
+  badge?: { label: string; className: string }
 }) {
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -118,7 +120,14 @@ function MatchCard({
       <div className="flex items-start gap-2.5">
         <ScoreCircle score={Math.round(item.score)} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{item.candidate_name}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-sm font-medium text-gray-900 truncate">{item.candidate_name}</p>
+            {badge && (
+              <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${badge.className}`}>
+                {badge.label}
+              </span>
+            )}
+          </div>
           <RateBadge min={item.rate_min} wish={item.rate_wish} currency={item.currency} />
           <div className="flex flex-wrap gap-1 mt-1.5">
             {item.matched_skills.slice(0, 3).map(s => (

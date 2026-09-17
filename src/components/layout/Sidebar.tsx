@@ -18,12 +18,14 @@ import {
   Handshake,
   ShieldCheck,
   UserRound,
+  Bot,
 } from 'lucide-react'
 
 const mainNavGroups = [
   {
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/recruiter', label: 'Recruiter', icon: Bot },
       { href: '/pipeline', label: 'Radar', icon: Radar },
       { href: '/candidates', label: 'Candidates', icon: Users },
       { href: '/roles', label: 'Roles', icon: Briefcase },
