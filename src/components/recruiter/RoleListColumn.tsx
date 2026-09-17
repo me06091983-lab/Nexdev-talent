@@ -93,8 +93,8 @@ export function RoleListColumn({
   const closedRoles = roles.filter(r => !OPEN_STATUSES.has(r.status))
 
   return (
-    <div className="h-full flex flex-col bg-gray-50/60 border-r border-gray-200">
-      <div className="px-4 py-4 border-b border-gray-200 bg-white">
+    <div className="h-full min-h-0 flex flex-col bg-gray-50/60 border-r border-gray-200">
+      <div className="flex-none px-4 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-2">
           <Briefcase size={16} className="text-[#2AA3FF]" />
           <h2 className="text-sm font-semibold text-gray-900">Roles</h2>
@@ -102,7 +102,7 @@ export function RoleListColumn({
         <p className="text-[11px] text-gray-400 mt-0.5">{openRoles.length} open · {closedRoles.length} closed</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1.5">
         {openRoles.length === 0 && (
           <p className="text-xs text-gray-400 text-center py-6">No open roles right now.</p>
         )}

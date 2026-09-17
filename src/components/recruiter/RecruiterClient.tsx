@@ -142,21 +142,22 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     {
       key: 'pipeline',
       label: isClosed ? 'Past candidates' : 'In pipeline',
-      badge: { label: 'Pipeline', className: 'bg-gray-100 text-gray-500' },
       items: submissions.map(submissionToResult),
       showAdd: false,
     },
     {
       key: 'discovered',
       label: 'New matches from database',
-      badge: { label: 'DB match', className: 'bg-blue-50 text-[#2AA3FF]' },
       items: discoveredFiltered,
       showAdd: !isClosed,
     },
   ]
 
   return (
-    <div className="h-full grid" style={{ gridTemplateColumns: '260px 1fr 300px' }}>
+    <div
+      className="h-full grid overflow-hidden"
+      style={{ gridTemplateColumns: '260px 1fr 300px', gridTemplateRows: 'minmax(0, 1fr)' }}
+    >
       <RoleListColumn roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
       <ChatColumn
         roleTitle={selectedRole?.title ?? null}

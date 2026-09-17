@@ -40,8 +40,8 @@ export function ChatColumn({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white border-r border-gray-200">
-      <div className="px-4 py-4 border-b border-gray-200 flex items-center gap-2">
+    <div className="h-full min-h-0 flex flex-col bg-white border-r border-gray-200">
+      <div className="flex-none px-4 py-4 border-b border-gray-200 flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg bg-[#0B1A33] flex items-center justify-center flex-shrink-0">
           <Bot size={15} className="text-[#2AA3FF]" />
         </div>
@@ -51,7 +51,7 @@ export function ChatColumn({
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && !disabled && (
           <div className="text-center py-8">
             <p className="text-xs text-gray-400 leading-relaxed max-w-[240px] mx-auto">
@@ -82,7 +82,7 @@ export function ChatColumn({
         )}
       </div>
 
-      <div className="border-t border-gray-200 p-3">
+      <div className="flex-none border-t border-gray-200 p-3">
         {disabled ? (
           <p className="text-[11px] text-gray-400 text-center py-2">{disabledReason}</p>
         ) : (
