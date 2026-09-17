@@ -124,7 +124,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
   }, [])
 
   const ready = containerSize !== null && hydrated
-  const companies = useMemo(() => groupByClient(roles), [roles])
+  const companies = useMemo(() => groupByClient(roles.filter(r => OPEN_STATUSES.has(r.status))), [roles])
   const centerPos: Pos = containerSize ? { x: containerSize.w / 2, y: containerSize.h / 2 } : { x: 400, y: 300 }
 
   const visibleIds = useMemo(() => {
