@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Send, Loader2, Sparkles, Link2, Paperclip, Check, X, MapPin, BadgeCheck } from 'lucide-react'
+import { Bot, Send, Loader2, Sparkles, Link2, Paperclip, Check, X, MapPin, BadgeCheck, FileText, Globe } from 'lucide-react'
 import type { CandidateSource } from '@/lib/matching'
 
 export interface ProposedCandidateData {
@@ -124,14 +124,16 @@ export function ChatColumn({
   disabledReason?: string
   messages: ChatMessage[]
   busy: boolean
-  onSend: (text: string) => void
+  onSend: (text: string, file?: File) => void
   onAttachCv: (file: File) => void
   onConfirmProposal: (messageId: string) => Promise<void>
   onDiscardProposal: (messageId: string) => void
 }) {
   const [draft, setDraft] = useState('')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const generalFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -139,14 +141,21 @@ export function ChatColumn({
 
   function submit() {
     const text = draft.trim()
-    if (!text || disabled || busy) return
-    onSend(text)
+    if ((!text && !pendingFile) || disabled || busy) return
+    onSend(text, pendingFile ?? undefined)
     setDraft('')
+    setPendingFile(null)
   }
 
   function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) onAttachCv(file)
+    e.target.value = ''
+  }
+
+  function handleGeneralFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) setPendingFile(file)
     e.target.value = ''
   }
 
@@ -160,6 +169,11 @@ export function ChatColumn({
           <h2 className="text-sm font-semibold text-white">Recruiter chat</h2>
           <p className="text-[11px] text-[#7E97BA] truncate">{roleTitle ?? 'Select a role to start'}</p>
         </div>
+        {!disabled && (
+          <span title="Web search enabled" className="flex-shrink-0">
+            <Globe size={12} className="text-[#7E97BA]" />
+          </span>
+        )}
         {!disabled && <span className="deck-pulse flex-shrink-0" title="Live" />}
       </div>
 
@@ -230,7 +244,31 @@ export function ChatColumn({
                 <Paperclip size={11} /> Attach CV
               </button>
               <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" onChange={handleFilePick} className="hidden" />
+              <button
+                onClick={() => generalFileInputRef.current?.click()}
+                disabled={busy}
+                title="Attach any file (PDF, Word, Excel, image, text) for Claude to read"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-white/10 text-[#9FB6D6] hover:border-[#34D2FF]/40 hover:text-[#34D2FF] transition-colors disabled:opacity-50"
+              >
+                <FileText size={11} /> Attach file
+              </button>
+              <input
+                ref={generalFileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.json,.png,.jpg,.jpeg,.webp,.gif"
+                onChange={handleGeneralFilePick}
+                className="hidden"
+              />
             </div>
+            {pendingFile && (
+              <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-[#34D2FF]/25 text-[11px] text-[#C6D5EA] w-fit max-w-full">
+                <FileText size={11} className="text-[#34D2FF] flex-shrink-0" />
+                <span className="truncate">{pendingFile.name}</span>
+                <button onClick={() => setPendingFile(null)} className="text-[#7E97BA] hover:text-white flex-shrink-0">
+                  <X size={11} />
+                </button>
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <textarea
                 value={draft}
@@ -247,7 +285,7 @@ export function ChatColumn({
               />
               <button
                 onClick={submit}
-                disabled={!draft.trim() || busy}
+                disabled={(!draft.trim() && !pendingFile) || busy}
                 className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#34D2FF] text-[#04101F] hover:bg-[#4DB4FF] disabled:opacity-40 transition-colors flex-shrink-0"
               >
                 <Send size={14} />

@@ -2,11 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { matchCandidatesForRole, searchCandidatesByKeyword, type MatchResult } from '@/lib/matching'
+import { buildAttachmentBlock } from '@/lib/attachments'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const MODEL = 'claude-opus-5'
 const MAX_TOOL_STEPS = 5
+const HISTORY_ROW_LIMIT = 48
+
+const HOSTED_TOOLS: Anthropic.ToolUnion[] = [
+  { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
+  { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 5 },
+]
 
 const TOOLS = [
   {
@@ -80,34 +87,47 @@ const TOOLS = [
 function systemPrompt(roleTitle: string, clientName: string) {
   return `Ești asistentul de recrutare al NexDev, integrat direct în platforma internă de recrutare (nu ești Claude.ai generic — ești un coleg recruiter AI cu acces la baza de date reală a firmei).
 
-Rolul selectat acum în interfață: "${roleTitle}" pentru clientul ${clientName}. Toate uneltele tale (căutare, pipeline, adăugare) se referă implicit la acest rol, dacă utilizatorul nu specifică altceva.
+Rolul selectat acum în interfață: "${roleTitle}" pentru clientul ${clientName}. Toate uneltele tale de recrutare (căutare, pipeline, adăugare) se referă implicit la acest rol, dacă utilizatorul nu specifică altceva.
 
 Poți: căuta candidați din bază potriviți cu rubrica rolului curent, căuta candidați după cuvinte-cheie (skilluri) în toată baza, vedea cine e deja în pipeline pe rolul curent, adăuga un candidat anume (deja din bază) în pipeline, structura un candidat nou din text lipit (ex. profil LinkedIn copiat manual) pentru confirmare, și vedea brief-ul complet al rolului.
 
-NU poți naviga singur pe LinkedIn sau pe internet — nu ai un instrument de căutare live acolo. Dacă utilizatorul cere să "cauți pe LinkedIn", explică-i clar: nu poți naviga automat, dar dacă îți lipește (paste) textul unui profil găsit de el, îl structurezi imediat cu propose_new_candidate. Nu inventa niciodată rezultate LinkedIn.
+Ai acces la căutare live pe internet (web_search) și poți deschide/citi o pagină web anume (web_fetch) — folosește-le liber când utilizatorul întreabă ceva ce necesită informație curentă din afara bazei de date (despre o companie, o tehnologie, salarii de piață, etc.). Poți citi orice fișier pe care utilizatorul îl atașează în chat (PDF, Word, Excel, imagine, text) — conținutul lui apare direct în conversație, analizează-l și răspunde la ce a cerut despre el.
+
+NU poți naviga automat pe LinkedIn (nu ai login acolo) — dacă utilizatorul cere să "cauți pe LinkedIn", explică-i clar: nu poți naviga automat pe profiluri LinkedIn, dar dacă îți lipește (paste) textul unui profil găsit de el, îl structurezi imediat cu propose_new_candidate. Nu inventa niciodată rezultate LinkedIn.
+
+Ai memorie comună pe TOATE rolurile din acest workspace, nu doar pe cel curent — mai jos în conversație pot apărea mesaje din alte ferestre de rol, marcate cu "[Rol: ...]". Poți folosi acel context liber (ex. dacă utilizatorul întreabă "ce am discutat despre X la celălalt rol") — dar uneltele de recrutare tot operează implicit pe rolul curent, "${roleTitle}", exceptând cazul în care utilizatorul specifică alt rol explicit.
+
+Poți răspunde și la întrebări generale, în afara recrutării (ca un asistent obișnuit) — nu te limita strict la unelte, dar rămâi util și la obiect.
 
 Când utilizatorul lipește text despre o persoană (profil LinkedIn, CV ca text, descriere) și pare să vrea s-o adaugi, folosește propose_new_candidate — NU scrie datele extrase doar ca text în răspuns, pentru că interfața are nevoie de acel apel ca să afișeze cardul de confirmare cu butoane Add/Discard. Nu salvezi nimic direct — utilizatorul confirmă din interfață.
 
-Când o unealtă întoarce o listă de candidați, NU repeta toată lista în text — ea apare deja vizual într-o coloană dedicată din interfață. Doar rezumă pe scurt (câți ai găsit, eventual cei mai buni 1-2 cu un motiv scurt) și spune-i utilizatorului să se uite în coloana Candidates.
+Când o unealtă de recrutare întoarce o listă de candidați, NU repeta toată lista în text — ea apare deja vizual într-o coloană dedicată din interfață. Doar rezumă pe scurt (câți ai găsit, eventual cei mai buni 1-2 cu un motiv scurt) și spune-i utilizatorului să se uite în coloana Candidates.
 
 Răspunde concis (2-4 propoziții de obicei), în stilul unui coleg recruiter eficient, nu ca un asistent generic. Scrie în limba în care scrie utilizatorul (română sau engleză).`
 }
 
-interface HistoryTurn {
-  from: 'user' | 'system'
-  text: string
-}
-
 export async function POST(request: NextRequest) {
-  const { role_id, message, history } = (await request.json()) as {
-    role_id?: string
-    message?: string
-    history?: HistoryTurn[]
+  let role_id: string | undefined
+  let message: string | undefined
+  let attachmentFile: File | null = null
+
+  const contentType = request.headers.get('content-type') ?? ''
+  if (contentType.includes('multipart/form-data')) {
+    const formData = await request.formData()
+    role_id = (formData.get('role_id') as string) ?? undefined
+    message = (formData.get('message') as string) ?? undefined
+    const f = formData.get('file')
+    if (f instanceof File && f.size > 0) attachmentFile = f
+  } else {
+    const body = (await request.json()) as { role_id?: string; message?: string }
+    role_id = body.role_id
+    message = body.message
   }
 
-  if (!role_id || !message?.trim()) {
-    return NextResponse.json({ error: 'role_id and message are required' }, { status: 400 })
+  if (!role_id || (!message?.trim() && !attachmentFile)) {
+    return NextResponse.json({ error: 'role_id and message (or a file) are required' }, { status: 400 })
   }
+  const userMessageText = message?.trim() || `A atașat fișierul "${attachmentFile?.name}" fără mesaj — analizează-l și rezumă ce conține.`
 
   const supabase = await createClient()
 
@@ -125,12 +145,55 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientName = (Array.isArray(role.client) ? (role.client[0] as any)?.name : (role.client as any)?.name) ?? 'Unknown client'
 
-  const priorTurns = (history ?? []).slice(-8).map(h => ({
-    role: (h.from === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-    content: h.text,
-  }))
+  let attachmentNote = ''
+  const userContent: Anthropic.MessageParam['content'] = []
+  if (attachmentFile) {
+    const bytes = await attachmentFile.arrayBuffer()
+    const built = await buildAttachmentBlock(bytes, attachmentFile.name)
+    if ('error' in built) {
+      return NextResponse.json({ error: built.error }, { status: 400 })
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    userContent.push(built.block as any)
+    attachmentNote = `📎 ${attachmentFile.name}\n`
+  }
+  userContent.push({ type: 'text', text: userMessageText })
 
-  const messages: Anthropic.MessageParam[] = [...priorTurns, { role: 'user', content: message }]
+  // Memorie comună: istoricul recent din TOATE rolurile, nu doar cel curent,
+  // ca asistentul să aibă context indiferent din ce fereastră de rol i se scrie.
+  interface HistoryRow {
+    sender: string
+    text: string
+    role_id: string
+    roles: { title: string } | { title: string }[] | null
+  }
+  const { data: recentRows } = await supabase
+    .from('recruiter_chat_messages')
+    .select('sender, text, role_id, created_at, roles(title)')
+    .order('created_at', { ascending: false })
+    .limit(HISTORY_ROW_LIMIT)
+
+  const chronological = ((recentRows ?? []) as unknown as HistoryRow[]).slice().reverse()
+  const crossRoleTurns: Anthropic.MessageParam[] = chronological.map(r => {
+    const roleInfo = Array.isArray(r.roles) ? r.roles[0] : r.roles
+    const prefix = r.role_id !== role_id && roleInfo?.title ? `[Rol: ${roleInfo.title}] ` : ''
+    return { role: (r.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant', content: `${prefix}${r.text}` }
+  })
+
+  // Siguranță: garantează alternanță strictă user/assistant chiar dacă mesaje
+  // din 2 ferestre diferite s-au scris aproape simultan (merge rânduri consecutive de același rol).
+  const priorTurns: Anthropic.MessageParam[] = []
+  for (const turn of crossRoleTurns) {
+    const last = priorTurns[priorTurns.length - 1]
+    if (last && last.role === turn.role && typeof last.content === 'string' && typeof turn.content === 'string') {
+      last.content = `${last.content}\n${turn.content}`
+    } else {
+      priorTurns.push({ ...turn })
+    }
+  }
+  if (priorTurns[0]?.role === 'assistant') priorTurns.shift()
+
+  const messages: Anthropic.MessageParam[] = [...priorTurns, { role: 'user', content: userContent }]
 
   const foundCandidates: MatchResult[] = []
   const discoveredToPersist: MatchResult[] = []
@@ -261,7 +324,7 @@ export async function POST(request: NextRequest) {
         thinking: { type: 'adaptive' },
         output_config: { effort: 'high' },
         system: systemPrompt(roleTitle, clientName),
-        tools: TOOLS,
+        tools: [...HOSTED_TOOLS, ...TOOLS],
         messages,
       })
 
@@ -303,7 +366,7 @@ export async function POST(request: NextRequest) {
   const finalReply = reply || 'Done.'
 
   await supabase.from('recruiter_chat_messages').insert([
-    { role_id, sender: 'user', text: message },
+    { role_id, sender: 'user', text: `${attachmentNote}${userMessageText}` },
     { role_id, sender: 'system', text: finalReply },
   ])
 

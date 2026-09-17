@@ -72,7 +72,7 @@ export function RoleWorkspace({
   isClosed: boolean
   messages: ChatMessage[]
   busy: boolean
-  onSend: (text: string) => void
+  onSend: (text: string, file?: File) => void
   onAttachCv: (file: File) => void
   onConfirmProposal: (messageId: string) => Promise<void>
   onDiscardProposal: (messageId: string) => void

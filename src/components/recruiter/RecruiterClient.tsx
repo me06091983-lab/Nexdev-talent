@@ -141,17 +141,25 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     }))
   }
 
-  async function handleSend(roleId: string, text: string) {
+  async function handleSend(roleId: string, text: string, file?: File) {
     if (busyByRole[roleId]) return
-    const historyForRequest = (chatByRole[roleId] ?? []).filter(m => !m.proposal).map(m => ({ from: m.from, text: m.text }))
-    pushMessage(roleId, { from: 'user', text })
+    pushMessage(roleId, { from: 'user', text: file ? `📎 ${file.name}${text ? `\n${text}` : ''}` : text })
     setBusyByRole(prev => ({ ...prev, [roleId]: true }))
     try {
-      const res = await fetch('/api/recruiter/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_id: roleId, message: text, history: historyForRequest }),
-      })
+      let res: Response
+      if (file) {
+        const fd = new FormData()
+        fd.append('role_id', roleId)
+        fd.append('message', text)
+        fd.append('file', file)
+        res = await fetch('/api/recruiter/chat', { method: 'POST', body: fd })
+      } else {
+        res = await fetch('/api/recruiter/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role_id: roleId, message: text }),
+        })
+      }
       const data = await res.json()
       if (!res.ok) {
         pushMessage(roleId, { from: 'system', text: data.error ?? 'The recruiter assistant hit an error. Try again.' })
@@ -377,7 +385,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
             isClosed={!OPEN_STATUSES.has(role.status)}
             messages={chatByRole[id] ?? []}
             busy={!!busyByRole[id]}
-            onSend={text => handleSend(id, text)}
+            onSend={(text, file) => handleSend(id, text, file)}
             onAttachCv={file => handleAttachCv(id, file)}
             onConfirmProposal={mid => handleConfirmProposal(id, mid)}
             onDiscardProposal={mid => handleDiscardProposal(id, mid)}
