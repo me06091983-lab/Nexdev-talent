@@ -107,6 +107,24 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(130%);
   border: 1px solid rgba(160, 175, 190, 0.12);
 }
+/* The outer role window — more opaque than the satellite/chat panels
+   inside it, so the aurora background doesn't bleed through as much. */
+.window-panel {
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  border: 1px solid rgba(160, 175, 190, 0.16);
+}
+.resize-grip {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 0 40%, rgba(160,175,190,.55) 40% 46%, transparent 46% 60%, rgba(160,175,190,.55) 60% 66%, transparent 66% 80%, rgba(160,175,190,.55) 80% 86%, transparent 86%);
+}
 .deck-card {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(160, 175, 190, 0.12);
@@ -157,4 +175,53 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .deck-pulse, .deck-rise, .deck-materialize, .deck-blink { animation: none !important; opacity: 1; }
   .aurora-blob, .deck-star { animation: none !important; }
+}
+
+/* ---------- Water-bubble nodes (mind map) ---------- */
+.water-bubble {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255,255,255,.5), transparent 42%),
+    radial-gradient(circle at 70% 78%, rgba(120,160,255,.14), transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(160,200,255,.14), rgba(70,100,180,.16) 75%, rgba(40,60,120,.22) 100%);
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow:
+    inset -8px -10px 18px rgba(10,20,50,.35),
+    inset 6px 6px 14px rgba(255,255,255,.12),
+    0 10px 26px rgba(0,0,0,.35);
+}
+.water-bubble::before {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 34%;
+  height: 20%;
+  background: rgba(255,255,255,.6);
+  border-radius: 50%;
+  filter: blur(5px);
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+.water-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: 10%;
+  right: 16%;
+  width: 12%;
+  height: 8%;
+  background: rgba(255,255,255,.35);
+  border-radius: 50%;
+  filter: blur(3px);
+  pointer-events: none;
+}
+@keyframes water-wobble {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.025, 0.975); }
+}
+.water-wobble { animation: water-wobble 4.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .water-wobble { animation: none !important; }
 }

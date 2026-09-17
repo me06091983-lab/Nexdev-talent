@@ -43,7 +43,10 @@ function nowLabel() {
 
 export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   const [openRoles, setOpenRoles] = useState<string[]>([])
-  const [activeRoleId, setActiveRoleId] = useState<string | null>(null)
+  const [minimizedRoleIds, setMinimizedRoleIds] = useState<Set<string>>(new Set())
+  const [zIndices, setZIndices] = useState<Record<string, number>>({})
+  const zCounter = useRef(30)
+  const lastFocusedRef = useRef<string | null>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [submissionsByRole, setSubmissionsByRole] = useState<Record<string, any[]>>({})
@@ -96,15 +99,28 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return
-      setActiveRoleId(null)
+      const top = lastFocusedRef.current
+      if (top) minimizeRole(top)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  function bringToFront(id: string) {
+    zCounter.current += 1
+    lastFocusedRef.current = id
+    setZIndices(prev => ({ ...prev, [id]: zCounter.current }))
+  }
+
   function openRole(id: string) {
     setOpenRoles(prev => (prev.includes(id) ? prev : [...prev, id]))
-    setActiveRoleId(id)
+    setMinimizedRoleIds(prev => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    bringToFront(id)
   }
 
   function pushMessage(roleId: string, msg: Omit<ChatMessage, 'id' | 'time'>) {
@@ -319,15 +335,20 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
 
   function closeRole(id: string) {
     setOpenRoles(prev => prev.filter(x => x !== id))
-    setActiveRoleId(prev => (prev === id ? null : prev))
+    setMinimizedRoleIds(prev => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
   function minimizeRole(id: string) {
-    setActiveRoleId(prev => (prev === id ? null : prev))
+    setMinimizedRoleIds(prev => new Set(prev).add(id))
   }
 
   const minimizedRoles = openRoles
-    .filter(id => id !== activeRoleId)
+    .filter(id => minimizedRoleIds.has(id))
     .map(id => roles.find(r => r.id === id))
     .filter((r): r is RecruiterRole => !!r)
 
@@ -348,10 +369,11 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
           <RoleWindow
             key={id}
             role={role}
-            visible={id === activeRoleId}
+            visible={!minimizedRoleIds.has(id)}
+            zIndex={zIndices[id] ?? 30}
             onMinimize={() => minimizeRole(id)}
             onClose={() => closeRole(id)}
-            onFocus={() => setActiveRoleId(id)}
+            onFocus={() => bringToFront(id)}
             isClosed={!OPEN_STATUSES.has(role.status)}
             messages={chatByRole[id] ?? []}
             busy={!!busyByRole[id]}

@@ -89,13 +89,13 @@ function NodeBubble({
         <button
           onClick={() => !dragging && onOpen()}
           style={{ width: size, height: size }}
-          className={`relative rounded-full deck-panel flex items-center justify-center text-center px-2.5 border-2 ${ringClass} ${
+          className={`water-bubble water-wobble relative rounded-full flex items-center justify-center text-center px-3 border-2 ${ringClass} ${
             dim ? 'opacity-45 hover:opacity-80' : ''
           }`}
         >
           <span
-            className="relative font-medium text-white leading-snug pointer-events-none"
-            style={{ fontSize: size >= 110 ? 13 : 10.5 }}
+            className="relative font-semibold text-white leading-snug pointer-events-none"
+            style={{ fontSize: size >= 120 ? 16.5 : 13.5, textShadow: '0 1px 4px rgba(0,0,0,.5)' }}
           >
             {label}
           </span>
@@ -164,7 +164,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
           const idx = companies.findIndex(c => c.name === name)
           const angle = (idx / Math.max(companies.length, 1)) * 2 * Math.PI - Math.PI / 2
           const origin = next['start'] ?? centerPos
-          next[id] = overrides[id] ?? { x: origin.x + 220 * Math.cos(angle), y: origin.y + 220 * Math.sin(angle) }
+          next[id] = overrides[id] ?? { x: origin.x + 240 * Math.cos(angle), y: origin.y + 240 * Math.sin(angle) }
         } else if (id.startsWith('role:')) {
           const roleId = id.slice('role:'.length)
           const company = companies.find(c => c.roles.some(r => r.id === roleId))
@@ -173,7 +173,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
           const idx = siblings.findIndex(r => r.id === roleId)
           const angle = (idx / Math.max(siblings.length, 1)) * 2 * Math.PI
           const origin = next[companyId] ?? centerPos
-          next[id] = overrides[id] ?? { x: origin.x + 140 * Math.cos(angle), y: origin.y + 140 * Math.sin(angle) }
+          next[id] = overrides[id] ?? { x: origin.x + 165 * Math.cos(angle), y: origin.y + 165 * Math.sin(angle) }
         }
       }
       return changed ? next : prev
@@ -228,7 +228,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                     key={id}
                     id={id}
                     label="START"
-                    size={92}
+                    size={108}
                     dim={false}
                     ringClass="border-[#34D2FF]/70"
                     initial={pos}
@@ -245,7 +245,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                     key={id}
                     id={id}
                     label={shortLabel(name)}
-                    size={104}
+                    size={124}
                     dim={false}
                     ringClass="border-[#F5B45C]/60"
                     initial={pos}
@@ -270,7 +270,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                   key={id}
                   id={id}
                   label={shortLabel(role.title)}
-                  size={88}
+                  size={104}
                   dim={!OPEN_STATUSES.has(role.status)}
                   ringClass="border-[#5FE0A8]/60"
                   initial={pos}
