@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Plus, X } from 'lucide-react'
 import { RoleBubbleField } from './RoleBubbleField'
 import { RoleWorkspace } from './RoleWorkspace'
+import { HudDecoration } from './HudDecoration'
 import type { ChatMessage, ProposedCandidateData } from './ChatColumn'
 import type { MatchResult, CandidateSource } from '@/lib/matching'
 
@@ -286,6 +287,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     <div className="h-full deck-bg relative overflow-hidden">
       <div className="absolute inset-0 deck-grid pointer-events-none" />
       <div className="deck-rings" />
+      <HudDecoration />
 
       {openRoleIds.length === 0 && (
         <div className="relative h-full">

@@ -35,7 +35,7 @@ export function CandidateRow({
   }
 
   return (
-    <div className="deck-card deck-rise flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg">
+    <div className="deck-card deck-materialize flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg">
       <div className="flex items-center gap-2 min-w-0">
         <span className={`flex-none text-[10.5px] font-bold font-mono px-1.5 py-0.5 rounded-md border ${scoreClasses(item.score)}`}>
           {Math.round(item.score)}%
