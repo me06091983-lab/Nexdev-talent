@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { RoleListColumn } from './RoleListColumn'
-import { ChatColumn, type ChatMessage, type ProposedCandidateData } from './ChatColumn'
-import { CandidateResultsColumn, type ResultGroup } from './CandidateResultsColumn'
+import { AnimatePresence } from 'motion/react'
+import { RoleBubbleField } from './RoleBubbleField'
+import { RecruiterModal } from './RecruiterModal'
+import type { ChatMessage, ProposedCandidateData } from './ChatColumn'
+import type { ResultGroup } from './CandidateResultsColumn'
 import type { MatchResult } from '@/lib/matching'
 
 export interface RecruiterRole {
@@ -39,10 +41,7 @@ function nowLabel() {
 }
 
 export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
-  const [selectedId, setSelectedId] = useState<string | null>(() => {
-    const firstOpen = roles.find(r => OPEN_STATUSES.has(r.status))
-    return firstOpen?.id ?? roles[0]?.id ?? null
-  })
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [submissionsByRole, setSubmissionsByRole] = useState<Record<string, any[]>>({})
@@ -91,6 +90,15 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
           })
         }
       })
+  }, [selectedId])
+
+  useEffect(() => {
+    if (!selectedId) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedId(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [selectedId])
 
   function pushMessage(roleId: string, msg: Omit<ChatMessage, 'id' | 'time'>) {
@@ -285,30 +293,30 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   return (
     <div className="h-full deck-bg relative overflow-hidden">
       <div className="absolute inset-0 deck-grid pointer-events-none" />
-      <div
-        className="relative h-full grid"
-        style={{ gridTemplateColumns: '260px 1fr 300px', gridTemplateRows: 'minmax(0, 1fr)' }}
-      >
-        <RoleListColumn roles={roles} selectedId={selectedId} onSelect={setSelectedId} />
-        <ChatColumn
-          roleTitle={selectedRole?.title ?? null}
-          disabled={!selectedId || isClosed}
-          disabledReason={!selectedId ? 'Select a role on the left to start.' : 'This role is closed — chat actions are disabled here.'}
-          messages={(selectedId && chatByRole[selectedId]) || []}
-          busy={busy}
-          onSend={handleSend}
-          onAttachCv={handleAttachCv}
-          onConfirmProposal={handleConfirmProposal}
-          onDiscardProposal={handleDiscardProposal}
-        />
-        <CandidateResultsColumn
-          loading={loadingSubmissions}
-          groups={groups}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onAdd={handleAdd}
-        />
+      <div className="relative h-full">
+        <RoleBubbleField roles={roles} onSelect={setSelectedId} />
       </div>
+
+      <AnimatePresence>
+        {selectedRole && (
+          <RecruiterModal
+            role={selectedRole}
+            onClose={() => setSelectedId(null)}
+            isClosed={isClosed}
+            messages={(selectedId && chatByRole[selectedId]) || []}
+            busy={busy}
+            onSend={handleSend}
+            onAttachCv={handleAttachCv}
+            onConfirmProposal={handleConfirmProposal}
+            onDiscardProposal={handleDiscardProposal}
+            loadingCandidates={loadingSubmissions}
+            groups={groups}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onAdd={handleAdd}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
