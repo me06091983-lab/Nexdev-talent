@@ -5,7 +5,7 @@ import { matchCandidatesForRole, searchCandidatesByKeyword, type MatchResult } f
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = 'claude-opus-5'
 const MAX_TOOL_STEPS = 5
 
 const TOOLS = [
@@ -211,7 +211,9 @@ export async function POST(request: NextRequest) {
     for (let step = 0; step < MAX_TOOL_STEPS; step++) {
       const resp = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 1200,
+        max_tokens: 4000,
+        thinking: { type: 'adaptive' },
+        output_config: { effort: 'high' },
         system: systemPrompt(roleTitle, clientName),
         tools: TOOLS,
         messages,
