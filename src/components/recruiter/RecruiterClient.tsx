@@ -263,6 +263,37 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     await loadSubmissions(roleId)
   }
 
+  async function handleMoveToInterview(roleId: string, item: MatchResult) {
+    if (!item.candidate_id) return
+    try {
+      let submissionId = item.submission_id
+      if (!submissionId) {
+        const res = await fetch('/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ candidate_id: item.candidate_id, role_id: roleId, ai_score: item.score, ai_summary: item.summary }),
+        })
+        if (res.ok) {
+          submissionId = (await res.json()).id
+        } else if (res.status !== 409) {
+          const d = await res.json().catch(() => ({}))
+          pushMessage(roleId, { from: 'system', text: d.error ?? 'Could not move this candidate to interview.' })
+          return
+        }
+      }
+      if (submissionId) {
+        await fetch(`/api/submissions/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'interview' }),
+        })
+      }
+      await loadSubmissions(roleId)
+    } catch {
+      pushMessage(roleId, { from: 'system', text: 'Could not move this candidate to interview. Try again.' })
+    }
+  }
+
   function deriveCategories(roleId: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const submissions: any[] = submissionsByRole[roleId] || []
@@ -270,9 +301,12 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
     const discovered = (discoveredByRole[roleId] || []).filter(d => d.candidate_id && !pipelineIds.has(d.candidate_id))
     const bySource = (src: CandidateSource) =>
       discovered.filter(d => (d.source ?? 'database') === src).sort((a, b) => b.score - a.score)
+    const inInterview = submissions.filter(s => s.status === 'interview')
+    const notInInterview = submissions.filter(s => s.status !== 'interview')
 
     return {
-      submitted: submissions.map(submissionToResult).sort((a, b) => b.score - a.score),
+      submitted: notInInterview.map(submissionToResult).sort((a, b) => b.score - a.score),
+      interview: inInterview.map(submissionToResult).sort((a, b) => b.score - a.score),
       database: bySource('database'),
       linkedin: [...bySource('linkedin'), ...bySource('manual')].sort((a, b) => b.score - a.score),
       cvUpload: bySource('cv_upload'),
@@ -375,7 +409,9 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
                   database={cat.database}
                   linkedin={cat.linkedin}
                   cvUpload={cat.cvUpload}
+                  interview={cat.interview}
                   onAdd={item => handleAdd(id, item)}
+                  onMoveToInterview={item => handleMoveToInterview(id, item)}
                 />
               )
             })}
