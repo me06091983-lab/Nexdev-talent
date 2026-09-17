@@ -285,6 +285,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   return (
     <div className="h-full deck-bg relative overflow-hidden">
       <div className="absolute inset-0 deck-grid pointer-events-none" />
+      <div className="deck-rings" />
 
       {openRoleIds.length === 0 && (
         <div className="relative h-full">
@@ -314,7 +315,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
               <button
                 onClick={() => setPickerOpen(v => !v)}
                 title="Work on a second role in parallel"
-                className="deck-panel rounded-full w-8 h-8 flex items-center justify-center text-[#2AA3FF] hover:bg-white/5 transition-colors"
+                className="deck-panel rounded-full w-8 h-8 flex items-center justify-center text-[#34D2FF] hover:bg-white/5 transition-colors"
               >
                 <Plus size={14} />
               </button>

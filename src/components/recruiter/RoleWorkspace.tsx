@@ -1,13 +1,52 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ComponentProps } from 'react'
+import { Rnd } from 'react-rnd'
 import { Users, Database, Link2, FileText } from 'lucide-react'
 import { ChatColumn, type ChatMessage } from './ChatColumn'
 import { CandidatePanel, type PanelRect } from './CandidatePanel'
+import { usePersistentState } from '@/lib/usePersistentState'
 import type { MatchResult } from '@/lib/matching'
 import type { RecruiterRole } from './RecruiterClient'
 
-type PanelKey = 'submitted' | 'database' | 'linkedin' | 'cv_upload'
+type SatelliteKey = 'submitted' | 'database' | 'linkedin' | 'cv_upload'
+type PanelKey = 'chat' | SatelliteKey
+
+function ChatPanel({
+  role,
+  defaultRect,
+  zIndex,
+  onFocus,
+  ...chatProps
+}: {
+  role: RecruiterRole
+  defaultRect: PanelRect
+  zIndex: number
+  onFocus: () => void
+} & Omit<ComponentProps<typeof ChatColumn>, 'roleTitle'>) {
+  const [rect, setRect] = usePersistentState<PanelRect>(`recruiter-panel-${role.id}-chat`, defaultRect)
+
+  return (
+    <Rnd
+      position={{ x: rect.x, y: rect.y }}
+      size={{ width: rect.width, height: rect.height }}
+      onDragStop={(_e, d) => setRect(r => ({ ...r, x: d.x, y: d.y }))}
+      onResizeStop={(_e, _dir, ref, _delta, pos) =>
+        setRect({ x: pos.x, y: pos.y, width: parseInt(ref.style.width, 10), height: parseInt(ref.style.height, 10) })
+      }
+      onMouseDown={onFocus}
+      onTouchStart={onFocus}
+      bounds="parent"
+      dragHandleClassName="panel-drag-handle"
+      minWidth={300}
+      minHeight={340}
+      style={{ zIndex, boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
+      className="deck-panel rounded-3xl overflow-hidden flex flex-col"
+    >
+      <ChatColumn roleTitle={role.title} {...chatProps} />
+    </Rnd>
+  )
+}
 
 export function RoleWorkspace({
   role,
@@ -44,7 +83,7 @@ export function RoleWorkspace({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
-  const [front, setFront] = useState<PanelKey>('database')
+  const [front, setFront] = useState<PanelKey>('chat')
 
   useEffect(() => {
     const el = containerRef.current
@@ -60,7 +99,7 @@ export function RoleWorkspace({
   const chatW = variant === 'split' ? Math.min(300, size ? size.w - 260 : 300) : 440
   const chatH = size ? Math.min(variant === 'split' ? 520 : 620, size.h - 56) : 500
 
-  function defaultRects(w: number, h: number): Record<PanelKey, PanelRect> {
+  function defaultRects(w: number, h: number): Record<SatelliteKey, PanelRect> {
     const margin = 16
     // Space available beside the centered chat, so satellites default to a
     // position that doesn't start out underneath it (still user-resizable).
@@ -86,6 +125,20 @@ export function RoleWorkspace({
       <div ref={containerRef} className="absolute inset-0">
         {rects && (
           <>
+            <ChatPanel
+              role={role}
+              defaultRect={{ x: size!.w / 2 - chatW / 2, y: size!.h / 2 - chatH / 2, width: chatW, height: chatH }}
+              zIndex={front === 'chat' ? 20 : 15}
+              onFocus={() => setFront('chat')}
+              disabled={isClosed}
+              disabledReason="This role is closed — chat actions are disabled here."
+              messages={messages}
+              busy={busy}
+              onSend={onSend}
+              onAttachCv={onAttachCv}
+              onConfirmProposal={onConfirmProposal}
+              onDiscardProposal={onDiscardProposal}
+            />
             <CandidatePanel
               storageKey={`recruiter-panel-${role.id}-submitted`}
               defaultRect={rects.submitted}
@@ -117,7 +170,7 @@ export function RoleWorkspace({
               defaultRect={rects.linkedin}
               title="LinkedIn"
               icon={Link2}
-              accentClass="text-[#2AA3FF]"
+              accentClass="text-[#34D2FF]"
               items={linkedin}
               showAdd={!isClosed}
               onAdd={onAdd}
@@ -144,31 +197,6 @@ export function RoleWorkspace({
         {loadingCandidates && (
           <div className="absolute top-3 right-3 z-40 text-[10px] font-mono text-[#7E97BA]">loading…</div>
         )}
-
-        <div
-          className="absolute rounded-3xl overflow-hidden deck-panel"
-          style={{
-            left: '50%',
-            top: '50%',
-            width: chatW,
-            height: chatH,
-            transform: 'translate(-50%, -50%)',
-            boxShadow: '0 20px 60px rgba(0,0,0,.4)',
-            zIndex: 15,
-          }}
-        >
-          <ChatColumn
-            roleTitle={role.title}
-            disabled={isClosed}
-            disabledReason="This role is closed — chat actions are disabled here."
-            messages={messages}
-            busy={busy}
-            onSend={onSend}
-            onAttachCv={onAttachCv}
-            onConfirmProposal={onConfirmProposal}
-            onDiscardProposal={onDiscardProposal}
-          />
-        </div>
       </div>
     </div>
   )

@@ -13,7 +13,7 @@ const STATUS_RING: Record<string, string> = {
   active: 'border-[#5FE0A8]/70',
   on_hold: 'border-amber-400/70',
   closed: 'border-gray-500/40',
-  filled: 'border-[#2AA3FF]/60',
+  filled: 'border-[#34D2FF]/60',
 }
 
 function shortTitle(title: string) {

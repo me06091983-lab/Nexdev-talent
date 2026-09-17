@@ -63,7 +63,7 @@ function ProposalCard({
             )}
           </div>
         </div>
-        {proposal.source === 'linkedin' && <Link2 size={14} className="text-[#2AA3FF] flex-shrink-0 mt-0.5" />}
+        {proposal.source === 'linkedin' && <Link2 size={14} className="text-[#34D2FF] flex-shrink-0 mt-0.5" />}
       </div>
 
       {proposal.skills.length > 0 && (
@@ -83,7 +83,7 @@ function ProposalCard({
           <button
             onClick={confirm}
             disabled={busy}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium rounded-lg bg-[#2AA3FF] text-[#04101F] hover:bg-[#4DB4FF] transition-colors disabled:opacity-60"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium rounded-lg bg-[#34D2FF] text-[#04101F] hover:bg-[#4DB4FF] transition-colors disabled:opacity-60"
           >
             {busy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Add to database
           </button>
@@ -151,10 +151,10 @@ export function ChatColumn({
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col deck-panel">
-      <div className="flex-none px-4 py-4 border-b border-white/10 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-white/5 border border-[#2AA3FF]/30 flex items-center justify-center flex-shrink-0">
-          <Bot size={15} className="text-[#2AA3FF]" />
+    <div className="h-full min-h-0 flex flex-col">
+      <div className="panel-drag-handle flex-none px-4 py-4 border-b border-white/10 flex items-center gap-2 cursor-grab active:cursor-grabbing select-none">
+        <div className="w-7 h-7 rounded-lg bg-white/5 border border-[#34D2FF]/30 flex items-center justify-center flex-shrink-0">
+          <Bot size={15} className="text-[#34D2FF]" />
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-white">Recruiter chat</h2>
@@ -189,7 +189,7 @@ export function ChatColumn({
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
                   m.from === 'user'
-                    ? 'bg-[#2AA3FF] text-[#04101F] rounded-br-sm'
+                    ? 'bg-[#34D2FF] text-[#04101F] rounded-br-sm'
                     : 'deck-card text-[#EAF1FC] rounded-bl-sm'
                 }`}
               >
@@ -217,7 +217,7 @@ export function ChatColumn({
               <button
                 onClick={() => onSend('Find candidates in the database with match over 50%')}
                 disabled={busy}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg bg-[#2AA3FF]/10 text-[#2AA3FF] border border-[#2AA3FF]/25 hover:bg-[#2AA3FF]/15 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg bg-[#34D2FF]/10 text-[#34D2FF] border border-[#34D2FF]/25 hover:bg-[#34D2FF]/15 transition-colors disabled:opacity-50"
               >
                 <Sparkles size={11} /> Match from database
               </button>
@@ -225,7 +225,7 @@ export function ChatColumn({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={busy}
                 title="Attach a CV to parse and evaluate"
-                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-white/10 text-[#9FB6D6] hover:border-[#2AA3FF]/40 hover:text-[#2AA3FF] transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-white/10 text-[#9FB6D6] hover:border-[#34D2FF]/40 hover:text-[#34D2FF] transition-colors disabled:opacity-50"
               >
                 <Paperclip size={11} /> Attach CV
               </button>
@@ -243,12 +243,12 @@ export function ChatColumn({
                 }}
                 placeholder="Type a command, or paste a LinkedIn profile..."
                 rows={1}
-                className="flex-1 resize-none px-3 py-2.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-[#5E7699] focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/50 focus:border-[#2AA3FF]/40 max-h-24"
+                className="flex-1 resize-none px-3 py-2.5 rounded-xl text-[13px] bg-white/5 border border-white/10 text-white placeholder:text-[#5E7699] focus:outline-none focus:ring-2 focus:ring-[#34D2FF]/50 focus:border-[#34D2FF]/40 max-h-24"
               />
               <button
                 onClick={submit}
                 disabled={!draft.trim() || busy}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#2AA3FF] text-[#04101F] hover:bg-[#4DB4FF] disabled:opacity-40 transition-colors flex-shrink-0"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-[#34D2FF] text-[#04101F] hover:bg-[#4DB4FF] disabled:opacity-40 transition-colors flex-shrink-0"
               >
                 <Send size={14} />
               </button>

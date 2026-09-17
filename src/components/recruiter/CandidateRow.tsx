@@ -49,7 +49,7 @@ export function CandidateRow({
             disabled={adding || added}
             title={added ? 'Added to pipeline' : 'Add to pipeline'}
             className={`p-1 rounded-md transition-colors ${
-              added ? 'text-[#5FE0A8]' : 'text-[#7E97BA] hover:text-[#2AA3FF] hover:bg-[#2AA3FF]/10'
+              added ? 'text-[#5FE0A8]' : 'text-[#7E97BA] hover:text-[#34D2FF] hover:bg-[#34D2FF]/10'
             }`}
           >
             {adding ? <Loader2 size={12} className="animate-spin" /> : added ? <Check size={12} /> : <Plus size={12} />}
@@ -61,7 +61,7 @@ export function CandidateRow({
             target="_blank"
             rel="noopener noreferrer"
             title="View profile in Candidates"
-            className="p-1 text-[#7E97BA] hover:text-[#2AA3FF] hover:bg-[#2AA3FF]/10 rounded-md transition-colors"
+            className="p-1 text-[#7E97BA] hover:text-[#34D2FF] hover:bg-[#34D2FF]/10 rounded-md transition-colors"
           >
             <ExternalLink size={12} />
           </Link>
