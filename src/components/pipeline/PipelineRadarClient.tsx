@@ -101,12 +101,14 @@ function CandidateCard({
   submission,
   onEdit,
   onDelete,
+  readOnly = false,
 }: {
   submission: RadarSubmission
   onEdit: () => void
   onDelete: () => void
+  readOnly?: boolean
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: submission.id })
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: submission.id, disabled: readOnly })
   const style = transform ? { transform: CSS.Transform.toString(transform) } : undefined
   const c = submission.candidate
   const allInterviews = submission.interviews
@@ -127,7 +129,8 @@ function CandidateCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing select-none transition-shadow hover:shadow-md group',
+        'bg-white rounded-xl p-3 shadow-sm border border-gray-100 select-none transition-shadow hover:shadow-md group',
+        readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-20',
       )}
     >
@@ -217,15 +220,17 @@ function CandidateCard({
 
       {/* Hover actions */}
       <div className="mt-1.5 flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onPointerDown={e => e.stopPropagation()}
-          onClick={e => { e.stopPropagation(); onEdit() }}
-          className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
-          title="Status / Feedback"
-        >
-          <MessageSquare size={12} />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onEdit() }}
+            className="p-1 text-gray-300 hover:text-[#2AA3FF] transition-colors rounded"
+            title="Status / Feedback"
+          >
+            <MessageSquare size={12} />
+          </button>
+        )}
         {c && (
           <Link
             href={`/candidates/${c.id}`}
@@ -274,15 +279,17 @@ function CandidateCard({
         >
           <ExternalLink size={12} />
         </Link>
-        <button
-          type="button"
-          onPointerDown={e => e.stopPropagation()}
-          onClick={e => { e.stopPropagation(); onDelete() }}
-          className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
-          title="Remove from pipeline"
-        >
-          <Trash2 size={12} />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            className="p-1 text-gray-300 hover:text-red-400 transition-colors rounded"
+            title="Remove from pipeline"
+          >
+            <Trash2 size={12} />
+          </button>
+        )}
       </div>
     </div>
   )
@@ -311,13 +318,15 @@ function KanbanColumn({
   items,
   onCardEdit,
   onCardDelete,
+  readOnly = false,
 }: {
   status: typeof PIPELINE_STATUSES[number]
   items: RadarSubmission[]
   onCardEdit: (s: RadarSubmission) => void
   onCardDelete: (id: string) => void
+  readOnly?: boolean
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status.value })
+  const { setNodeRef, isOver } = useDroppable({ id: status.value, disabled: readOnly })
 
   return (
     <div className="flex-shrink-0 w-[210px] flex flex-col">
@@ -334,7 +343,7 @@ function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           'flex-1 min-h-[400px] p-2 space-y-2 rounded-b-xl border transition-all duration-150',
-          isOver
+          !readOnly && isOver
             ? 'border-[#2AA3FF] border-dashed bg-blue-50/70 scale-[1.01]'
             : 'border-gray-200 bg-white/30',
         )}
@@ -345,6 +354,7 @@ function KanbanColumn({
             submission={item}
             onEdit={() => onCardEdit(item)}
             onDelete={() => onCardDelete(item.id)}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -354,7 +364,7 @@ function KanbanColumn({
 
 // ─── Board ───────────────────────────────────────────────────────────────────
 
-export function PipelineRadarClient({ submissions: initialSubmissions }: { submissions: RadarSubmission[] }) {
+export function PipelineRadarClient({ submissions: initialSubmissions, readOnlyStatuses = [] }: { submissions: RadarSubmission[]; readOnlyStatuses?: PipelineStatus[] }) {
   const router = useRouter()
   const [items, setItems] = useState<RadarSubmission[]>(initialSubmissions)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -381,6 +391,7 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
     const submission = items.find(s => s.id === active.id)
     const newStatus = over.id as PipelineStatus
     if (!submission || submission.status === newStatus) return
+    if (readOnlyStatuses.includes(submission.status as PipelineStatus) || readOnlyStatuses.includes(newStatus)) return
 
     setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: newStatus } : s))
 
@@ -469,6 +480,7 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
                     items={items.filter(s => s.status === status.value)}
                     onCardEdit={setSelected}
                     onCardDelete={handleDelete}
+                    readOnly={readOnlyStatuses.includes(status.value)}
                   />
                 ))}
               </div>
@@ -482,7 +494,7 @@ export function PipelineRadarClient({ submissions: initialSubmissions }: { submi
         <RadarCalendarView submissions={items} onStatusSaved={handleStatusSaved} />
       )}
 
-      {view === 'kanban' && selected && (
+      {view === 'kanban' && selected && !readOnlyStatuses.includes(selected.status as PipelineStatus) && (
         <StatusModal
           submission={selected as unknown as KanbanSubmission}
           onClose={() => setSelected(null)}

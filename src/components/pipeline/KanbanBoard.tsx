@@ -395,11 +395,13 @@ export function KanbanBoard({
   onRefresh,
   partners = [],
   readOnly = false,
+  readOnlyStatuses = [],
 }: {
   submissions: Submission[]
   onRefresh: () => void
   partners?: PartnerOption[]
   readOnly?: boolean
+  readOnlyStatuses?: PipelineStatus[]
 }) {
   const [items, setItems] = useState<Submission[]>(initialSubmissions)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -417,6 +419,10 @@ export function KanbanBoard({
 
   const activeItem = activeId ? items.find(s => s.id === activeId) ?? null : null
 
+  function isStatusReadOnly(status: PipelineStatus) {
+    return readOnly || readOnlyStatuses.includes(status)
+  }
+
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string)
   }
@@ -427,6 +433,7 @@ export function KanbanBoard({
     const submission = items.find(s => s.id === active.id)
     const newStatus = over.id as PipelineStatus
     if (!submission || submission.status === newStatus) return
+    if (isStatusReadOnly(submission.status) || isStatusReadOnly(newStatus)) return
 
     setItems(prev => prev.map(s => s.id === active.id ? { ...s, status: newStatus } : s))
 
@@ -496,7 +503,7 @@ export function KanbanBoard({
                   onCardEdit={setSelected}
                   onCardDelete={handleDelete}
                   onCardContract={setContracting}
-                  readOnly={readOnly}
+                  readOnly={isStatusReadOnly(status.value)}
                 />
               ))}
             </div>
@@ -507,7 +514,7 @@ export function KanbanBoard({
         )}
       </div>
 
-      {!readOnly && selected && (
+      {selected && !isStatusReadOnly(selected.status) && (
         <StatusModal
           submission={selected}
           onClose={() => setSelected(null)}
@@ -515,7 +522,7 @@ export function KanbanBoard({
         />
       )}
 
-      {!readOnly && contracting && (
+      {contracting && !isStatusReadOnly(contracting.status) && (
         <ContractModal
           submission={contracting}
           contractId={contracting.contract_id}

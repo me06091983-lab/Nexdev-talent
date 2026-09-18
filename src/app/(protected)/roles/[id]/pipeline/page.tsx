@@ -8,6 +8,9 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
   const { id } = await params
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  const userRole = (user?.app_metadata?.role as string) ?? 'recruiter'
+
   const [{ data: role }, { data: subs }, { data: rawPartners }] = await Promise.all([
     supabase
       .from('roles')
@@ -94,7 +97,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
-      <RolePipelineClient role={typedRole} initialSubmissions={submissions} partners={partners} />
+      <RolePipelineClient role={typedRole} initialSubmissions={submissions} partners={partners} userRole={userRole} />
     </div>
   )
 }

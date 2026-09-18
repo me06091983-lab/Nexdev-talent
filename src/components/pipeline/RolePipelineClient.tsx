@@ -23,6 +23,7 @@ interface Props {
   role: Role
   initialSubmissions: Submission[]
   partners: PartnerOption[]
+  userRole: string
 }
 
 type FxRates = Record<string, number>
@@ -41,7 +42,7 @@ function calcEurEquivalents(
   return { eurDay: Math.round(eurDay), eurHour: Math.round(eurHour) }
 }
 
-export function RolePipelineClient({ role, initialSubmissions, partners }: Props) {
+export function RolePipelineClient({ role, initialSubmissions, partners, userRole }: Props) {
   const router = useRouter()
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
   const [showAdd, setShowAdd] = useState(false)
@@ -194,6 +195,7 @@ export function RolePipelineClient({ role, initialSubmissions, partners }: Props
             onRefresh={refresh}
             partners={partners}
             readOnly={isClosed}
+            readOnlyStatuses={userRole === 'admin' ? [] : ['offer']}
           />
         </div>
       </div>

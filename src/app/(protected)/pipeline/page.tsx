@@ -6,6 +6,9 @@ import type { RadarSubmission } from '@/components/pipeline/PipelineRadarClient'
 export default async function PipelinePage() {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  const userRole = (user?.app_metadata?.role as string) ?? 'recruiter'
+
   const { data: rawSubs } = await supabase
     .from('submissions')
     .select(`
@@ -87,7 +90,7 @@ export default async function PipelinePage() {
           </p>
         </div>
       ) : (
-        <PipelineRadarClient submissions={submissions} />
+        <PipelineRadarClient submissions={submissions} readOnlyStatuses={userRole === 'admin' ? [] : ['offer']} />
       )}
     </div>
   )
