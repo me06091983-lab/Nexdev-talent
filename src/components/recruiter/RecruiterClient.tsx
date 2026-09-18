@@ -21,8 +21,16 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
   const [openRoles, setOpenRoles] = useState<string[]>([])
   const [minimizedRoleIds, setMinimizedRoleIds] = useState<Set<string>>(new Set())
   const [zIndices, setZIndices] = useState<Record<string, number>>({})
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const zCounter = useRef(30)
   const lastFocusedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setCurrentUserId(data?.id ?? null))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -92,6 +100,7 @@ export function RecruiterClient({ roles }: { roles: RecruiterRole[] }) {
             onClose={() => closeRole(id)}
             onFocus={() => bringToFront(id)}
             isClosed={!OPEN_STATUSES.has(role.status)}
+            currentUserId={currentUserId}
           />
         )
       })}

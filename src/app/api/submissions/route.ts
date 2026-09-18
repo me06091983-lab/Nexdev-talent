@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
-  const roleId = new URL(request.url).searchParams.get('role_id')
+  const { searchParams } = new URL(request.url)
+  const roleId = searchParams.get('role_id')
+  const submittedBy = searchParams.get('submitted_by')
 
   let query = supabase
     .from('submissions')
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: true })
 
   if (roleId) query = query.eq('role_id', roleId)
+  if (submittedBy) query = query.eq('submitted_by', submittedBy)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -41,6 +44,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { candidate_id, role_id, note, submission_rate, submission_currency, submission_rate_type, ai_score, ai_summary } = await request.json()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // Check for existing submission
   const { data: anyExisting } = await supabase
@@ -65,6 +69,7 @@ export async function POST(request: NextRequest) {
       submission_rate_type: submission_rate_type ?? 'daily',
       ai_score: ai_score ?? null,
       ai_summary: ai_summary ?? null,
+      submitted_by: user?.id ?? null,
     })
     .select()
     .single()

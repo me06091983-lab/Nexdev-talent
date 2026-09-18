@@ -35,7 +35,7 @@ function SkillPill({ name }: { name: string }) {
   )
 }
 
-export function RoleWorkspace({ role, isClosed }: { role: RecruiterRole; isClosed: boolean }) {
+export function RoleWorkspace({ role, isClosed, currentUserId }: { role: RecruiterRole; isClosed: boolean; currentUserId: string | null }) {
   const [detail, setDetail] = useState<RoleDetail | null>(null)
   const [submissions, setSubmissions] = useState<RoleSubmission[]>([])
   const [criteria, setCriteria] = useState<RoleCriterion[]>([])
@@ -55,9 +55,10 @@ export function RoleWorkspace({ role, isClosed }: { role: RecruiterRole; isClose
   }, [role.id])
 
   const loadSubmissions = useCallback(async () => {
-    const res = await fetch(`/api/submissions?role_id=${role.id}`)
+    if (!currentUserId) { setSubmissions([]); return }
+    const res = await fetch(`/api/submissions?role_id=${role.id}&submitted_by=${currentUserId}`)
     if (res.ok) setSubmissions(await res.json())
-  }, [role.id])
+  }, [role.id, currentUserId])
 
   const loadRubixView = useCallback(async () => {
     const res = await fetch(`/api/roles/${role.id}/rubix-view`)
