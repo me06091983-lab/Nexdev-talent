@@ -15,6 +15,8 @@ interface RoleDetail {
   location: string | null
   collaboration_type: string | null
   fieldglass_id: string | null
+  recruiter_rate: number | null
+  rate_currency: string | null
   required_skills: Skill[]
   preferred_skills: Skill[]
 }
@@ -160,6 +162,11 @@ export function RoleWorkspace({ role, isClosed, currentUserId }: { role: Recruit
                   {STATUS_LABEL[role.status] ?? role.status}
                 </span>
               </div>
+              {detail?.recruiter_rate != null && (
+                <p className="text-[11.5px] text-[#5FE0A8] font-semibold mt-2">
+                  Recruiter rate: {detail.recruiter_rate} {detail.rate_currency ?? ''}
+                </p>
+              )}
             </div>
 
             <section>
