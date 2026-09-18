@@ -49,6 +49,8 @@ const mainNavGroups = [
   },
 ]
 
+const RECRUITER_ALLOWED_HREFS = ['/recruiter', '/candidates', '/roles']
+
 const adminNavGroup = {
   label: 'Admin',
   items: [
@@ -59,6 +61,12 @@ const adminNavGroup = {
 export function Sidebar({ role, email }: { role: string; email: string }) {
   const pathname = usePathname()
   const isAdmin = role === 'admin'
+
+  const visibleNavGroups = isAdmin
+    ? mainNavGroups
+    : mainNavGroups
+        .map((group) => ({ ...group, items: group.items.filter((item) => RECRUITER_ALLOWED_HREFS.includes(item.href)) }))
+        .filter((group) => group.items.length > 0)
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 w-64 glass-dark flex flex-col">
@@ -76,7 +84,7 @@ export function Sidebar({ role, email }: { role: string; email: string }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-1">
-        {mainNavGroups.map((group, gi) => (
+        {visibleNavGroups.map((group, gi) => (
           <div key={gi} className={gi > 0 ? 'pt-3' : ''}>
             {group.label && (
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
