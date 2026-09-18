@@ -12,6 +12,23 @@ interface Pos {
   y: number
 }
 
+function nodeColor(id: string) {
+  if (id === 'start') return '#34D2FF'
+  if (id.startsWith('company:')) return '#F5B45C'
+  return '#5FE0A8'
+}
+
+/** A gentle quadratic-bezier arc between two nodes instead of a flat line. */
+function curvedPath(p1: Pos, p2: Pos) {
+  const dx = p2.x - p1.x
+  const dy = p2.y - p1.y
+  const dist = Math.hypot(dx, dy) || 1
+  const offset = Math.min(46, dist * 0.16)
+  const mx = (p1.x + p2.x) / 2 + (-dy / dist) * offset
+  const my = (p1.y + p2.y) / 2 + (dx / dist) * offset
+  return `M ${p1.x} ${p1.y} Q ${mx} ${my} ${p2.x} ${p2.y}`
+}
+
 function shortLabel(s: string, maxWords = 3) {
   const words = s.split(' ')
   if (words.length <= maxWords) return s
@@ -186,6 +203,15 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
     setOverrides(prev => ({ ...prev, [id]: pos }))
   }
 
+  const reduceMotion = useReducedMotion()
+  const connections = useMemo(
+    () =>
+      visibleIds
+        .filter(v => v.parentId && positions[v.parentId] && positions[v.id])
+        .map(v => ({ id: v.id, parentId: v.parentId as string, p1: positions[v.parentId as string], p2: positions[v.id] })),
+    [visibleIds, positions]
+  )
+
   return (
     <div ref={containerRef} className="h-full min-h-0 relative overflow-hidden">
       {!started && ready && (
@@ -198,21 +224,35 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
       {ready && (
         <>
           <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%">
-            {visibleIds.map(({ id, parentId }) => {
-              if (!parentId) return null
-              const p1 = positions[parentId]
-              const p2 = positions[id]
-              if (!p1 || !p2) return null
+            <defs>
+              {connections.map(({ id, parentId, p1, p2 }, i) => (
+                <linearGradient key={id} id={`link-${i}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor={nodeColor(parentId)} stopOpacity={0.55} />
+                  <stop offset="100%" stopColor={nodeColor(id)} stopOpacity={0.55} />
+                </linearGradient>
+              ))}
+            </defs>
+            {connections.map(({ id, p1, p2 }, i) => {
+              const path = curvedPath(p1, p2)
               return (
-                <line
-                  key={id}
-                  x1={p1.x}
-                  y1={p1.y}
-                  x2={p2.x}
-                  y2={p2.y}
-                  stroke="rgba(52,210,255,.25)"
-                  strokeWidth={1.5}
-                />
+                <g key={id}>
+                  {/* soft base arc */}
+                  <path d={path} fill="none" stroke={`url(#link-${i})`} strokeWidth={1.5} strokeLinecap="round" />
+                  {/* bright travelling pulse on top, suggesting a live connection */}
+                  {!reduceMotion && (
+                    <motion.path
+                      d={path}
+                      fill="none"
+                      stroke={`url(#link-${i})`}
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeDasharray="1 22"
+                      initial={{ strokeDashoffset: 0 }}
+                      animate={{ strokeDashoffset: -23 }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'linear' }}
+                    />
+                  )}
+                </g>
               )
             })}
           </svg>
