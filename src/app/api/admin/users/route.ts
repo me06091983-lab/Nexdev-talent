@@ -25,6 +25,7 @@ export async function GET() {
     first_name: (u.user_metadata?.first_name as string) ?? '',
     last_name:  (u.user_metadata?.last_name  as string) ?? '',
     phone:      (u.user_metadata?.phone       as string) ?? '',
+    partner_id: (u.user_metadata?.partner_id  as string) ?? null,
     role:       (u.app_metadata?.role         as string) ?? 'recruiter',
     enabled:    !u.banned_until || new Date(u.banned_until) <= new Date(),
     created_at:      u.created_at,
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, password, role, first_name = '', last_name = '', phone = '', enabled = true } = body
+  const { email, password, role, first_name = '', last_name = '', phone = '', partner_id = null, enabled = true } = body
 
   if (!email || !password || !role) {
     return NextResponse.json({ error: 'Email, password and role are required.' }, { status: 400 })
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
-    user_metadata:  { first_name, last_name, phone },
+    user_metadata:  { first_name, last_name, phone, partner_id: partner_id || null },
     app_metadata:   { role },
     email_confirm:  true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

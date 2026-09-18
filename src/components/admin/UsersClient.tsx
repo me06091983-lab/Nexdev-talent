@@ -10,10 +10,22 @@ interface UserRow {
   first_name: string
   last_name: string
   phone: string
+  partner_id: string | null
   role: 'admin' | 'recruiter'
   enabled: boolean
   created_at: string
   last_sign_in_at: string | null
+}
+
+interface PartnerOption {
+  id: string
+  name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+}
+
+function partnerLabel(p: PartnerOption) {
+  return p.name?.trim() || [p.first_name, p.last_name].filter(Boolean).join(' ')
 }
 
 interface FormState {
@@ -24,6 +36,7 @@ interface FormState {
   password: string
   confirm_password: string
   role: 'admin' | 'recruiter'
+  partner_id: string
   enabled: boolean
 }
 
@@ -31,7 +44,7 @@ function emptyForm(): FormState {
   return {
     first_name: '', last_name: '', phone: '', email: '',
     password: '', confirm_password: '',
-    role: 'recruiter', enabled: true,
+    role: 'recruiter', partner_id: '', enabled: true,
   }
 }
 
@@ -50,6 +63,7 @@ function displayName(u: UserRow) {
 
 export function UsersClient({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers]       = useState<UserRow[]>([])
+  const [partners, setPartners] = useState<PartnerOption[]>([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId]   = useState<string | null>(null)
@@ -72,6 +86,9 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
   }, [])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
+  useEffect(() => {
+    fetch('/api/partners').then(r => r.ok ? r.json() : []).then(setPartners).catch(() => {})
+  }, [])
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm(p => ({ ...p, [k]: v }))
@@ -92,7 +109,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
     setForm({
       first_name: u.first_name, last_name: u.last_name, phone: u.phone,
       email: u.email, password: '', confirm_password: '',
-      role: u.role, enabled: u.enabled,
+      role: u.role, partner_id: u.partner_id ?? '', enabled: u.enabled,
     })
     setFormError('')
     setShowPass(false)
@@ -130,6 +147,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
           last_name:  form.last_name,
           phone:      form.phone,
           role:       form.role,
+          partner_id: form.role === 'recruiter' ? (form.partner_id || null) : null,
           enabled:    form.enabled,
         }
         if (form.password) body.password = form.password
@@ -151,6 +169,7 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
             last_name:  form.last_name,
             phone:      form.phone,
             role:       form.role,
+            partner_id: form.role === 'recruiter' ? (form.partner_id || null) : null,
             enabled:    form.enabled,
           }),
         })
@@ -361,6 +380,26 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
             </div>
           </div>
 
+          {/* Partner — only relevant for recruiter accounts */}
+          {form.role === 'recruiter' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Partner</label>
+              <select
+                value={form.partner_id}
+                onChange={e => set('partner_id', e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2AA3FF]/30"
+              >
+                <option value="">— None —</option>
+                {partners.map(p => (
+                  <option key={p.id} value={p.id}>{partnerLabel(p)}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">
+                When set, candidates this recruiter adds will automatically have Source/Partner locked to this partner.
+              </p>
+            </div>
+          )}
+
           {/* Enable / Disable */}
           <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
             <div>
@@ -466,6 +505,11 @@ export function UsersClient({ currentUserId }: { currentUserId: string }) {
                       {u.role === 'admin' ? <ShieldCheck size={11} /> : <UserRound size={11} />}
                       {u.role === 'admin' ? 'Admin' : 'Recruiter'}
                     </span>
+                    {u.role === 'recruiter' && u.partner_id && (
+                      <div className="text-[10px] text-gray-400 mt-1">
+                        Partner: {partnerLabel(partners.find(p => p.id === u.partner_id) ?? { id: u.partner_id })}
+                      </div>
+                    )}
                   </td>
 
                   <td className="px-4 py-3 text-center">

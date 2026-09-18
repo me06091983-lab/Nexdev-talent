@@ -4,43 +4,7 @@ import { useEffect, useState } from 'react'
 import { Rnd } from 'react-rnd'
 import { X, Loader2 } from 'lucide-react'
 import { CandidateForm, type ParsedCvData } from '@/components/candidates/CandidateForm'
-
-interface Partner {
-  id: string
-  name?: string
-  first_name?: string
-  last_name: string
-}
-
-function partnerLabel(p: Partner) {
-  return p.name ? p.name : [p.first_name, p.last_name].filter(Boolean).join(' ')
-}
-
-async function resolvePartnerFromAccount(): Promise<{ id: string; label: string } | undefined> {
-  try {
-    const meRes = await fetch('/api/auth/me')
-    if (!meRes.ok) return undefined
-    const me = await meRes.json()
-    const partnerName = (me.partner_name as string | null)?.trim()
-    if (!partnerName) return undefined
-
-    const listRes = await fetch('/api/partners')
-    const partners: Partner[] = listRes.ok ? await listRes.json() : []
-    const existing = partners.find(p => partnerLabel(p).toLowerCase() === partnerName.toLowerCase())
-    if (existing) return { id: existing.id, label: partnerLabel(existing) }
-
-    const createRes = await fetch('/api/partners', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ last_name: partnerName }),
-    })
-    if (!createRes.ok) return undefined
-    const created: Partner = await createRes.json()
-    return { id: created.id, label: partnerLabel(created) }
-  } catch {
-    return undefined
-  }
-}
+import { resolveLockedPartner, type LockedPartner } from '@/lib/resolveLockedPartner'
 
 export function AddCandidateWindow({
   cvFilePath,
@@ -54,13 +18,13 @@ export function AddCandidateWindow({
   onSaved: (candidate: { id: string; first_name: string; last_name: string }) => void
 }) {
   const [rect, setRect] = useState({ x: 40, y: 24, width: 880, height: 680 })
-  const [lockedPartner, setLockedPartner] = useState<{ id: string; label: string } | undefined>(undefined)
+  const [lockedPartner, setLockedPartner] = useState<LockedPartner | undefined>(undefined)
   const [resolvingPartner, setResolvingPartner] = useState(true)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    resolvePartnerFromAccount().then(p => {
+    resolveLockedPartner().then(p => {
       if (!cancelled) {
         setLockedPartner(p)
         setResolvingPartner(false)

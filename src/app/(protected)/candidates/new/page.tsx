@@ -1,13 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CandidateForm } from '@/components/candidates/CandidateForm'
+import { resolveLockedPartner, type LockedPartner } from '@/lib/resolveLockedPartner'
 import { Loader2 } from 'lucide-react'
 
 export default function NewCandidatePage() {
   const [saving, setSaving] = useState(false)
+  const [lockedPartner, setLockedPartner] = useState<LockedPartner | undefined>(undefined)
+  const [resolvingPartner, setResolvingPartner] = useState(true)
   const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    resolveLockedPartner().then(p => {
+      if (!cancelled) {
+        setLockedPartner(p)
+        setResolvingPartner(false)
+      }
+    })
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div>
@@ -37,7 +51,13 @@ export default function NewCandidatePage() {
         </div>
       </div>
       <div className="glass rounded-2xl p-8">
-        <CandidateForm onSavingChange={setSaving} />
+        {resolvingPartner ? (
+          <div className="flex items-center gap-2 text-sm text-gray-400 py-8 justify-center">
+            <Loader2 size={14} className="animate-spin" /> Loading...
+          </div>
+        ) : (
+          <CandidateForm onSavingChange={setSaving} lockedPartner={lockedPartner} />
+        )}
       </div>
     </div>
   )

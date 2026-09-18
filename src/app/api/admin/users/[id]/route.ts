@@ -34,11 +34,12 @@ export async function PATCH(
     updates.password = body.password
   }
 
-  // Name / phone go into user_metadata (Supabase merges, doesn't replace)
-  const metaFields: Record<string, string> = {}
+  // Name / phone / partner go into user_metadata (Supabase merges, doesn't replace)
+  const metaFields: Record<string, string | null> = {}
   if (body.first_name !== undefined) metaFields.first_name = body.first_name
   if (body.last_name  !== undefined) metaFields.last_name  = body.last_name
   if (body.phone      !== undefined) metaFields.phone      = body.phone
+  if (body.partner_id !== undefined) metaFields.partner_id = body.partner_id || null
   if (Object.keys(metaFields).length > 0) updates.user_metadata = metaFields
 
   // Enable / disable via ban_duration

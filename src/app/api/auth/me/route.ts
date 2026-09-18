@@ -9,6 +9,6 @@ export async function GET() {
   return NextResponse.json({
     id: user.id,
     email: user.email ?? null,
-    partner_name: (user.user_metadata?.partner_name as string | undefined) ?? null,
+    partner_id: (user.user_metadata?.partner_id as string | undefined) ?? null,
   })
 }
