@@ -53,7 +53,9 @@ function NodeBubble({
   ringClass,
   initial,
   index,
+  constraintsRef,
   onOpen,
+  onDrag,
   onMoved,
 }: {
   id: string
@@ -63,7 +65,9 @@ function NodeBubble({
   ringClass: string
   initial: Pos
   index: number
+  constraintsRef: React.RefObject<HTMLDivElement | null>
   onOpen: () => void
+  onDrag: (pos: Pos) => void
   onMoved: (pos: Pos) => void
 }) {
   const reduceMotion = useReducedMotion()
@@ -83,18 +87,25 @@ function NodeBubble({
       drag
       dragMomentum
       dragElastic={0.12}
+      dragConstraints={constraintsRef}
       style={{ position: 'absolute', left: -size / 2, top: -size / 2, x, y, width: size, height: size }}
       onDragStart={() => setDragging(true)}
+      onDrag={() => onDrag({ x: x.get(), y: y.get() })}
       onDragEnd={handleDragEnd}
       initial={{ opacity: 0, scale: 0.35 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.35 }}
       transition={{ type: 'spring', bounce: 0.3, duration: 0.4, delay: index * 0.045 }}
-      whileHover={dragging ? undefined : { scale: 1.07 }}
-      whileTap={{ scale: 0.94 }}
       className="cursor-grab active:cursor-grabbing"
     >
+      {/*
+        The hover scale-up lives on this inner wrapper, not the outer
+        draggable box above — scaling the outer box would inflate the
+        rendered size framer-motion measures for `dragConstraints`,
+        leaving a residual gap once it un-scales back to 1 mid-drag.
+      */}
       <motion.div
+        whileHover={dragging ? undefined : { scale: 1.07 }}
         animate={reduceMotion || dragging ? undefined : { y: [0, -6, 0] }}
         transition={
           reduceMotion || dragging
@@ -203,6 +214,13 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
     setOverrides(prev => ({ ...prev, [id]: pos }))
   }
 
+  // Live position updates while a bubble is being dragged — keeps connector
+  // lines glued to it instead of only reconnecting once the drag ends.
+  // Not persisted (that only happens in commitPos, on drag end).
+  function movePos(id: string, pos: Pos) {
+    setPositions(prev => ({ ...prev, [id]: pos }))
+  }
+
   const reduceMotion = useReducedMotion()
   const connections = useMemo(
     () =>
@@ -273,7 +291,9 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                     ringClass="border-[#34D2FF]/70"
                     initial={pos}
                     index={i}
+                    constraintsRef={containerRef}
                     onOpen={() => setStarted(v => !v)}
+                    onDrag={p => movePos(id, p)}
                     onMoved={p => commitPos(id, p)}
                   />
                 )
@@ -290,6 +310,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                     ringClass="border-[#F5B45C]/60"
                     initial={pos}
                     index={i}
+                    constraintsRef={containerRef}
                     onOpen={() =>
                       setExpanded(prev => {
                         const next = new Set(prev)
@@ -298,6 +319,7 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                         return next
                       })
                     }
+                    onDrag={p => movePos(id, p)}
                     onMoved={p => commitPos(id, p)}
                   />
                 )
@@ -315,7 +337,9 @@ export function MindMapField({ roles, onOpenRole }: { roles: RecruiterRole[]; on
                   ringClass="border-[#5FE0A8]/60"
                   initial={pos}
                   index={i}
+                  constraintsRef={containerRef}
                   onOpen={() => onOpenRole(roleId)}
+                  onDrag={p => movePos(id, p)}
                   onMoved={p => commitPos(id, p)}
                 />
               )
