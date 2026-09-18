@@ -68,6 +68,10 @@ interface CandidateFormProps {
   cvFilePath?: string
   /** When provided (non-null), populates form fields with parsed CV data */
   parsedCvData?: ParsedCvData | null
+  /** When provided, called with the saved candidate instead of redirecting to /candidates */
+  onSaved?: (candidate: { id: string; first_name: string; last_name: string }) => void
+  /** When provided, locks Source/Partner to this partner (e.g. derived from the logged-in recruiter account) */
+  lockedPartner?: { id: string; label: string }
 }
 
 const SENIORITY_OPTIONS = [
@@ -168,7 +172,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   )
 }
 
-export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath: cvFilePathProp, parsedCvData }: CandidateFormProps) {
+export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath: cvFilePathProp, parsedCvData, onSaved, lockedPartner }: CandidateFormProps) {
   const router = useRouter()
   const isEdit = !!candidateId
   const isCvManagedExternally = cvFilePathProp !== undefined
@@ -216,7 +220,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     rate_wish: (initial?.rate_wish as string) ?? '',
     currency: (initial?.currency as string) ?? 'EUR',
     rate_unit: (initial?.rate_unit as string) ?? 'zi',
-    partner_id: (initial?.partner_id as string) ?? '',
+    partner_id: lockedPartner?.id ?? (initial?.partner_id as string) ?? '',
     source_type: (initial?.source_type as string) ?? '',
     candidate_status: (initial?.candidate_status as string) ?? (initial ? 'pasiv' : 'activ'), // DB values: activ/pasiv/angajat/blacklist
     successful: (initial?.successful as boolean) ?? false,
@@ -405,6 +409,8 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       // Destructure fields that need special handling to avoid auto-spreading issues
       const { rate_min: _rm, rate_wish: _rw, seniority: _sen, partner_id: _pid, rate_unit: _ru, source_type: _st, ...restForm } = form
 
+      const effectivePartnerId = lockedPartner?.id ?? form.partner_id
+
       const payload = {
         ...restForm,
         profile_id,
@@ -412,8 +418,8 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
         rate_min: form.rate_min ? parseFloat(form.rate_min) : null,
         rate_wish: form.rate_wish ? parseFloat(form.rate_wish) : null,
         rate_unit: form.rate_unit || 'zi',
-        partner_id: form.partner_id || null,
-        source_type: form.partner_id ? 'partner' : '',
+        partner_id: effectivePartnerId || null,
+        source_type: effectivePartnerId ? 'partner' : '',
         experiences,
         certifications,
         projects,
@@ -428,8 +434,12 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setIsDirty(false)
-      router.push('/candidates')
-      router.refresh()
+      if (onSaved) {
+        onSaved(data)
+      } else {
+        router.push('/candidates')
+        router.refresh()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save error')
     } finally {
@@ -691,22 +701,29 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
               </div>
             )}
 
-            {/* Source — partner dropdown */}
+            {/* Source — partner dropdown, or locked badge when derived from the logged-in account */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Source / Partner</label>
-              <select
-                value={form.partner_id}
-                onChange={e => set('partner_id', e.target.value)}
-                className={inputCls}
-              >
-                <option value="">— Own source / LinkedIn —</option>
-                {partners.map(p => {
-                  const label = p.name
-                    ? p.name
-                    : [p.first_name, p.last_name].filter(Boolean).join(' ')
-                  return <option key={p.id} value={p.id}>{label}</option>
-                })}
-              </select>
+              {lockedPartner ? (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+                  <span className="font-medium">{lockedPartner.label}</span>
+                  <span className="text-xs text-blue-500">(auto — recruiter account)</span>
+                </div>
+              ) : (
+                <select
+                  value={form.partner_id}
+                  onChange={e => set('partner_id', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">— Own source / LinkedIn —</option>
+                  {partners.map(p => {
+                    const label = p.name
+                      ? p.name
+                      : [p.first_name, p.last_name].filter(Boolean).join(' ')
+                    return <option key={p.id} value={p.id}>{label}</option>
+                  })}
+                </select>
+              )}
             </div>
           </section>
 

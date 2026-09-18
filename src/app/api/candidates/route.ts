@@ -86,6 +86,21 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { skill_ids, ...candidateData } = body
 
+  if (candidateData.phone && String(candidateData.phone).trim()) {
+    const { data: dup } = await supabase
+      .from('candidates')
+      .select('id, first_name, last_name')
+      .eq('phone', String(candidateData.phone).trim())
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (dup) {
+      return NextResponse.json(
+        { error: `A candidate with this phone number already exists: ${dup.first_name} ${dup.last_name}.` },
+        { status: 409 }
+      )
+    }
+  }
+
   const { data: candidate, error } = await supabase
     .from('candidates')
     .insert(candidateData)

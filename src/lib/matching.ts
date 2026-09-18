@@ -32,8 +32,6 @@ interface RubixScore {
   evidence: string
 }
 
-export type CandidateSource = 'database' | 'linkedin' | 'cv_upload' | 'manual'
-
 export interface MatchResult {
   submission_id?: string
   candidate_id: string
@@ -46,7 +44,6 @@ export interface MatchResult {
   rate_wish: number | null
   currency: string
   cv_file_path: string | null
-  source?: CandidateSource
 }
 
 async function scoreAgainstRubix(
@@ -319,57 +316,4 @@ export async function matchCandidatesForRole(
     pipeline_scored: pipelineResults.sort((a, b) => b.score - a.score),
     discovered: discoveryResults.sort((a, b) => b.score - a.score),
   }
-}
-
-export interface KeywordMatch {
-  candidate_id: string
-  candidate_name: string
-  seniority: string | null
-  rate_min: number | null
-  rate_wish: number | null
-  currency: string
-  matched_skills: string[]
-  score: number
-}
-
-export async function searchCandidatesByKeyword(
-  supabase: SupabaseClient,
-  query: string,
-  limit = 15
-): Promise<KeywordMatch[]> {
-  const keywords = extractKeywords(query)
-  if (keywords.size === 0) return []
-
-  const { data: candidates } = await supabase
-    .from('candidates')
-    .select('id, first_name, last_name, seniority, rate_min, rate_wish, currency, candidate_skills(skill:skills(id, name))')
-    .is('deleted_at', null)
-    .neq('candidate_status', 'blacklist')
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scored = ((candidates ?? []) as any[])
-    .map(c => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const skills = (c.candidate_skills ?? []).map((cs: any) => Array.isArray(cs.skill) ? cs.skill[0] : cs.skill).filter(Boolean)
-      const skillNames: string[] = skills.map((s: { name: string }) => s.name)
-      const matchedSkills = skillNames.filter(s => keywords.has(s.toLowerCase()))
-      const nameHay = `${c.first_name} ${c.last_name} ${c.seniority ?? ''}`.toLowerCase()
-      const nameHit = [...keywords].some(k => nameHay.includes(k)) ? 1 : 0
-      const relevance = matchedSkills.length * 3 + nameHit
-      return { c, matchedSkills, relevance }
-    })
-    .filter(r => r.relevance > 0)
-    .sort((a, b) => b.relevance - a.relevance)
-    .slice(0, limit)
-
-  return scored.map(({ c, matchedSkills, relevance }) => ({
-    candidate_id: c.id,
-    candidate_name: `${c.first_name} ${c.last_name}`,
-    seniority: c.seniority,
-    rate_min: c.rate_min ?? null,
-    rate_wish: c.rate_wish ?? null,
-    currency: c.currency ?? 'EUR',
-    matched_skills: matchedSkills.slice(0, 8),
-    score: Math.min(95, 30 + relevance * 15),
-  }))
 }
