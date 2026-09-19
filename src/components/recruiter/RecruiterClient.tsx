@@ -30,12 +30,16 @@ export function RecruiterClient({
   currentUserId,
   initialRoleId,
   assessSubmissionId,
+  isAdmin,
+  recruiterNames,
 }: {
   roles: RecruiterRole[]
   myCounts: Record<string, number>
   currentUserId: string | null
   initialRoleId: string | null
   assessSubmissionId: string | null
+  isAdmin: boolean
+  recruiterNames: Record<string, string>
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(
     roles.some(r => r.id === initialRoleId) ? initialRoleId : (roles[0]?.id ?? null)
@@ -109,7 +113,7 @@ export function RecruiterClient({
                       >
                         <span className="flex-1 truncate font-medium">{role.title}</span>
                         <span
-                          title="Candidates you added"
+                          title={isAdmin ? 'Candidates submitted to this role' : 'Candidates you added'}
                           className={`flex-none inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-md ${
                             active ? 'bg-white/20 text-white' : count ? 'bg-blue-50 text-[#2AA3FF]' : 'text-gray-300'
                           }`}
@@ -132,6 +136,8 @@ export function RecruiterClient({
               role={selected}
               currentUserId={currentUserId}
               assessSubmissionId={selected.id === initialRoleId ? assessSubmissionId : null}
+              isAdmin={isAdmin}
+              recruiterNames={recruiterNames}
             />
           ) : (
             <div className="glass rounded-2xl p-12 text-center text-gray-400">Select a role on the left.</div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Pencil, Loader2, Sparkles, CalendarClock, Phone, Mail, PhoneCall, Check, Copy } from 'lucide-react'
+import { Pencil, Loader2, Sparkles, CalendarClock, Phone, Mail, PhoneCall, Check, Copy, UserRound } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/lib/pipeline'
 import { INTERVIEW_STATUS_OPTIONS, STATUS_COLORS, type InterviewSlot } from '@/components/pipeline/InterviewPanel'
 import { AddCallModal } from '@/components/calls/AddCallModal'
@@ -24,6 +24,7 @@ export interface RubixCandidateEntry {
 export interface RoleSubmission {
   id: string
   status: string
+  submitted_by?: string | null
   interviews?: InterviewSlot[]
   ai_score?: number | null
   ai_summary?: string | null
@@ -70,6 +71,7 @@ export function RoleCandidateList({
   returnTo,
   roleId,
   roleTitle,
+  submitterNames,
 }: {
   submissions: RoleSubmission[]
   criteria: RoleCriterion[]
@@ -79,6 +81,7 @@ export function RoleCandidateList({
   returnTo: string
   roleId: string
   roleTitle: string
+  submitterNames: Record<string, string> | null
 }) {
   const [open, setOpen] = useState<{ id: string; kind: Panel } | null>(null)
   const [callFor, setCallFor] = useState<RoleSubmission | null>(null)
@@ -91,7 +94,7 @@ export function RoleCandidateList({
   if (submissions.length === 0) {
     return (
       <div className="text-center py-8 text-sm text-gray-400">
-        You haven&apos;t added any candidates to this role yet. Use <span className="font-medium text-gray-600">Add candidate</span> above.
+        {submitterNames ? 'No candidates submitted to this role yet.' : <>You haven&apos;t added any candidates to this role yet. Use <span className="font-medium text-gray-600">Add candidate</span> above.</>}
       </div>
     )
   }
@@ -150,6 +153,12 @@ export function RoleCandidateList({
                     <span className="inline-flex items-center gap-0.5 text-[11px] text-green-700"><Check size={11} /> Call saved</span>
                   )}
                 </div>
+                {submitterNames && (
+                  <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
+                    <UserRound size={10} />
+                    by {sub.submitted_by ? (submitterNames[sub.submitted_by] ?? 'Unknown user') : 'Not recorded'}
+                  </div>
+                )}
                 {interview && (
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-700">
                     <CalendarClock size={10} />

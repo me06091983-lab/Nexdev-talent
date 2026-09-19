@@ -24,10 +24,14 @@ export function RoleDetailPanel({
   role,
   currentUserId,
   assessSubmissionId,
+  isAdmin,
+  recruiterNames,
 }: {
   role: RecruiterRole
   currentUserId: string | null
   assessSubmissionId: string | null
+  isAdmin: boolean
+  recruiterNames: Record<string, string>
 }) {
   const [submissions, setSubmissions] = useState<RoleSubmission[]>([])
   const [criteria, setCriteria] = useState<RoleCriterion[]>([])
@@ -37,10 +41,11 @@ export function RoleDetailPanel({
   const autoAssessed = useRef(false)
 
   const fetchSubmissions = useCallback(async (): Promise<RoleSubmission[]> => {
-    if (!currentUserId) return []
-    const res = await fetch(`/api/submissions?role_id=${role.id}&submitted_by=${currentUserId}`)
+    if (!isAdmin && !currentUserId) return []
+    const scope = isAdmin ? '' : `&submitted_by=${currentUserId}`
+    const res = await fetch(`/api/submissions?role_id=${role.id}${scope}`)
     return res.ok ? res.json() : []
-  }, [role.id, currentUserId])
+  }, [role.id, currentUserId, isAdmin])
 
   const fetchRubix = useCallback(async () => {
     const res = await fetch(`/api/roles/${role.id}/rubix-view`)
@@ -162,7 +167,7 @@ export function RoleDetailPanel({
           </Section>
         </div>
         <div className="sticky top-4 min-w-0">
-          <Section title={`My candidates for this role (${submissions.length})`}>
+          <Section title={`${isAdmin ? 'All candidates' : 'My candidates'} for this role (${submissions.length})`}>
             {loading ? (
               <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
                 <Loader2 size={14} className="animate-spin" /> Loading...
@@ -177,6 +182,7 @@ export function RoleDetailPanel({
             returnTo={`/recruiter?role=${role.id}`}
             roleId={role.id}
             roleTitle={role.title}
+            submitterNames={isAdmin ? recruiterNames : null}
               />
             )}
           </Section>
