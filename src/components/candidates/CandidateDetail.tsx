@@ -79,6 +79,7 @@ interface CandidateDetailProps {
   initial: Record<string, unknown>
   candidateId: string
   candidateName: string
+  returnTo?: string | null
 }
 
 function fmtDate(dateStr: string) {
@@ -210,8 +211,14 @@ function NotesPanel({ candidateId, initialNotesRaw }: { candidateId: string; ini
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function CandidateDetail({ initial, candidateId, candidateName }: CandidateDetailProps) {
+export function CandidateDetail({ initial, candidateId, candidateName, returnTo }: CandidateDetailProps) {
   const router = useRouter()
+
+  function goBack() {
+    if (returnTo) router.push(returnTo)
+    else if (document.referrer.startsWith(window.location.origin)) router.back()
+    else router.push('/candidates')
+  }
   const [tab, setTab] = useState<'profil' | 'istoric'>('profil')
   const [data, setData] = useState<HistoryData>({ submissions: [], contracts: [] })
   const [loading, setLoading] = useState(false)
@@ -361,7 +368,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={goBack}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
             ← Candidates
@@ -370,13 +377,14 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
           <h1 className="text-base font-semibold text-gray-900 truncate">{candidateName}</h1>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button type="button" onClick={() => router.back()}
+          <button type="button" onClick={goBack}
             className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
             Cancel
           </button>
           <button
             type="submit"
             form="candidate-form"
+            onClick={() => setTab('profil')}
             disabled={saving}
             className="inline-flex items-center gap-2 bg-[#2AA3FF] hover:bg-[#1a8fe0] disabled:opacity-60 text-white font-medium px-5 py-2 rounded-xl text-sm transition-colors shadow-sm"
           >
@@ -453,17 +461,16 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
           </div>
 
           {/* ── Profil tab: all form fields ── */}
-          {tab === 'profil' && (
-            <div className="glass rounded-2xl p-6 shadow-sm">
-              <CandidateForm
-                initial={initial}
-                candidateId={candidateId}
-                onSavingChange={setSaving}
-                cvFilePath={cvFilePath}
-                parsedCvData={parsedCvData}
-              />
-            </div>
-          )}
+          <div className={cn('glass rounded-2xl p-6 shadow-sm', tab !== 'profil' && 'hidden')}>
+            <CandidateForm
+              initial={initial}
+              candidateId={candidateId}
+              onSavingChange={setSaving}
+              cvFilePath={cvFilePath}
+              parsedCvData={parsedCvData}
+              onSaved={returnTo ? () => { router.push(returnTo); router.refresh() } : undefined}
+            />
+          </div>
 
           {/* ── Istoric tab ── */}
           {tab === 'istoric' && (

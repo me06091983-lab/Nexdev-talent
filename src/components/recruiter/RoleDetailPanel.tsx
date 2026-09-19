@@ -174,6 +174,7 @@ export function RoleDetailPanel({
                 rubixCandidates={rubixCandidates}
                 assessing={assessing}
                 onAssess={triggerAssess}
+            returnTo={`/recruiter?role=${role.id}`}
               />
             )}
           </Section>

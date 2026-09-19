@@ -2,8 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { CandidateDetail } from '@/components/candidates/CandidateDetail'
 
-export default async function EditCandidatePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditCandidatePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ return?: string }>
+}) {
   const { id } = await params
+  const { return: returnParam } = await searchParams
+  const returnTo = returnParam?.startsWith('/') && !returnParam.startsWith('//') ? returnParam : null
   const supabase = await createClient()
 
   const { data: candidate } = await supabase
@@ -25,6 +33,7 @@ export default async function EditCandidatePage({ params }: { params: Promise<{ 
       initial={initial}
       candidateId={id}
       candidateName={`${candidate.first_name} ${candidate.last_name}`}
+      returnTo={returnTo}
     />
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, Loader2, Sparkles, CalendarClock } from 'lucide-react'
+import { Pencil, Loader2, Sparkles, CalendarClock } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/lib/pipeline'
 import type { InterviewSlot } from '@/components/pipeline/InterviewPanel'
 
@@ -66,12 +66,14 @@ export function RoleCandidateList({
   rubixCandidates,
   assessing,
   onAssess,
+  returnTo,
 }: {
   submissions: RoleSubmission[]
   criteria: RoleCriterion[]
   rubixCandidates: Record<string, RubixCandidateEntry>
   assessing: Set<string>
   onAssess: (submissionId: string) => void
+  returnTo: string
 }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -142,13 +144,11 @@ export function RoleCandidateList({
               </div>
 
               <Link
-                href={`/candidates/${sub.candidate.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View profile"
+                href={`/candidates/${sub.candidate.id}?return=${encodeURIComponent(returnTo)}`}
+                title="Open / edit profile"
                 className="flex-none p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded-md transition-colors"
               >
-                <ExternalLink size={13} />
+                <Pencil size={13} />
               </Link>
             </div>
 
