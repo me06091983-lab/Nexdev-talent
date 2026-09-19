@@ -111,69 +111,74 @@ export function RoleDetailPanel({
         </div>
       </div>
 
-      <Section title={`My candidates for this role (${submissions.length})`}>
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
-            <Loader2 size={14} className="animate-spin" /> Loading...
-          </div>
-        ) : (
-          <RoleCandidateList
-            submissions={submissions}
-            criteria={criteria}
-            rubixCandidates={rubixCandidates}
-            assessing={assessing}
-            onAssess={triggerAssess}
-          />
-        )}
-      </Section>
+      <div className="grid grid-cols-2 gap-5 items-start">
+        <div className="space-y-5 min-w-0">
+          <Section title="Description">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+              {role.description || 'No description on record.'}
+            </p>
+          </Section>
 
-      <Section title="Description">
-        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {role.description || 'No description on record.'}
-        </p>
-      </Section>
+          {hasSkills && (
+            <Section title="Skills">
+              <div className="space-y-3">
+                {role.required_skills.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">Required</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {role.required_skills.map(s => (
+                        <span key={s.id} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">{s.name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {role.preferred_skills.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">Preferred</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {role.preferred_skills.map(s => (
+                        <span key={s.id} className="text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-full">{s.name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
 
-      {hasSkills && (
-        <Section title="Skills">
-          <div className="space-y-3">
-            {role.required_skills.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">Required</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {role.required_skills.map(s => (
-                    <span key={s.id} className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">{s.name}</span>
-                  ))}
-                </div>
+          <Section title="Rubix Matrix">
+            {criteria.length === 0 ? (
+              <p className="text-sm text-gray-400">No Rubix Matrix defined for this role.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {criteria.map((cr, i) => (
+                  <div key={cr.id} className="flex items-start gap-3 text-sm">
+                    <span className="flex-none w-10 text-right font-mono font-semibold text-green-700">{cr.weight}%</span>
+                    <span className="text-gray-700">{i + 1}. {cr.criterion}</span>
+                  </div>
+                ))}
               </div>
             )}
-            {role.preferred_skills.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">Preferred</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {role.preferred_skills.map(s => (
-                    <span key={s.id} className="text-xs bg-gray-50 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-full">{s.name}</span>
-                  ))}
-                </div>
+          </Section>
+        </div>
+        <div className="sticky top-4 min-w-0">
+          <Section title={`My candidates for this role (${submissions.length})`}>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400 py-6 justify-center">
+                <Loader2 size={14} className="animate-spin" /> Loading...
               </div>
+            ) : (
+              <RoleCandidateList
+                submissions={submissions}
+                criteria={criteria}
+                rubixCandidates={rubixCandidates}
+                assessing={assessing}
+                onAssess={triggerAssess}
+              />
             )}
-          </div>
-        </Section>
-      )}
-
-      <Section title="Rubix Matrix">
-        {criteria.length === 0 ? (
-          <p className="text-sm text-gray-400">No Rubix Matrix defined for this role.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {criteria.map((cr, i) => (
-              <div key={cr.id} className="flex items-start gap-3 text-sm">
-                <span className="flex-none w-10 text-right font-mono font-semibold text-green-700">{cr.weight}%</span>
-                <span className="text-gray-700">{i + 1}. {cr.criterion}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
+          </Section>
+        </div>
+      </div>
     </div>
   )
 }

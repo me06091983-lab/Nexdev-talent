@@ -69,7 +69,7 @@ export function RecruiterClient({
         <p className="text-gray-500 mt-1">{roles.length} active roles · pick a role, add candidates, follow their status</p>
       </div>
 
-      <div className="grid grid-cols-[320px_1fr] gap-6 items-start">
+      <div className="grid grid-cols-[280px_1fr] gap-6 items-start">
         <aside className="glass rounded-2xl p-3 sticky top-4 max-h-[calc(100vh-2rem)] flex flex-col">
           <div className="relative mb-3 flex-none">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
