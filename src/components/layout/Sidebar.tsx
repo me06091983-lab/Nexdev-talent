@@ -19,12 +19,14 @@ import {
   ShieldCheck,
   UserRound,
   Bot,
+  ChartPie,
 } from 'lucide-react'
 
 const mainNavGroups = [
   {
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/recruiter-dashboard', label: 'Recruitment Dashboard', icon: ChartPie },
       { href: '/recruiter', label: 'Recruiter', icon: Bot },
       { href: '/pipeline', label: 'Radar', icon: Radar },
       { href: '/candidates', label: 'Candidates', icon: Users },
@@ -49,7 +51,7 @@ const mainNavGroups = [
   },
 ]
 
-const RECRUITER_ALLOWED_HREFS = ['/recruiter', '/candidates']
+const RECRUITER_ALLOWED_HREFS = ['/recruiter-dashboard', '/recruiter', '/candidates']
 
 const adminNavGroup = {
   label: 'Admin',
@@ -94,7 +96,7 @@ export function Sidebar({ role, email }: { role: string; email: string }) {
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon
-                const active = pathname.startsWith(item.href)
+                const active = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                   <Link
                     key={item.href}
@@ -124,7 +126,7 @@ export function Sidebar({ role, email }: { role: string; email: string }) {
             <div className="space-y-0.5">
               {adminNavGroup.items.map((item) => {
                 const Icon = item.icon
-                const active = pathname.startsWith(item.href)
+                const active = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                   <Link
                     key={item.href}
