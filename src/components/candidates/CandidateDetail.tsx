@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { CandidateCallHistory } from '@/components/calls/CandidateCallHistory'
 import { CandidateForm } from './CandidateForm'
 import { cn } from '@/lib/utils'
-import {
+import { PhoneCall,
   Clock, User, AlertCircle, RefreshCw, MessageSquare, ScrollText,
   Trash2, FileDown, Loader2, MapPin, Briefcase, ExternalLink,
   FileText, StickyNote, Upload, CheckCircle, Sparkles, X, Eye,
@@ -219,7 +220,7 @@ export function CandidateDetail({ initial, candidateId, candidateName, returnTo 
     else if (document.referrer.startsWith(window.location.origin)) router.back()
     else router.push('/candidates')
   }
-  const [tab, setTab] = useState<'profil' | 'istoric'>('profil')
+  const [tab, setTab] = useState<'profil' | 'istoric' | 'calls'>('profil')
   const [data, setData] = useState<HistoryData>({ submissions: [], contracts: [] })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -458,6 +459,15 @@ export function CandidateDetail({ initial, candidateId, candidateName, returnTo 
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setTab('calls')}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                tab === 'calls' ? 'bg-white text-[#0B1A33] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              <PhoneCall size={14} /> Call history
+            </button>
           </div>
 
           {/* ── Profil tab: all form fields ── */}
@@ -471,6 +481,8 @@ export function CandidateDetail({ initial, candidateId, candidateName, returnTo 
               onSaved={returnTo ? () => { router.push(returnTo); router.refresh() } : undefined}
             />
           </div>
+
+          {tab === 'calls' && <CandidateCallHistory candidateId={candidateId} />}
 
           {/* ── Istoric tab ── */}
           {tab === 'istoric' && (

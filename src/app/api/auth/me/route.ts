@@ -9,6 +9,7 @@ export async function GET() {
   return NextResponse.json({
     id: user.id,
     email: user.email ?? null,
+    is_admin: user.app_metadata?.role === 'admin',
     partner_id: (user.user_metadata?.partner_id as string | undefined) ?? null,
   })
 }

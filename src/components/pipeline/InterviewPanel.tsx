@@ -20,7 +20,7 @@ const DEFAULT_SLOTS: InterviewSlot[] = [
   { label: 'Interview 4', enabled: false, datetime: '', status: 'waiting_customer', feedback: '', candidate_accepted: false },
 ]
 
-const INTERVIEW_STATUS_OPTIONS = [
+export const INTERVIEW_STATUS_OPTIONS = [
   { value: 'waiting_customer', label: 'Waiting customer' },
   { value: 'set',              label: 'Set' },
   { value: 'pending_feedback', label: 'Pending Feedback' },
@@ -28,7 +28,7 @@ const INTERVIEW_STATUS_OPTIONS = [
   { value: 'rejected',         label: 'Rejected' },
 ]
 
-const STATUS_COLORS: Record<string, string> = {
+export const STATUS_COLORS: Record<string, string> = {
   waiting_customer: 'text-gray-500 bg-gray-50 border-gray-200',
   set:              'text-blue-600 bg-blue-50 border-blue-200',
   pending_feedback: 'text-yellow-700 bg-yellow-50 border-yellow-200',

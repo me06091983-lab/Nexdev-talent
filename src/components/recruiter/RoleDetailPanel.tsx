@@ -175,6 +175,8 @@ export function RoleDetailPanel({
                 assessing={assessing}
                 onAssess={triggerAssess}
             returnTo={`/recruiter?role=${role.id}`}
+            roleId={role.id}
+            roleTitle={role.title}
               />
             )}
           </Section>
