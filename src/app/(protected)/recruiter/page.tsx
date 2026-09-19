@@ -9,7 +9,7 @@ export default async function RecruiterPage({ searchParams }: { searchParams: Pr
   const [{ data: rolesRaw }, { data: mySubs }] = await Promise.all([
     supabase
       .from('roles')
-      .select('id, title, status, deadline, description, seniority, location, collaboration_type, fieldglass_id, recruiter_rate, rate_currency, client:clients(id, name), role_skills(skill_type, skill:skills(id, name))')
+      .select('id, title, status, deadline, description, seniority, location, collaboration_type, fieldglass_id, recruiter_rate, recruiter_rate_currency, recruiter_rate_type, client:clients(id, name), role_skills(skill_type, skill:skills(id, name))')
       .eq('status', 'active')
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
@@ -33,7 +33,8 @@ export default async function RecruiterPage({ searchParams }: { searchParams: Pr
       collaboration_type: r.collaboration_type,
       fieldglass_id: r.fieldglass_id,
       recruiter_rate: r.recruiter_rate,
-      rate_currency: r.rate_currency,
+      recruiter_rate_currency: r.recruiter_rate_currency,
+      recruiter_rate_type: r.recruiter_rate_type,
       client: Array.isArray(r.client) ? (r.client[0] ?? null) : r.client,
       required_skills: skillsOf('required'),
       preferred_skills: skillsOf('preferred'),

@@ -98,7 +98,7 @@ export function RoleDetailPanel({
             </div>
             {role.recruiter_rate != null && (
               <p className="text-sm font-semibold text-green-700 mt-3">
-                Recruiter rate: {role.recruiter_rate} {role.rate_currency ?? ''}
+                Recruiter rate: {role.recruiter_rate} {role.recruiter_rate_currency} / {role.recruiter_rate_type === 'hourly' ? 'hour' : 'day'}
               </p>
             )}
           </div>

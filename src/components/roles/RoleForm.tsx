@@ -82,6 +82,8 @@ export function RoleForm({ initial, roleId, initialRubix, canEditRate }: RoleFor
     rate_currency: (initial?.rate_currency as string) ?? 'EUR',
     rate_type: (initial?.rate_type as string) ?? 'daily',
     recruiter_rate: (initial?.recruiter_rate as string) ?? '',
+    recruiter_rate_currency: (initial?.recruiter_rate_currency as string) ?? 'EUR',
+    recruiter_rate_type: (initial?.recruiter_rate_type as string) ?? 'daily',
     positions_count: (initial?.positions_count as string) ?? '1',
   })
 
@@ -211,6 +213,8 @@ export function RoleForm({ initial, roleId, initialRubix, canEditRate }: RoleFor
           rate_type: form.rate_type,
         } : {}),
         recruiter_rate: form.recruiter_rate ? parseFloat(form.recruiter_rate) : null,
+        recruiter_rate_currency: form.recruiter_rate_currency,
+        recruiter_rate_type: form.recruiter_rate_type,
         positions_count: form.positions_count ? parseInt(form.positions_count) : 1,
         required_skill_ids: requiredSkills.map(s => s.id),
         preferred_skill_ids: preferredSkills.map(s => s.id),
@@ -336,9 +340,17 @@ export function RoleForm({ initial, roleId, initialRubix, canEditRate }: RoleFor
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recruiter rate</label>
-                <input type="number" min="0" step="0.01" value={form.recruiter_rate}
-                  onChange={e => set('recruiter_rate', e.target.value)} placeholder="0.00"
-                  className={inputCls} />
+                <div className="grid grid-cols-3 gap-2">
+                  <input type="number" min="0" step="0.01" value={form.recruiter_rate}
+                    onChange={e => set('recruiter_rate', e.target.value)} placeholder="0.00"
+                    className="glass-input col-span-1 px-3 py-2.5 rounded-lg text-sm w-full" />
+                  <select value={form.recruiter_rate_currency} onChange={e => set('recruiter_rate_currency', e.target.value)} className={inputCls}>
+                    {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select value={form.recruiter_rate_type} onChange={e => set('recruiter_rate_type', e.target.value)} className={inputCls}>
+                    {RATE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
           </section>

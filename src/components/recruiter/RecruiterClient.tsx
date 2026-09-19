@@ -17,7 +17,8 @@ export interface RecruiterRole {
   collaboration_type: string | null
   fieldglass_id: string | null
   recruiter_rate: number | null
-  rate_currency: string | null
+  recruiter_rate_currency: string
+  recruiter_rate_type: string
   client: { id: string; name: string } | null
   required_skills: Skill[]
   preferred_skills: Skill[]
