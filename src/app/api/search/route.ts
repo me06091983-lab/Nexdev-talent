@@ -12,10 +12,10 @@ export async function GET(request: NextRequest) {
   const [candidatesRes, rolesRes, contractsRes] = await Promise.all([
     supabase
       .from('candidates')
-      .select('id, first_name, last_name, email, candidate_status, profile:profiles(name)')
+      .select('id, first_name, last_name, email, candidate_status, created_by, profile:profiles(name)')
       .or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like}`)
       .is('deleted_at', null)
-      .limit(5),
+      .limit(200),
     supabase
       .from('roles')
       .select('id, title, status, client:clients(name)')
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   const canSee = await candidateVisibility(supabase)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const candidates = (candidatesRes.data ?? []).filter(canSee).map((c: any) => ({
+  const candidates = (candidatesRes.data ?? []).filter(canSee).slice(0, 5).map((c: any) => ({
     id: c.id,
     name: `${c.first_name} ${c.last_name}`,
     email: c.email,

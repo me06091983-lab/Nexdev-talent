@@ -103,6 +103,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const email = String(candidateData.email ?? '').trim()
+  if (email) {
+    const { data: dup } = await supabase
+      .from('candidates')
+      .select('id, first_name, last_name')
+      .ilike('email', email.replace(/[\\%_]/g, m => `\\${m}`))
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle()
+    if (dup) {
+      return NextResponse.json(
+        { error: `A candidate with this email already exists: ${dup.first_name} ${dup.last_name}.`, existing_candidate: dup },
+        { status: 409 }
+      )
+    }
+  }
+
   const { data: candidate, error } = await supabase
     .from('candidates')
     .insert(candidateData)
