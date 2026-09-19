@@ -26,9 +26,14 @@ export async function middleware(request: NextRequest) {
   // Refreshes the session and sets updated cookies
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Every API route requires a signed-in user; cron authenticates itself with CRON_SECRET.
+  const pathname = request.nextUrl.pathname
+  if (!user && pathname.startsWith('/api/') && !pathname.startsWith('/api/cron/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   if (user && user.app_metadata?.role !== 'admin') {
-    const path = request.nextUrl.pathname
-    const matches = (prefixes: string[]) => prefixes.some(p => path === p || path.startsWith(p + '/'))
+    const matches = (prefixes: string[]) => prefixes.some(p => pathname === p || pathname.startsWith(p + '/'))
     if (matches(ADMIN_ONLY_API_PREFIXES)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -52,7 +57,7 @@ const ADMIN_ONLY_PAGE_PREFIXES = [
 
 const ADMIN_ONLY_API_PREFIXES = [
   '/api/contracts', '/api/timesheets', '/api/facturi', '/api/facturi-summary',
-  '/api/facturi-tva', '/api/dashboard',
+  '/api/facturi-tva', '/api/dashboard', '/api/admin',
 ]
 
 export const config = {
