@@ -154,11 +154,11 @@ function RecruiterSummary({
   }).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
 
   const total = {
-    total: rows.reduce((n, r) => n + r.total, 0),
-    last30: rows.reduce((n, r) => n + r.last30, 0),
-    upcoming: rows.reduce((n, r) => n + r.upcoming, 0),
-    offers: rows.reduce((n, r) => n + r.offers, 0),
-    calls: rows.reduce((n, r) => n + r.calls, 0),
+    total: submissions.length,
+    last30: submissions.filter(s => s.createdAt >= since30).length,
+    upcoming: submissions.reduce((n, s) => n + s.interviews.filter(i => i.datetime && toWall(i.datetime) >= nowWall && toWall(i.datetime) <= in30).length, 0),
+    offers: submissions.filter(s => s.status === 'offer').length,
+    calls: Object.values(callsByUser).reduce((a, b) => a + b, 0),
   }
 
   const th = 'py-2 px-3 text-xs font-semibold uppercase tracking-wide text-gray-500'

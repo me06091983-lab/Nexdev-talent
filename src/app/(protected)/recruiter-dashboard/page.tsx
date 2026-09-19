@@ -70,6 +70,7 @@ export default async function RecruiterDashboardPage() {
     const submitters = new Set(submissions.map(s => s.submittedBy).filter(Boolean))
     const { data } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 })
     recruiters = (data?.users ?? [])
+      .filter(u => !(u.banned_until && new Date(u.banned_until) > now))
       .filter(u => u.app_metadata?.role !== 'admin' || submitters.has(u.id))
       .map(u => {
         const name = [u.user_metadata?.first_name, u.user_metadata?.last_name].filter(Boolean).join(' ').trim() || u.email || 'Unknown'
