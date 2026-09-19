@@ -67,7 +67,7 @@ interface ContractEntry {
   contract_status: string
   start_date: string
   end_date: string | null
-  bill_rate: number
+  bill_rate: number | null
   currency: string
   role_title: string | null
   role_id: string | null
@@ -298,7 +298,7 @@ function HistoryPanel({ candidateId }: { candidateId: string }) {
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-gray-900">{c.bill_rate} {c.currency}</p>
+                        {c.bill_rate != null && <p className="text-sm font-bold text-gray-900">{c.bill_rate} {c.currency}</p>}
                         <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', cs.cls)}>{cs.label}</span>
                       </div>
                     </div>

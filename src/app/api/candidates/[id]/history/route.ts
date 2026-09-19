@@ -1,8 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const { data: { user } } = await (await createClient()).auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const canSeeAmounts = user.app_metadata?.role === 'admin'
   const supabase = createAdminClient()
 
   const [submissionsRes, contractsRes] = await Promise.all([
@@ -74,8 +78,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       contract_status: c.contract_status,
       start_date: c.start_date,
       end_date: c.end_date,
-      bill_rate: c.bill_rate,
-      pay_rate: c.pay_rate ?? null,
+      bill_rate: canSeeAmounts ? c.bill_rate : null,
+      pay_rate: canSeeAmounts ? (c.pay_rate ?? null) : null,
       rate_type: c.rate_type ?? 'daily',
       currency: c.currency,
       role_title: role?.title ?? null,

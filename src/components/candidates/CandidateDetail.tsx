@@ -56,7 +56,7 @@ interface ContractEntry {
   contract_status: string
   start_date: string
   end_date: string | null
-  bill_rate: number
+  bill_rate: number | null
   pay_rate: number | null
   rate_type: string
   currency: string
@@ -507,7 +507,9 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                       const cs = CONTRACT_STATUS[c.contract_status] ?? { label: c.contract_status, cls: 'bg-gray-100 text-gray-600' }
                       const isActive = c.contract_status === 'activ'
                       const rateLabel = c.rate_type === 'hourly' ? '/hour' : '/day'
-                      const billEur = calcEurEquivalents(c.bill_rate, c.rate_type, c.currency, exchangeRates)
+                      const billEur = c.bill_rate != null
+                        ? calcEurEquivalents(c.bill_rate, c.rate_type, c.currency, exchangeRates)
+                        : null
                       const payEur = c.pay_rate != null
                         ? calcEurEquivalents(c.pay_rate, c.rate_type, c.currency, exchangeRates)
                         : null
@@ -517,7 +519,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                           isActive ? 'border-green-100 bg-green-50/30' : 'border-gray-100'
                         )}>
                           {/* Header: title + status + dates */}
-                          <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className={cn('flex items-start justify-between gap-3', c.bill_rate != null && 'mb-3')}>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <span className="font-medium text-gray-900 text-sm">{c.role_title ?? 'Contract'}</span>
@@ -529,12 +531,14 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                                 {!c.end_date && <span className="text-green-600 font-medium">Open-ended</span>}
                               </div>
                             </div>
-                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0 font-medium">
-                              {rateLabel}
-                            </span>
+                            {c.bill_rate != null && (
+                              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0 font-medium">
+                                {rateLabel}
+                              </span>
+                            )}
                           </div>
 
-                          {/* Rate cards */}
+                          {billEur && c.bill_rate != null && (
                           <div className={cn('grid gap-2', payEur ? 'grid-cols-2' : 'grid-cols-1 max-w-[220px]')}>
                             {/* Bill rate */}
                             <div className="bg-blue-50/60 rounded-xl p-2.5">
@@ -574,6 +578,7 @@ export function CandidateDetail({ initial, candidateId, candidateName }: Candida
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
                       )
                     })}
