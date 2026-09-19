@@ -165,6 +165,8 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
           </button>
           <button
             onClick={() => setCollapsed(v => !v)}
+            title={collapsed ? 'Expand Rubix Matrix' : 'Collapse Rubix Matrix'}
+            aria-label={collapsed ? 'Expand Rubix Matrix' : 'Collapse Rubix Matrix'}
             className="p-1 text-white/40 hover:text-white transition-colors rounded"
           >
             {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
@@ -185,9 +187,9 @@ export function RubixMatrixView({ roleId, newSubmissionId }: Props) {
       )}
 
       {!collapsed && (
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[40vh]">
           <table className="text-sm border-collapse w-full">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="w-7 px-2 py-2 text-center text-[10px] font-semibold text-gray-400 sticky left-0 bg-gray-50">#</th>
                 <th className="px-4 py-2 text-left text-[10px] font-semibold text-gray-500 min-w-[280px] sticky left-7 bg-gray-50 border-r border-gray-200">

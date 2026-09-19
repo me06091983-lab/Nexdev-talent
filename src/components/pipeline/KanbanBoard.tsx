@@ -15,7 +15,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { PIPELINE_STATUSES, STATUS_LABELS, type PipelineStatus } from '@/lib/pipeline'
 import { cn } from '@/lib/utils'
-import { MessageSquare, Trash2, FileSignature, CheckCircle2, Phone, Mail, User, Calendar } from 'lucide-react'
+import { MessageSquare, Trash2, FileSignature, CheckCircle2, Phone, Mail, User, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import { StatusModal } from './StatusModal'
 import { ContractModal, type PartnerOption } from './ContractModal'
@@ -120,6 +120,9 @@ function CandidateCard({
   const hasContract = !!submission.contract_id
   const [phoneVisible, setPhoneVisible] = useState(false)
   const [emailVisible, setEmailVisible] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const isRejected = submission.status === 'rejected'
+  const compact = isRejected && !expanded
 
   const allInterviews = ((submission.interviews ?? []) as InterviewSlot[])
     .filter(s => s.enabled)
@@ -137,7 +140,8 @@ function CandidateCard({
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-white rounded-xl p-3 shadow-sm border select-none transition-shadow hover:shadow-md group',
+        compact ? 'px-2.5 py-1.5' : 'p-3',
+        'bg-white rounded-xl shadow-sm border select-none transition-shadow hover:shadow-md group',
         readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-20',
         isOffer && !hasContract ? 'border-green-200' : 'border-gray-100',
@@ -146,14 +150,14 @@ function CandidateCard({
     >
       {/* Row 1: initials + name + score */}
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-[#0B1A33] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+        <div className={cn('rounded-full bg-[#0B1A33] text-white font-bold flex items-center justify-center flex-shrink-0', compact ? 'w-6 h-6 text-[9px]' : 'w-8 h-8 text-[11px]')}>
           {c ? `${c.first_name[0]}${c.last_name[0]}`.toUpperCase() : '?'}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate leading-tight">
             {c ? `${c.first_name} ${c.last_name}` : 'Candidat'}
           </p>
-          {c?.profile && <p className="text-[10px] text-gray-400 truncate">{c.profile.name}</p>}
+          {c?.profile && !compact && <p className="text-[10px] text-gray-400 truncate">{c.profile.name}</p>}
         </div>
         {submission.rubix_fit != null
           ? <ScoreBadge score={Math.round(submission.rubix_fit)} variant="rubix" />
@@ -161,7 +165,22 @@ function CandidateCard({
             ? <ScoreBadge score={Math.round(submission.ai_score)} />
             : null
         }
+        {isRejected && (
+          <button
+            type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}
+            aria-label={expanded ? 'Collapse card' : 'Expand card'}
+            aria-expanded={expanded}
+            title={expanded ? 'Collapse' : 'Show details'}
+            className="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex-shrink-0"
+          >
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        )}
       </div>
+
+      {!compact && (<>
 
       {/* Phone popup — inline, sub nume */}
       {phoneVisible && c?.phone && (
@@ -314,6 +333,7 @@ function CandidateCard({
           </button>
         )}
       </div>
+      </>)}
     </div>
   )
 }
