@@ -1,6 +1,8 @@
 import { RoleForm } from '@/components/roles/RoleForm'
+import { isAdmin } from '@/lib/isAdmin'
 
-export default function NewRolePage() {
+export default async function NewRolePage() {
+  const admin = await isAdmin()
   return (
     <div>
       <div className="mb-6">
@@ -8,7 +10,7 @@ export default function NewRolePage() {
         <p className="text-gray-500 mt-1">Fill in the role details and paste the JD from Fieldglass</p>
       </div>
       <div className="glass rounded-2xl p-8">
-        <RoleForm />
+        <RoleForm canEditRate={admin} />
       </div>
     </div>
   )

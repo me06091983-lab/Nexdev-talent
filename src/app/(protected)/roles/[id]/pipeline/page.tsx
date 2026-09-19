@@ -56,7 +56,7 @@ export default async function RolePipelinePage({ params }: { params: Promise<{ i
     title: r.title as string,
     status: r.status as string,
     client: r.client ? (Array.isArray(r.client) ? (r.client[0] ?? null) : r.client) as { name: string } : null,
-    rate: r.rate as number | null,
+    rate: userRole === 'admin' ? (r.rate as number | null) : null,
     rate_currency: r.rate_currency as string | null,
     rate_type: r.rate_type as string | null,
   }

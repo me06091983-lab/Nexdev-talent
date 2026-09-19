@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdmin, withoutRoleRate } from '@/lib/isAdmin'
 
 function shapeRole(r: Record<string, unknown> & { role_skills?: { skill: unknown; skill_type: string }[] }) {
   return {
@@ -17,13 +18,16 @@ export async function GET() {
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json((data ?? []).map(shapeRole))
+  const admin = await isAdmin()
+  return NextResponse.json((data ?? []).map(r => shapeRole(admin ? r : withoutRoleRate(r))))
 }
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const body = await request.json()
   const { required_skill_ids, preferred_skill_ids, ...roleData } = body
+  const admin = await isAdmin()
+  if (!admin) { delete roleData.rate; delete roleData.rate_type; delete roleData.rate_currency }
 
   const { data: role, error } = await supabase
     .from('roles')
@@ -38,5 +42,5 @@ export async function POST(request: NextRequest) {
   ]
   if (skillRows.length) await supabase.from('role_skills').insert(skillRows)
 
-  return NextResponse.json(role, { status: 201 })
+  return NextResponse.json(admin ? role : withoutRoleRate(role), { status: 201 })
 }

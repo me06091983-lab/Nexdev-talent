@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { RolesClient } from '@/components/roles/RolesClient'
+import { isAdmin, withoutRoleRate } from '@/lib/isAdmin'
 
 export default async function RolesPage() {
   const supabase = await createClient()
 
-  const [{ data: rolesRaw }, { data: clients }] = await Promise.all([
+  const [admin, { data: rolesRaw }, { data: clients }] = await Promise.all([
+    isAdmin(),
     supabase
       .from('roles')
       .select('*, client:clients(id, name), role_skills(skill:skills(id, name, category), skill_type)')
@@ -15,7 +17,7 @@ export default async function RolesPage() {
   ])
 
   const roles = (rolesRaw ?? []).map(r => ({
-    ...r,
+    ...(admin ? r : withoutRoleRate(r)),
     required_skills: r.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'required').map((rs: { skill: unknown }) => rs.skill) ?? [],
     preferred_skills: r.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'preferred').map((rs: { skill: unknown }) => rs.skill) ?? [],
   }))
@@ -35,7 +37,7 @@ export default async function RolesPage() {
         </Link>
       </div>
 
-      <RolesClient roles={roles} clients={clients ?? []} />
+      <RolesClient roles={roles} clients={clients ?? []} showRate={admin} />
     </div>
   )
 }

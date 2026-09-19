@@ -201,7 +201,7 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client[] }) {
+export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clients: Client[]; showRate: boolean }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [clientFilter, setClientFilter] = useState('')
@@ -377,7 +377,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiring Manager</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Key skills</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
+                        {showRate && <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>}
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Positions</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Deadline</th>
                         <th className="px-4 py-3"></th>
@@ -421,11 +421,13 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                                   ))}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                                {r.rate ? (
-                                  <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'day' : 'hour'}</span></span>
-                                ) : '—'}
-                              </td>
+                              {showRate && (
+                                <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                                  {r.rate ? (
+                                    <span>{r.rate} {r.rate_currency} <span className="text-gray-400 text-xs">/ {r.rate_type === 'daily' ? 'day' : 'hour'}</span></span>
+                                  ) : '—'}
+                                </td>
+                              )}
                               <td className="px-4 py-3 text-center">
                                 {(r.positions_count ?? 1) > 1 ? (
                                   <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
@@ -482,7 +484,7 @@ export function RolesClient({ roles, clients }: { roles: Role[]; clients: Client
                             {isExpanded && (
                               <tr className="bg-gray-50/40 border-b border-gray-200">
                                 <td className="border-l-2 border-blue-200"></td>
-                                <td colSpan={8} className="py-1">
+                                <td colSpan={showRate ? 8 : 7} className="py-1">
                                   <CandidatesSubTable roleId={r.id} />
                                 </td>
                               </tr>

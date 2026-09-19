@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdmin, withoutRoleRate } from '@/lib/isAdmin'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -12,8 +13,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .is('deleted_at', null)
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  const admin = await isAdmin()
   return NextResponse.json({
-    ...data,
+    ...(admin ? data : withoutRoleRate(data)),
     required_skills: data.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'required').map((rs: { skill: unknown }) => rs.skill) ?? [],
     preferred_skills: data.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'preferred').map((rs: { skill: unknown }) => rs.skill) ?? [],
   })
@@ -33,6 +35,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const supabase = await createClient()
   const body = await request.json()
   const { required_skill_ids, preferred_skill_ids, ...roleData } = body
+  const admin = await isAdmin()
+  if (!admin) { delete roleData.rate; delete roleData.rate_type; delete roleData.rate_currency }
 
   // Fetch current values for history diff
   const { data: current } = await supabase
@@ -94,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
-  return NextResponse.json(role)
+  return NextResponse.json(admin ? role : withoutRoleRate(role))
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

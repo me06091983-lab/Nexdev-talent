@@ -14,6 +14,7 @@ interface RoleFormProps {
   initial?: Record<string, unknown>
   roleId?: string
   initialRubix?: RubixCriterion[]
+  canEditRate: boolean
 }
 
 const SENIORITY_OPTIONS = [
@@ -46,7 +47,7 @@ const STATUS_OPTIONS = [
   { value: 'filled', label: 'Filled' },
 ]
 
-export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
+export function RoleForm({ initial, roleId, initialRubix, canEditRate }: RoleFormProps) {
   const router = useRouter()
   const isEdit = !!roleId
 
@@ -204,9 +205,11 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
         collaboration_type: form.collaboration_type || null,
         deadline: form.deadline || null,
         fieldglass_id: form.fieldglass_id || null,
-        rate: form.rate ? parseFloat(form.rate) : null,
-        rate_currency: form.rate_currency,
-        rate_type: form.rate_type,
+        ...(canEditRate ? {
+          rate: form.rate ? parseFloat(form.rate) : null,
+          rate_currency: form.rate_currency,
+          rate_type: form.rate_type,
+        } : {}),
         recruiter_rate: form.recruiter_rate ? parseFloat(form.recruiter_rate) : null,
         positions_count: form.positions_count ? parseInt(form.positions_count) : 1,
         required_skill_ids: requiredSkills.map(s => s.id),
@@ -315,6 +318,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
                     onChange={e => set('positions_count', e.target.value)} placeholder="1" className={inputCls} />
                 </div>
               </div>
+              {canEditRate && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role rate</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -329,6 +333,7 @@ export function RoleForm({ initial, roleId, initialRubix }: RoleFormProps) {
                   </select>
                 </div>
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recruiter rate</label>
                 <input type="number" min="0" step="0.01" value={form.recruiter_rate}

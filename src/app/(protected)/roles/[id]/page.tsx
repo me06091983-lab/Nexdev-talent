@@ -2,12 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { RoleForm } from '@/components/roles/RoleForm'
 import { RoleHistory } from '@/components/roles/RoleHistory'
+import { isAdmin, withoutRoleRate } from '@/lib/isAdmin'
 
 export default async function EditRolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: role }, { data: rubixCriteria }] = await Promise.all([
+  const [admin, { data: role }, { data: rubixCriteria }] = await Promise.all([
+    isAdmin(),
     supabase
       .from('roles')
       .select('*, client:clients(id, name), role_skills(skill:skills(id, name, category), skill_type)')
@@ -24,7 +26,7 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
   if (!role) notFound()
 
   const initial = {
-    ...role,
+    ...(admin ? role : withoutRoleRate(role)),
     required_skills: role.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'required').map((rs: { skill: unknown }) => rs.skill) ?? [],
     preferred_skills: role.role_skills?.filter((rs: { skill_type: string }) => rs.skill_type === 'preferred').map((rs: { skill: unknown }) => rs.skill) ?? [],
   }
@@ -40,7 +42,7 @@ export default async function EditRolePage({ params }: { params: Promise<{ id: s
         )}
       </div>
       <div className="glass rounded-2xl p-8">
-        <RoleForm initial={initial} roleId={id} initialRubix={rubixCriteria ?? []} />
+        <RoleForm initial={initial} roleId={id} initialRubix={rubixCriteria ?? []} canEditRate={admin} />
         <RoleHistory roleId={id} />
       </div>
     </div>
