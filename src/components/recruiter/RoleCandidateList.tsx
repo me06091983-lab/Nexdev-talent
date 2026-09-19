@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Pencil, Loader2, Sparkles, CalendarClock, Phone, Mail, PhoneCall, Check, Copy, UserRound } from 'lucide-react'
+import { Pencil, Loader2, Sparkles, CalendarClock, Phone, Mail, PhoneCall, Check, Copy } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/lib/pipeline'
 import { INTERVIEW_STATUS_OPTIONS, STATUS_COLORS, type InterviewSlot } from '@/components/pipeline/InterviewPanel'
 import { AddCallModal } from '@/components/calls/AddCallModal'
@@ -24,12 +24,18 @@ export interface RubixCandidateEntry {
 export interface RoleSubmission {
   id: string
   status: string
-  submitted_by?: string | null
   interviews?: InterviewSlot[]
   ai_score?: number | null
   ai_summary?: string | null
   rubix_fit?: number | null
-  candidate: { id: string; first_name: string; last_name: string; phone?: string | null; email?: string | null } | null
+  candidate: {
+    id: string
+    first_name: string
+    last_name: string
+    phone?: string | null
+    email?: string | null
+    partner?: { name: string | null; first_name: string | null; last_name: string | null } | null
+  } | null
 }
 
 function scoreClasses(score: number) {
@@ -71,7 +77,7 @@ export function RoleCandidateList({
   returnTo,
   roleId,
   roleTitle,
-  submitterNames,
+  showPartner,
 }: {
   submissions: RoleSubmission[]
   criteria: RoleCriterion[]
@@ -81,7 +87,7 @@ export function RoleCandidateList({
   returnTo: string
   roleId: string
   roleTitle: string
-  submitterNames: Record<string, string> | null
+  showPartner: boolean
 }) {
   const [open, setOpen] = useState<{ id: string; kind: Panel } | null>(null)
   const [callFor, setCallFor] = useState<RoleSubmission | null>(null)
@@ -94,13 +100,20 @@ export function RoleCandidateList({
   if (submissions.length === 0) {
     return (
       <div className="text-center py-8 text-sm text-gray-400">
-        {submitterNames ? 'No candidates submitted to this role yet.' : <>You haven&apos;t added any candidates to this role yet. Use <span className="font-medium text-gray-600">Add candidate</span> above.</>}
+        {showPartner ? 'No candidates submitted to this role yet.' : <>You haven&apos;t added any candidates to this role yet. Use <span className="font-medium text-gray-600">Add candidate</span> above.</>}
       </div>
     )
   }
 
   return (
     <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+      {showPartner && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 text-[10.5px] font-semibold uppercase tracking-wide text-gray-500">
+          <span className="w-10 flex-none" />
+          <span className="flex-1">Candidate</span>
+          <span className="w-28 flex-none">Partner</span>
+        </div>
+      )}
       {submissions.map(sub => {
         if (!sub.candidate) return null
         const rubix = rubixCandidates[sub.id]
@@ -122,7 +135,7 @@ export function RoleCandidateList({
 
         return (
           <div key={sub.id} className="bg-white">
-            <div className="flex items-center gap-3 px-4 py-3">
+            <div className="flex items-start gap-3 px-4 py-3">
               <button
                 onClick={handleCircleClick}
                 title={score === null ? 'Run AI match' : 'Click for score breakdown'}
@@ -143,7 +156,7 @@ export function RoleCandidateList({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-sm font-medium text-gray-900 truncate">
+                  <span className="text-sm font-medium text-gray-900 break-words">
                     {cand.first_name} {cand.last_name}
                   </span>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${status.cls}`}>
@@ -153,33 +166,32 @@ export function RoleCandidateList({
                     <span className="inline-flex items-center gap-0.5 text-[11px] text-green-700"><Check size={11} /> Call saved</span>
                   )}
                 </div>
-                {submitterNames && (
-                  <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
-                    <UserRound size={10} />
-                    by {sub.submitted_by ? (submitterNames[sub.submitted_by] ?? 'Unknown user') : 'Not recorded'}
-                  </div>
-                )}
                 {interview && (
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-700">
                     <CalendarClock size={10} />
                     {interview.label}: {formatDateTime(interview.datetime)}
                   </div>
                 )}
+                  <div className="flex items-center -ml-1.5 mt-1">
+                    <IconButton title="Phone" active={panel === 'phone'} onClick={() => toggle(sub.id, 'phone')}><Phone size={13} /></IconButton>
+                    <IconButton title="Interviews for this role" active={panel === 'interviews'} onClick={() => toggle(sub.id, 'interviews')}><CalendarClock size={13} /></IconButton>
+                    <IconButton title="Email" active={panel === 'email'} onClick={() => toggle(sub.id, 'email')}><Mail size={13} /></IconButton>
+                    <IconButton title="Log a call" active={callFor?.id === sub.id} onClick={() => setCallFor(sub)}><PhoneCall size={13} /></IconButton>
+                    <Link
+                      href={`/candidates/${cand.id}?return=${encodeURIComponent(returnTo)}`}
+                      title="Open / edit profile"
+                      className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      <Pencil size={13} />
+                    </Link>
+                  </div>
               </div>
 
-              <div className="flex-none flex items-center">
-                <IconButton title="Phone" active={panel === 'phone'} onClick={() => toggle(sub.id, 'phone')}><Phone size={13} /></IconButton>
-                <IconButton title="Interviews for this role" active={panel === 'interviews'} onClick={() => toggle(sub.id, 'interviews')}><CalendarClock size={13} /></IconButton>
-                <IconButton title="Email" active={panel === 'email'} onClick={() => toggle(sub.id, 'email')}><Mail size={13} /></IconButton>
-                <IconButton title="Log a call" active={callFor?.id === sub.id} onClick={() => setCallFor(sub)}><PhoneCall size={13} /></IconButton>
-                <Link
-                  href={`/candidates/${cand.id}?return=${encodeURIComponent(returnTo)}`}
-                  title="Open / edit profile"
-                  className="p-1.5 text-gray-400 hover:text-[#2AA3FF] hover:bg-blue-50 rounded-md transition-colors"
-                >
-                  <Pencil size={13} />
-                </Link>
-              </div>
+              {showPartner && (
+                <div className="flex-none w-28 self-start pt-0.5 text-sm text-gray-700 truncate" title={partnerLabel(cand.partner) ?? 'No partner'}>
+                  {partnerLabel(cand.partner) ?? <span className="text-gray-300">—</span>}
+                </div>
+              )}
             </div>
 
             {panel === 'phone' && <ContactPanel kind="phone" value={cand.phone ?? null} />}
@@ -236,6 +248,11 @@ export function RoleCandidateList({
 }
 
 type Panel = 'score' | 'phone' | 'email' | 'interviews'
+
+function partnerLabel(p?: { name: string | null; first_name: string | null; last_name: string | null } | null) {
+  if (!p) return null
+  return p.name?.trim() || [p.first_name, p.last_name].filter(Boolean).join(' ') || null
+}
 
 function IconButton({ title, active, onClick, children }: { title: string; active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

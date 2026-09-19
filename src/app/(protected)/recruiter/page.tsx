@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { RecruiterClient, type RecruiterRole } from '@/components/recruiter/RecruiterClient'
 
 export default async function RecruiterPage({ searchParams }: { searchParams: Promise<{ role?: string; assess?: string }> }) {
@@ -48,15 +47,6 @@ export default async function RecruiterPage({ searchParams }: { searchParams: Pr
   const myCounts: Record<string, number> = {}
   for (const s of mySubs ?? []) myCounts[s.role_id] = (myCounts[s.role_id] ?? 0) + 1
 
-  const recruiterNames: Record<string, string> = {}
-  if (isAdmin) {
-    const { data } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 })
-    for (const u of data?.users ?? []) {
-      const name = [u.user_metadata?.first_name, u.user_metadata?.last_name].filter(Boolean).join(' ').trim()
-      recruiterNames[u.id] = name || u.email || 'Unknown'
-    }
-  }
-
   return (
     <RecruiterClient
       roles={roles}
@@ -65,7 +55,6 @@ export default async function RecruiterPage({ searchParams }: { searchParams: Pr
       initialRoleId={roleParam ?? null}
       assessSubmissionId={assess ?? null}
       isAdmin={isAdmin}
-      recruiterNames={recruiterNames}
     />
   )
 }

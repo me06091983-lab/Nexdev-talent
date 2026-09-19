@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         id, first_name, last_name, email, phone, seniority, location,
         rate_min, rate_wish, currency,
         profile:profiles(id, name),
+        partner:partners(id, name, first_name, last_name),
         candidate_skills(skill:skills(id, name, category))
       ),
       current_stage:role_stages(id, name, order_index)

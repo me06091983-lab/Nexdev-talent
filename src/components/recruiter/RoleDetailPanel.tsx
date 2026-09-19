@@ -25,13 +25,11 @@ export function RoleDetailPanel({
   currentUserId,
   assessSubmissionId,
   isAdmin,
-  recruiterNames,
 }: {
   role: RecruiterRole
   currentUserId: string | null
   assessSubmissionId: string | null
   isAdmin: boolean
-  recruiterNames: Record<string, string>
 }) {
   const [submissions, setSubmissions] = useState<RoleSubmission[]>([])
   const [criteria, setCriteria] = useState<RoleCriterion[]>([])
@@ -182,7 +180,7 @@ export function RoleDetailPanel({
             returnTo={`/recruiter?role=${role.id}`}
             roleId={role.id}
             roleTitle={role.title}
-            submitterNames={isAdmin ? recruiterNames : null}
+            showPartner={isAdmin}
               />
             )}
           </Section>

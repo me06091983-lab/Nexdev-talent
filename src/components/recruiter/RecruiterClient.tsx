@@ -31,7 +31,6 @@ export function RecruiterClient({
   initialRoleId,
   assessSubmissionId,
   isAdmin,
-  recruiterNames,
 }: {
   roles: RecruiterRole[]
   myCounts: Record<string, number>
@@ -39,7 +38,6 @@ export function RecruiterClient({
   initialRoleId: string | null
   assessSubmissionId: string | null
   isAdmin: boolean
-  recruiterNames: Record<string, string>
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(
     roles.some(r => r.id === initialRoleId) ? initialRoleId : (roles[0]?.id ?? null)
@@ -137,7 +135,6 @@ export function RecruiterClient({
               currentUserId={currentUserId}
               assessSubmissionId={selected.id === initialRoleId ? assessSubmissionId : null}
               isAdmin={isAdmin}
-              recruiterNames={recruiterNames}
             />
           ) : (
             <div className="glass rounded-2xl p-12 text-center text-gray-400">Select a role on the left.</div>
