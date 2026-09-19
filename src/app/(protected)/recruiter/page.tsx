@@ -1,27 +1,55 @@
 import { createClient } from '@/lib/supabase/server'
 import { RecruiterClient, type RecruiterRole } from '@/components/recruiter/RecruiterClient'
 
-export default async function RecruiterPage() {
+export default async function RecruiterPage({ searchParams }: { searchParams: Promise<{ role?: string; assess?: string }> }) {
+  const { role: roleParam, assess } = await searchParams
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: rolesRaw } = await supabase
-    .from('roles')
-    .select('id, title, status, deadline, created_at, client:clients(name)')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+  const [{ data: rolesRaw }, { data: mySubs }] = await Promise.all([
+    supabase
+      .from('roles')
+      .select('id, title, status, deadline, description, seniority, location, collaboration_type, fieldglass_id, recruiter_rate, rate_currency, client:clients(id, name), role_skills(skill_type, skill:skills(id, name))')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false }),
+    user
+      ? supabase.from('submissions').select('role_id').eq('submitted_by', user.id).is('deleted_at', null)
+      : Promise.resolve({ data: [] as { role_id: string }[] }),
+  ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const roles: RecruiterRole[] = (rolesRaw ?? []).map((r: any) => ({
-    id: r.id,
-    title: r.title,
-    status: r.status,
-    deadline: r.deadline,
-    client: Array.isArray(r.client) ? (r.client[0] ?? null) : r.client,
-  }))
+  const roles: RecruiterRole[] = (rolesRaw ?? []).map((r: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const skillsOf = (type: string) => (r.role_skills ?? []).filter((rs: any) => rs.skill_type === type && rs.skill).map((rs: any) => rs.skill)
+    return {
+      id: r.id,
+      title: r.title,
+      status: r.status,
+      deadline: r.deadline,
+      description: r.description,
+      seniority: r.seniority,
+      location: r.location,
+      collaboration_type: r.collaboration_type,
+      fieldglass_id: r.fieldglass_id,
+      recruiter_rate: r.recruiter_rate,
+      rate_currency: r.rate_currency,
+      client: Array.isArray(r.client) ? (r.client[0] ?? null) : r.client,
+      required_skills: skillsOf('required'),
+      preferred_skills: skillsOf('preferred'),
+    }
+  })
+
+  const myCounts: Record<string, number> = {}
+  for (const s of mySubs ?? []) myCounts[s.role_id] = (myCounts[s.role_id] ?? 0) + 1
 
   return (
-    <div className="h-screen -m-8">
-      <RecruiterClient roles={roles} />
-    </div>
+    <RecruiterClient
+      roles={roles}
+      myCounts={myCounts}
+      currentUserId={user?.id ?? null}
+      initialRoleId={roleParam ?? null}
+      assessSubmissionId={assess ?? null}
+    />
   )
 }

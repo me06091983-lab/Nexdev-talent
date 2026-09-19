@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     if (dup) {
       return NextResponse.json(
-        { error: `A candidate with this phone number already exists: ${dup.first_name} ${dup.last_name}.` },
+        { error: `A candidate with this phone number already exists: ${dup.first_name} ${dup.last_name}.`, existing_candidate: dup },
         { status: 409 }
       )
     }

@@ -72,6 +72,9 @@ interface CandidateFormProps {
   onSaved?: (candidate: { id: string; first_name: string; last_name: string }) => void
   /** When provided, locks Source/Partner to this partner (e.g. derived from the logged-in recruiter account) */
   lockedPartner?: { id: string; label: string }
+  /** When provided, a duplicate (same phone/email) offers a button to use the existing candidate instead */
+  onUseExisting?: (candidateId: string) => void
+  useExistingLabel?: string
 }
 
 const SENIORITY_OPTIONS = [
@@ -172,7 +175,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   )
 }
 
-export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath: cvFilePathProp, parsedCvData, onSaved, lockedPartner }: CandidateFormProps) {
+export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath: cvFilePathProp, parsedCvData, onSaved, lockedPartner, onUseExisting, useExistingLabel = 'Use existing candidate' }: CandidateFormProps) {
   const router = useRouter()
   const isEdit = !!candidateId
   const isCvManagedExternally = cvFilePathProp !== undefined
@@ -193,6 +196,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
   const [saving, setSaving] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<{ name: string; id: string } | null>(null)
   const [error, setError] = useState('')
+  const [existingMatch, setExistingMatch] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
 
   // Internal CV state — used only in new candidate flow (!isCvManagedExternally)
@@ -402,6 +406,7 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
     onSavingChange?.(true)
     setError('')
     setDuplicateWarning(null)
+    setExistingMatch(null)
     try {
       const profile_id = await resolveProfileId()
       const effectiveCvFilePath = isCvManagedExternally ? (cvFilePathProp ?? '') : localCvFilePath
@@ -432,7 +437,10 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
       const method = isEdit ? 'PUT' : 'POST'
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        if (res.status === 409 && data.existing_candidate?.id) setExistingMatch(data.existing_candidate.id)
+        throw new Error(data.error)
+      }
       setIsDirty(false)
       if (onSaved) {
         onSaved(data)
@@ -453,8 +461,17 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
   return (
     <form id="candidate-form" onSubmit={handleSubmit}>
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-6">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm mb-6 flex items-center gap-3 flex-wrap">
+          <span className="flex-1">{error}</span>
+          {existingMatch && onUseExisting && (
+            <button
+              type="button"
+              onClick={() => { setIsDirty(false); onUseExisting(existingMatch) }}
+              className="px-3 py-1.5 bg-[#2AA3FF] hover:bg-[#1a8fe0] text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              {useExistingLabel}
+            </button>
+          )}
         </div>
       )}
 
@@ -553,6 +570,15 @@ export function CandidateForm({ initial, candidateId, onSavingChange, cvFilePath
                     <a href={`/candidates/${duplicateWarning.id}`} target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-amber-900">
                       {duplicateWarning.name}
                     </a>
+                    {onUseExisting && (
+                      <button
+                        type="button"
+                        onClick={() => { setIsDirty(false); onUseExisting(duplicateWarning.id) }}
+                        className="ml-auto px-2.5 py-1 bg-[#2AA3FF] hover:bg-[#1a8fe0] text-white font-medium rounded-md transition-colors"
+                      >
+                        {useExistingLabel}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
