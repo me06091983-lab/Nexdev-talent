@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
 const ADMIN_ONLY_PAGE_PREFIXES = [
   '/dashboard', '/pipeline', '/clients', '/partners', '/contracts',
-  '/timesheets', '/invoices', '/facturare', '/admin',
+  '/timesheets', '/invoices', '/facturare', '/admin', '/roles',
 ]
 
 const ADMIN_ONLY_API_PREFIXES = [

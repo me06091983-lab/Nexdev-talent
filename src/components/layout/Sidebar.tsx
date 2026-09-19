@@ -49,7 +49,7 @@ const mainNavGroups = [
   },
 ]
 
-const RECRUITER_ALLOWED_HREFS = ['/recruiter', '/candidates', '/roles']
+const RECRUITER_ALLOWED_HREFS = ['/recruiter', '/candidates']
 
 const adminNavGroup = {
   label: 'Admin',

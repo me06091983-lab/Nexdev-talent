@@ -199,6 +199,16 @@ function CandidatesSubTable({ roleId }: { roleId: string }) {
   )
 }
 
+function groupByClient(list: Role[]) {
+  const map = new Map<string, { key: string; name: string; roles: Role[] }>()
+  for (const r of list) {
+    const key = r.client_id ?? 'none'
+    if (!map.has(key)) map.set(key, { key, name: r.client?.name ?? 'No client', roles: [] })
+    map.get(key)!.roles.push(r)
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clients: Client[]; showRate: boolean }) {
@@ -210,6 +220,7 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
   const [deleting, setDeleting] = useState<string | null>(null)
   const [reactivating, setReactivating] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set())
 
   const hiringManagers = Array.from(
     new Set(roles.map(r => r.hiring_manager).filter(Boolean))
@@ -239,6 +250,15 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
     setExpanded(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleClient(key: string) {
+    setCollapsedClients(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -361,20 +381,18 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
                   <table className="w-full" style={{ tableLayout: 'fixed' }}>
                     <colgroup>
                       <col style={{ width: '3%' }} />
-                      <col style={{ width: '19%' }} />
-                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '25%' }} />
                       <col style={{ width: '12%' }} />
                       <col style={{ width: '18%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '9%' }} />
                       <col style={{ width: '10%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '10%' }} />
-                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '12%' }} />
                     </colgroup>
                     <thead>
                       <tr className="border-b border-white/40 bg-white/30 text-left">
                         <th className="px-2 py-3"></th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hiring Manager</th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Key skills</th>
                         {showRate && <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>}
@@ -384,7 +402,26 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
                       </tr>
                     </thead>
                     <tbody>
-                      {groupRoles.map(r => {
+                      {groupByClient(groupRoles).map(client => {
+                        const clientKey = `${groupStatus}:${client.key}`
+                        const clientOpen = !collapsedClients.has(clientKey)
+                        return (
+                          <Fragment key={clientKey}>
+                            <tr
+                              onClick={() => toggleClient(clientKey)}
+                              className="border-b border-gray-100 bg-gray-50/70 hover:bg-gray-100/70 cursor-pointer select-none"
+                            >
+                              <td className="px-2 py-2 text-center text-gray-500">
+                                {clientOpen ? <ChevronDown size={15} className="inline" /> : <ChevronRight size={15} className="inline" />}
+                              </td>
+                              <td colSpan={showRate ? 7 : 6} className="px-4 py-2">
+                                <span className="text-sm font-semibold text-gray-800">{client.name}</span>
+                                <span className="ml-2 text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                                  {client.roles.length} {client.roles.length === 1 ? 'role' : 'roles'}
+                                </span>
+                              </td>
+                            </tr>
+                      {clientOpen && client.roles.map(r => {
                         const isExpanded = expanded.has(r.id)
                         return (
                           <Fragment key={r.id}>
@@ -406,7 +443,6 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
                                   {r.fieldglass_id && <span className="font-mono text-gray-500">{r.fieldglass_id}</span>}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{r.client?.name ?? '—'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 truncate">{r.hiring_manager ?? '—'}</td>
                               <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-1">
@@ -484,11 +520,14 @@ export function RolesClient({ roles, clients, showRate }: { roles: Role[]; clien
                             {isExpanded && (
                               <tr className="bg-gray-50/40 border-b border-gray-200">
                                 <td className="border-l-2 border-blue-200"></td>
-                                <td colSpan={showRate ? 8 : 7} className="py-1">
+                                <td colSpan={showRate ? 7 : 6} className="py-1">
                                   <CandidatesSubTable roleId={r.id} />
                                 </td>
                               </tr>
                             )}
+                          </Fragment>
+                        )
+                      })}
                           </Fragment>
                         )
                       })}
