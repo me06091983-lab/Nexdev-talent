@@ -10,11 +10,13 @@ import { cn } from '@/lib/utils'
 import { INTERVIEW_STATUS_OPTIONS, STATUS_COLORS } from '@/components/pipeline/InterviewPanel'
 
 export interface DashRole { id: string; title: string; client: string | null }
+export interface DashRecruiter { id: string; name: string }
 export interface DashInterview { label: string; datetime: string | null; status: string; feedback: string }
 export interface DashSubmission {
   id: string
   status: string
   createdAt: string
+  submittedBy: string | null
   candidateId: string
   candidateName: string
   roleId: string
@@ -112,27 +114,137 @@ function WeekTooltip({ active, payload, label }: { active?: boolean; payload?: {
 }
 
 type Tab = 'overview' | 'interviews' | 'recent'
+const NOT_RECORDED = '__none__'
+
+function RecruiterSummary({
+  recruiters,
+  submissions,
+  openRoles,
+  callsByUser,
+  nowWall,
+  in30,
+  since30,
+  onSelect,
+}: {
+  recruiters: DashRecruiter[]
+  submissions: DashSubmission[]
+  openRoles: DashRole[]
+  callsByUser: Record<string, number>
+  nowWall: string
+  in30: string
+  since30: string
+  onSelect: (id: string) => void
+}) {
+  const openIds = new Set(openRoles.map(r => r.id))
+  const people = [...recruiters]
+  if (submissions.some(s => !s.submittedBy)) people.push({ id: NOT_RECORDED, name: 'Not recorded' })
+  const rows = people.map(p => {
+    const mine = submissions.filter(s => (s.submittedBy ?? NOT_RECORDED) === p.id)
+    const reached = mine.filter(s => s.status === 'interview' || s.status === 'offer' || s.interviews.some(i => i.datetime)).length
+    return {
+      ...p,
+      total: mine.length,
+      last30: mine.filter(s => s.createdAt >= since30).length,
+      inPlay: new Set(mine.filter(s => openIds.has(s.roleId) && s.status !== 'rejected').map(s => s.candidateId)).size,
+      upcoming: mine.reduce((n, s) => n + s.interviews.filter(i => i.datetime && toWall(i.datetime) >= nowWall && toWall(i.datetime) <= in30).length, 0),
+      interviewRate: pct(reached, mine.length),
+      offers: mine.filter(s => s.status === 'offer').length,
+      calls: callsByUser[p.id] ?? 0,
+    }
+  }).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+
+  const total = {
+    total: rows.reduce((n, r) => n + r.total, 0),
+    last30: rows.reduce((n, r) => n + r.last30, 0),
+    upcoming: rows.reduce((n, r) => n + r.upcoming, 0),
+    offers: rows.reduce((n, r) => n + r.offers, 0),
+    calls: rows.reduce((n, r) => n + r.calls, 0),
+  }
+
+  const th = 'py-2 px-3 text-xs font-semibold uppercase tracking-wide text-gray-500'
+  return (
+    <Card title="Recruiter summary" right={<span className="text-xs text-gray-400">Click a recruiter to see only their data</span>}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className={cn(th, 'text-left pl-0')}>Recruiter</th>
+              <th className={cn(th, 'text-right')}>Submissions</th>
+              <th className={cn(th, 'text-right')}>Last 30 days</th>
+              <th className={cn(th, 'text-right')}>In play</th>
+              <th className={cn(th, 'text-right')}>Upcoming interviews</th>
+              <th className={cn(th, 'text-right')}>Sub → interview</th>
+              <th className={cn(th, 'text-right')}>Offers</th>
+              <th className={cn(th, 'text-right pr-0')}>Calls (7 days)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 tabular-nums">
+            {rows.map(r => (
+              <tr
+                key={r.id}
+                onClick={() => onSelect(r.id)}
+                className="cursor-pointer hover:bg-blue-50/60 transition-colors"
+              >
+                <td className="py-2.5 pr-3 font-medium text-gray-900">
+                  <button type="button" className="hover:text-[#2AA3FF] text-left">{r.name}</button>
+                </td>
+                <td className="py-2.5 px-3 text-right text-gray-900 font-semibold">{r.total}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{r.last30}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{r.inPlay}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{r.upcoming}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{r.interviewRate}</td>
+                <td className="py-2.5 px-3 text-right text-gray-700">{r.offers}</td>
+                <td className="py-2.5 pl-3 text-right text-gray-700">{r.calls}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-gray-200 font-semibold text-gray-900 tabular-nums">
+              <td className="py-2.5 pr-3">All recruiters</td>
+              <td className="py-2.5 px-3 text-right">{total.total}</td>
+              <td className="py-2.5 px-3 text-right">{total.last30}</td>
+              <td className="py-2.5 px-3 text-right text-gray-400">—</td>
+              <td className="py-2.5 px-3 text-right">{total.upcoming}</td>
+              <td className="py-2.5 px-3 text-right text-gray-400">—</td>
+              <td className="py-2.5 px-3 text-right">{total.offers}</td>
+              <td className="py-2.5 pl-3 text-right">{total.calls}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </Card>
+  )
+}
 
 export function RecruiterDashboardClient({
   scope,
   nowIso,
   openRoles,
-  submissions,
-  callsLast7,
+  submissions: allSubmissions,
+  callsByUser,
+  recruiters,
 }: {
   scope: 'mine' | 'team'
   nowIso: string
   openRoles: DashRole[]
   submissions: DashSubmission[]
-  callsLast7: number
+  callsByUser: Record<string, number>
+  recruiters: DashRecruiter[]
 }) {
   const [tab, setTab] = useState<Tab>('overview')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [view, setView] = useState<string>('all')
+  const submissions = useMemo(
+    () => (view === 'all' ? allSubmissions : allSubmissions.filter(s => (s.submittedBy ?? NOT_RECORDED) === view)),
+    [allSubmissions, view],
+  )
+  const callsLast7 = view === 'all' ? Object.values(callsByUser).reduce((a, b) => a + b, 0) : (callsByUser[view] ?? 0)
+  const viewName = view === NOT_RECORDED ? 'Not recorded' : recruiters.find(x => x.id === view)?.name
   const now = useMemo(() => new Date(nowIso), [nowIso])
   const nowWall = wall(now)
   const you = scope === 'mine'
 
-  const active = submissions.filter(s => s.roleActive)
+  const active = useMemo(() => submissions.filter(s => s.roleActive), [submissions])
 
   const kpi = useMemo(() => {
     const openIds = new Set(openRoles.map(r => r.id))
@@ -204,9 +316,30 @@ export function RecruiterDashboardClient({
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Recruitment Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          {you ? 'Your submissions, interviews and activity' : 'Team view — all recruiters’ submissions, interviews and activity'}
-        </p>
+        <div className="flex items-center justify-between gap-4 mt-1 flex-wrap">
+          <p className="text-gray-500">
+            {you
+              ? 'Your submissions, interviews and activity'
+              : view === 'all'
+                ? 'Team view — all recruiters’ submissions, interviews and activity'
+                : `Showing ${viewName ?? 'recruiter'}’s submissions, interviews and activity`}
+          </p>
+          {!you && (
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              View
+              <select
+                value={view}
+                onChange={e => { setView(e.target.value); setRoleFilter('all') }}
+                aria-label="Select recruiter"
+                className="glass-input px-3 py-2 rounded-lg text-sm min-w-[220px]"
+              >
+                <option value="all">All recruiters</option>
+                {recruiters.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                {allSubmissions.some(x => !x.submittedBy) && <option value={NOT_RECORDED}>Not recorded</option>}
+              </select>
+            </label>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-6">
@@ -239,6 +372,19 @@ export function RecruiterDashboardClient({
             <Kpi icon={Award} label="Submission → offer" value={kpi.offerRate} hint="Share of submissions that reached Offer" />
             <Kpi icon={PhoneCall} label="Calls logged (7 days)" value={callsLast7} hint={`${kpi.upcoming7} interview${kpi.upcoming7 === 1 ? '' : 's'} in the next 7 days`} />
           </div>
+
+          {!you && view === 'all' && (
+            <RecruiterSummary
+              recruiters={recruiters}
+              submissions={allSubmissions}
+              openRoles={openRoles}
+              callsByUser={callsByUser}
+              nowWall={nowWall}
+              in30={wall(new Date(now.getTime() + 30 * 86400000))}
+              since30={new Date(now.getTime() - 30 * 86400000).toISOString()}
+              onSelect={setView}
+            />
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
             <Card

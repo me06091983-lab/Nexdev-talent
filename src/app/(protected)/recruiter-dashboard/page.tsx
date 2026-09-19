@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   RecruiterDashboardClient,
+  type DashRecruiter,
   type DashRole,
   type DashSubmission,
 } from '@/components/recruiter-dashboard/RecruiterDashboardClient'
@@ -17,15 +19,15 @@ export default async function RecruiterDashboardPage() {
 
   let subsQuery = supabase
     .from('submissions')
-    .select('id, status, created_at, interviews, candidate:candidates(id, first_name, last_name), role:roles(id, title, status, deleted_at, client:clients(name))')
+    .select('id, status, created_at, submitted_by, interviews, candidate:candidates(id, first_name, last_name), role:roles(id, title, status, deleted_at, client:clients(name))')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (!isAdmin) subsQuery = subsQuery.eq('submitted_by', user?.id ?? '')
 
-  let callsQuery = supabase.from('candidate_calls').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo)
+  let callsQuery = supabase.from('candidate_calls').select('created_by').gte('created_at', weekAgo)
   if (!isAdmin) callsQuery = callsQuery.eq('created_by', user?.id ?? '')
 
-  const [{ data: rolesRaw }, { data: subsRaw }, { count: callsLast7 }] = await Promise.all([
+  const [{ data: rolesRaw }, { data: subsRaw }, { data: callsRaw }] = await Promise.all([
     supabase.from('roles').select('id, title, client:clients(name)').eq('status', 'active').is('deleted_at', null),
     subsQuery,
     callsQuery,
@@ -44,6 +46,7 @@ export default async function RecruiterDashboardPage() {
         id: s.id,
         status: s.status,
         createdAt: s.created_at,
+        submittedBy: s.submitted_by ?? null,
         candidateId: cand.id,
         candidateName: `${cand.first_name} ${cand.last_name}`,
         roleId: role.id,
@@ -57,13 +60,32 @@ export default async function RecruiterDashboardPage() {
     })
     .filter((s): s is DashSubmission => s !== null)
 
+  const callsByUser: Record<string, number> = {}
+  for (const c of callsRaw ?? []) {
+    if (c.created_by) callsByUser[c.created_by] = (callsByUser[c.created_by] ?? 0) + 1
+  }
+
+  let recruiters: DashRecruiter[] = []
+  if (isAdmin) {
+    const submitters = new Set(submissions.map(s => s.submittedBy).filter(Boolean))
+    const { data } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 })
+    recruiters = (data?.users ?? [])
+      .filter(u => u.app_metadata?.role !== 'admin' || submitters.has(u.id))
+      .map(u => {
+        const name = [u.user_metadata?.first_name, u.user_metadata?.last_name].filter(Boolean).join(' ').trim() || u.email || 'Unknown'
+        return { id: u.id, name: u.app_metadata?.role === 'admin' ? `${name} (admin)` : name }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
   return (
     <RecruiterDashboardClient
       scope={isAdmin ? 'team' : 'mine'}
       nowIso={now.toISOString()}
       openRoles={openRoles}
       submissions={submissions}
-      callsLast7={callsLast7 ?? 0}
+      callsByUser={callsByUser}
+      recruiters={recruiters}
     />
   )
 }
