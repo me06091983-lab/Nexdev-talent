@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { candidateVisibility } from '@/lib/candidateVisibility'
 
 export async function GET(request: NextRequest) {
   const q = new URL(request.url).searchParams.get('q')?.trim()
@@ -29,8 +30,9 @@ export async function GET(request: NextRequest) {
       .limit(3),
   ])
 
+  const canSee = await candidateVisibility(supabase)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const candidates = (candidatesRes.data ?? []).map((c: any) => ({
+  const candidates = (candidatesRes.data ?? []).filter(canSee).map((c: any) => ({
     id: c.id,
     name: `${c.first_name} ${c.last_name}`,
     email: c.email,

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { candidateVisibility } from '@/lib/candidateVisibility'
 
 const COLUMN_LABELS: Record<string, string> = {
   first_name: 'First name', last_name: 'Last name', email: 'Email', phone: 'Phone',
@@ -73,7 +74,8 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const candidates = data?.map((c) => ({
+  const canSee = await candidateVisibility(supabase)
+  const candidates = data?.filter(canSee).map((c) => ({
     ...c,
     skills: c.candidate_skills?.map((cs: { skill: unknown }) => cs.skill) ?? [],
   }))

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { candidateVisibility } from '@/lib/candidateVisibility'
 import { notFound } from 'next/navigation'
 import { CandidateDetail } from '@/components/candidates/CandidateDetail'
 
@@ -21,7 +22,7 @@ export default async function EditCandidatePage({
     .is('deleted_at', null)
     .single()
 
-  if (!candidate) notFound()
+  if (!candidate || !(await candidateVisibility(supabase))(candidate)) notFound()
 
   const initial = {
     ...candidate,

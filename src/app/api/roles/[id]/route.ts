@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (candidateIds.length === 1) {
       await admin
         .from('candidates')
-        .update({ candidate_status: 'angajat', successful: true })
+        .update({ successful: true })
         .in('id', candidateIds)
     }
   }

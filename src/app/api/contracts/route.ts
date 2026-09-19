@@ -151,12 +151,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: contractError.message }, { status: 500 })
   }
 
-  if (resolvedCandidateId) {
-    await supabase
-      .from('candidates')
-      .update({ candidate_status: 'angajat' })
-      .eq('id', resolvedCandidateId)
-  }
-
   return NextResponse.json(contract, { status: 201 })
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { candidateVisibility } from '@/lib/candidateVisibility'
 
 const COLUMN_LABELS: Record<string, string> = {
   first_name: 'First name', last_name: 'Last name', email: 'Email', phone: 'Phone',
@@ -46,6 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  if (!(await candidateVisibility(supabase))(data)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.json({
     ...data,

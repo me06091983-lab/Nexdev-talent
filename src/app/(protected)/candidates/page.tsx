@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { candidateVisibility } from '@/lib/candidateVisibility'
 import { CandidatesClient } from '@/components/candidates/CandidatesClient'
 
 export type CandidateRole = { role_id: string; role_title: string; status: string }
@@ -9,7 +10,8 @@ export type CandidateAiScoreMap = Record<string, number>
 export default async function CandidatesPage() {
   const supabase = await createClient()
 
-  const [{ data: candidates }, { data: profiles }, { data: submissions }, { data: aiScores }] = await Promise.all([
+  const [canSee, { data: candidates }, { data: profiles }, { data: submissions }, { data: aiScores }] = await Promise.all([
+    candidateVisibility(supabase),
     supabase
       .from('candidates')
       .select('*, profile:profiles(id, name), partner:partners(id, name), candidate_skills(skill:skills(id, name, category))')
@@ -46,7 +48,7 @@ export default async function CandidatesPage() {
     }
   }
 
-  const list = (candidates ?? []).map(c => ({
+  const list = (candidates ?? []).filter(canSee).map(c => ({
     ...c,
     skills:       c.candidate_skills?.map((cs: { skill: unknown }) => cs.skill) ?? [],
     partner_name: (c.partner as { name?: string } | null)?.name ?? null,

@@ -25,29 +25,6 @@ export async function GET(request: NextRequest) {
     .lt('end_date', today)
     .select('id, candidate_id')
 
-  // 2. Actualizează candidații fără contracte active → pasiv
-  const affectedCandidateIds = [...new Set((expired ?? []).map(c => c.candidate_id).filter(Boolean))]
-
-  const passivized: string[] = []
-  for (const candidateId of affectedCandidateIds) {
-    const { data: activeContracts } = await admin
-      .from('contracts')
-      .select('id')
-      .eq('candidate_id', candidateId)
-      .eq('contract_status', 'activ')
-
-    if (!activeContracts?.length) {
-      await admin
-        .from('candidates')
-        .update({ candidate_status: 'pasiv' })
-        .eq('id', candidateId)
-        .eq('candidate_status', 'angajat')
-      passivized.push(candidateId)
-    }
-  }
-
-  return NextResponse.json({
-    contracts_terminated: expired?.length ?? 0,
-    candidates_passivized: passivized.length,
-  })
+  // Candidate statuses follow automatically via the contracts_candidate_status DB trigger.
+  return NextResponse.json({ contracts_terminated: expired?.length ?? 0 })
 }

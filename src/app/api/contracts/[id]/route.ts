@@ -128,29 +128,5 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Actualizează statusul candidatului
-  if (data?.candidate_id) {
-    if (contract_status === 'terminat') {
-      const { data: activeContracts } = await supabase
-        .from('contracts')
-        .select('id')
-        .eq('candidate_id', data.candidate_id)
-        .eq('contract_status', 'activ')
-
-      if (!activeContracts?.length) {
-        await supabase
-          .from('candidates')
-          .update({ candidate_status: 'pasiv' })
-          .eq('id', data.candidate_id)
-          .eq('candidate_status', 'angajat')
-      }
-    } else if (contract_status === 'activ') {
-      await supabase
-        .from('candidates')
-        .update({ candidate_status: 'angajat' })
-        .eq('id', data.candidate_id)
-    }
-  }
-
   return NextResponse.json(data)
 }
