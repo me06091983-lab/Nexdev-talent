@@ -4,10 +4,11 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import {
-  Briefcase, Send, CalendarClock, Users, TrendingUp, Award, PhoneCall, Target, ChartPie, History, Clock3,
+  Briefcase, Send, CalendarClock, Users, TrendingUp, Award, PhoneCall, Target, ChartPie, History, Clock3, NotebookPen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { INTERVIEW_STATUS_OPTIONS, STATUS_COLORS } from '@/components/pipeline/InterviewPanel'
+import { AgendaTab, type AgendaInterview } from './AgendaTab'
 
 export interface DashRole { id: string; title: string; client: string | null }
 export interface DashRecruiter { id: string; name: string }
@@ -113,7 +114,7 @@ function WeekTooltip({ active, payload, label }: { active?: boolean; payload?: {
   )
 }
 
-type Tab = 'overview' | 'interviews' | 'recent'
+type Tab = 'overview' | 'agenda' | 'interviews' | 'recent'
 const NOT_RECORDED = '__none__'
 
 function RecruiterSummary({
@@ -301,6 +302,14 @@ export function RecruiterDashboardClient({
     }
   }, [submissions, now, nowWall])
 
+  const agendaInterviews: AgendaInterview[] = useMemo(
+    () => submissions.flatMap(s => s.interviews.filter(i => i.datetime).map(i => {
+      const w = toWall(i.datetime!)
+      return { date: w.slice(0, 10), time: w.slice(11, 16), label: i.label, status: i.status, candidateId: s.candidateId, candidateName: s.candidateName, roleTitle: s.roleTitle }
+    })),
+    [submissions],
+  )
+
   const recent = useMemo(() => {
     const since = new Date(now.getTime() - 7 * 86400000).toISOString()
     return submissions.filter(s => s.createdAt >= since).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -308,6 +317,7 @@ export function RecruiterDashboardClient({
 
   const tabs: { key: Tab; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'overview', label: 'Overview', icon: ChartPie },
+    { key: 'agenda', label: 'Agenda', icon: NotebookPen },
     { key: 'interviews', label: 'Interview activity', icon: CalendarClock, count: interviews.upcoming.length },
     { key: 'recent', label: 'Submitted last 7 days', icon: Send, count: recent.length },
   ]
@@ -459,6 +469,8 @@ export function RecruiterDashboardClient({
           </div>
         </div>
       )}
+
+      {tab === 'agenda' && <AgendaTab today={nowWall.slice(0, 10)} interviews={agendaInterviews} />}
 
       {tab === 'interviews' && (
         <div className="space-y-5">
